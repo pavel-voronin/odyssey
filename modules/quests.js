@@ -1,5 +1,6 @@
 import {knownArea} from '../actor-atlas.js';
 import {scentPlantKnown} from './pet-scent-policy.js';
+import {recordValueOutcome,promiseBreachChance} from './value-revision.js';
 import {goodsEnabled,takeGoods,putGoods} from './goods.js';
 import {rememberRescue} from './camp-life.js';
 import {rememberPromise,commitmentQuestBias} from './commitments.js';
@@ -131,6 +132,7 @@ const OLD_ABANDON_REASON='Другие дела изменили планы. Г�
 export function abandonQuest(s,q,ctx,reason=OLD_ABANDON_REASON,{retainCargo=false}={}){
   if(q.status!=='active')return false;
   q.status='abandoned';q.failed=s.tick;q.failure=reason;
+  recordValueOutcome(s,q,'brokenPromise',ctx);
   if(!retainCargo)hCleanup(s,q);if(s.hero.goal?.quest===q.id)s.hero.goal=null;
   if(q.offer){s.hero.memory.refusedOffers ||= {};s.hero.memory.refusedOffers[q.offer]=s.tick+2400;}
   moral(s,-1);repute(s,s.areas[q.source]?.faction,-2);ctx.log(s,`«${q.title||QUEST_NAMES[q.kind]}»: герой больше не собирается этим заниматься.${reason===OLD_ABANDON_REASON?'':' '+reason}`,'choice');return true;
@@ -156,7 +158,7 @@ export function questAction(s,q,ctx){
     if(person?.alive===false){failQuest(s,q,ctx,'Адресат письма умер.');return;}
     if(person?.area&&person.area!==a.id){q.target=person.area;h.goal=null;ctx.log(s,`Адресат переехал: ${person.name} теперь в ${s.areas[person.area].name}. Герой меняет маршрут.`,'talk');return;}
     if(['travelling','wandering','caravan'].includes(person?.status)){h.goal=null;h.memory.refusedOffers ||= {};ctx.log(s,'Адресат ещё в дороге. Герой подождёт следующей встречи.','talk');return;}
-    if(h.alignment<-35&&profile(h).skill==='steal'&&moduleRandom(s,'quests')<.3){h.gold+=20;moral(s,-8);repute(s,s.areas[q.source].faction,-6);failQuest(s,q,ctx,'Герой продал чужое письмо вместо доставки.');return;}
+    if(h.alignment<-35&&profile(h).skill==='steal'&&moduleRandom(s,'quests')<promiseBreachChance(s)){h.gold+=20;moral(s,-8);repute(s,s.areas[q.source].faction,-6);q.promiseBreach={kind:'sold-letter',tick:s.tick,actor:h.lineage};failQuest(s,q,ctx,'Герой продал чужое письмо вместо доставки.');recordValueOutcome(s,q,'brokenPromise',ctx);return;}
     q.delivered=true;meetPerson(s,q.recipient,ctx,5);hCleanup(s,q);ctx.log(s,`${person?.name||'Адресат'} получает письмо. Две семьи снова знают друг о друге.`,'delivery');
   }else if(q.kind==='supply'){
     if(q.cargo)return;
@@ -198,6 +200,7 @@ export function finishQuest(s,q,ctx){
     const p=s.people[q.person];p.status='resident';p.area=q.source;source.population ||= [];if(!source.population.includes(p.id))source.population.push(p.id);
     if(!source.objects.some(o=>o.person===p.id))source.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:48});
     c.missing=(c.missing||[]).filter(id=>id!==p.id);recruitPerson(s,p.id,ctx,p.role!=='ребёнок');
+    recordValueOutcome(s,q,'rescue',ctx);
   }
   h.social.fame++;moral(s,3);repute(s,source.faction,5);source.prosperity=Math.min(100,(source.prosperity||50)+6);
   if(s.people[q.giver]?.area===h.area){meetPerson(s,q.giver,ctx,5);recruitPerson(s,q.giver,ctx);}

@@ -1,4 +1,5 @@
 import {enabled} from '../rules.js';
+import {valueRevisionBias} from './value-revision.js';
 import {profile} from './common.js';
 import {questServiceBlocked} from './service-access.js';
 import {reentryReason} from './delve-attempts.js';
@@ -18,7 +19,7 @@ function kin(s,id){
 }
 export function questMeaning(s,q,ready=false){
  const h=s.hero,trust=h.relations[q.giver]?.trust||0,skill=profile(h).skill;
- let importance=15+h.personality.generosity*18+Math.max(-10,Math.min(20,trust*.25))+Math.min(8,(q.reward||0)/16);
+ let importance=15+h.personality.generosity*18+Math.max(-10,Math.min(20,trust*.25))+Math.min(8,(q.reward||0)/16)+valueRevisionBias(s,q);
  const family=kin(s,q.giver)||kin(s,q.person);if(family)importance+=24;
  if(q.kind==='rescue')importance+=18;
  if(q.kind==='medicine')importance+=12;

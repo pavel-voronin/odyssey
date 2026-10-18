@@ -1,4 +1,5 @@
 import {enabled} from '../rules.js';
+import {recordValueOutcome} from './value-revision.js';
 import {areaOffset,physicalDistance} from '../geometry.js';
 import {moral,repute} from './common.js';
 import {canPayRansom} from './rescue-choice.js';
@@ -87,7 +88,8 @@ export function rescueAction(s,ctx){
 export function finishDungeonRescue(s,q,ctx){
  if(q.status!=='active'||!s.hero.quests.includes(q)||!dungeonRescueReady(s,q))return false;
  const h=s.hero,p=s.people[q.person],a=s.areas[h.area];q.status='done';q.completed=s.tick;q.rescued=true;q.dungeonRescue.stage='arrived';q.dungeonRescue.exitedAt=p.rescueFlight.arrivedAt;rememberRescue(s,q);ctx.gainXp(s,12);meetPerson(s,p.id,ctx,10);h.social.fame++;moral(s,3);if(a.faction)repute(s,a.faction,5);h.lastAction='talk';
- if(a.civic&&q.offer&&!a.civic.completedOffers.includes(q.offer))a.civic.completedOffers.push(q.offer);
+  recordValueOutcome(s,q,'rescue',ctx);
+  if(a.civic&&q.offer&&!a.civic.completedOffers.includes(q.offer))a.civic.completedOffers.push(q.offer);
  if(h.delve?.root===q.target){finishDelve(s,'rescued');h.delve=null;h.memory.delveAfter=s.tick+650;}
  ctx.log(s,`${p.name} живым дошёл до условленного места. Спасение завершено без награды за зачистку; непотревоженные стражи и сокровища остались под землёй.`,'rescue');s.changes.push({tick:s.tick,text:`${p.name} вышел из подземелья с помощью ${h.name}.`});h.goal=null;return true;
 }

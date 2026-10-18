@@ -10,6 +10,7 @@ import {landmarksHTML} from './landmark-view.js';
 import {injurySummary} from './modules/injury-state.js';
 import {bestiaryHTML} from './modules/bestiary.js';
 import {petTrainingHTML} from './modules/pet-training.js';
+import {valueRevisionHTML} from './modules/value-revision.js';
 import {fordLabel,fordsHTML} from './ford-view.js';
 import {marketKnowledgeHTML} from './market-knowledge-sheet.js';
 import {skillBranchesHTML} from './skill-branches-sheet.js';
@@ -180,6 +181,7 @@ function enrichSheet(){
     if(principle)$('detail-panel').insertAdjacentHTML('afterbegin',`<div class="habit"><b>Личный принцип · проверить чужую вину</b><p>${principle.status==='adopted'?'Принят. При возможности ищет вторую известную улику.':principle.status==='rejected'?'Не принят. Прежний взгляд сохранился.':'Обдумывает пережитое: осталось '+principle.remaining+' действий.'}</p><p>${escape(principle.sources.at(-1)?.name||'Обвинённый')}: ${principle.sources.at(-1)?.kind==='report'?'свидетель сообщил сведения против приговора; пересказ требует проверки.':'лично узнанное основание пересмотреть приговор.'}</p></div>`);
   }
   if(tab==='hero'||tab==='log'&&!logLife)$('detail-panel').insertAdjacentHTML('afterbegin',causalHistoryHTML(state,escape,e=>eventDate(e,true)));
+  if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',valueRevisionHTML(state,escape,e=>eventDate(e,true)));
   if(tab==='hero'&&enabled(state,'craft-practice')&&!(enabled(state,'skill-branches')&&enabled(state,'identity'))){
     const practice=state.people[state.hero.lineage]?.skillPractice?.craft;
     if(practice)$('detail-panel').insertAdjacentHTML('afterbegin',`<div class="habit"><b>Ремесленная практика · ${practice.total} настоящих восстановлений</b><p>${practice.method?'Освоено: подгонка рабочей детали. Материальный ремонт требует два рабочих действия вместо трёх.':practice.study?'Учёба: осталось '+practice.study.remaining+' действий.':practice.total>=3?'Опыт позволяет изучить приём у доступного верстака. Герой сам решит, когда учиться.':'До самостоятельного изучения приёма нужны три разных завершённых восстановления.'}</p></div>`);

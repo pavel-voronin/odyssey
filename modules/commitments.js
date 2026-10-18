@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {equipmentPrice} from './prices.js';
 import {maySpend,needsIncome} from './finances.js';
 import {innerPerspective} from './inner-life.js';
+import {valueRevisionBias} from './value-revision.js';
 import {questMeaning,stableCommitmentDecision,adoptPersonalPlan} from './intention-choice.js';
 import {startCausalHistory,causalDecision,causalOutcome} from './causal-history.js';
 
@@ -38,13 +39,13 @@ export function commitmentTick(s,ctx){
 export function promiseWeight(s,q,ready=false){
   if(!q)return 0;
   const h=s.hero,trust=h.relations[q.giver]?.trust||0;
-  return 10+h.personality.generosity*22+Math.max(-10,Math.min(15,trust*.2))+(q.kind==='rescue'?12:0)+(q.deadline&&q.deadline-s.tick<180?24:0)+(ready?100:0);
+  return 10+h.personality.generosity*22+Math.max(-10,Math.min(15,trust*.2))+(q.kind==='rescue'?12:0)+(q.deadline&&q.deadline-s.tick<180?24:0)+(ready?100:0)+valueRevisionBias(s,q);
 }
 export function commitmentQuestBias(s,q){
   if(!enabled(s,'commitments'))return 0;
   const h=s.hero,p=h.commitments?.personal;
   const trust=h.relations[q.giver]?.trust||0;
-  return Math.max(-3,Math.min(5,trust/10))+(p?.status==='active'&&['wolves','relic','rescue'].includes(q.kind)?-(1-h.personality.courage)*10:0);
+  return Math.max(-3,Math.min(5,trust/10))+(p?.status==='active'&&['wolves','relic','rescue'].includes(q.kind)?-(1-h.personality.courage)*10:0)+valueRevisionBias(s,q);
 }
 function assessPreparation(s,q,ready){
   const h=s.hero,p=h.commitments.personal;
