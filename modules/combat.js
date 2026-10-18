@@ -1,3 +1,4 @@
+import {woundForce} from './wound-state.js';
 import {cacheItems} from './item-originals.js';
 import {partyAvailable} from './party-needs.js';
 import {aggregatePartyAttack} from './party-combat-state.js';
@@ -23,6 +24,7 @@ export function combatAttack(s, enemy, raw, ctx,style=null) {
   if (hasCondition(h, 'inspiration')) damage += 2;
   if (hasCondition(h, 'curse')) damage = Math.max(1, damage - 2);
   damage=styleDamage(damage,weaponStylesOn(s)?style:null);
+  damage=Math.max(1,Math.floor(damage*woundForce(s)));
   damage += aggregatePartyAttack(s);
   if (activePower(s, enemy, 'armored') && skill !== 'magic') damage = Math.max(1, damage - 3);
   if (activePower(s, enemy, 'temporal') && skill !== 'time' && ctx.random(s) < .22) {

@@ -1,3 +1,4 @@
+import {woundForce} from './wound-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {npcController} from './npc-control.js';
@@ -56,5 +57,5 @@ export function planPartyCombat(s,e,{skipResponse=false}={}){
  }
  const pair=planPairCombat(s,e,members,{skipResponse,coverRisk:knownReply(s,e)*PARTY_COMBAT_POLICY.coverShare});
  // A real urgent dressing by either member takes precedence over practice.
- return pair.length&&!plan.some(a=>a.kind==='heal'&&pair.some(p=>p.person===a.person))?[...pair,...plan.filter(a=>!pair.some(p=>p.person===a.person)&&a.kind!=='cover')]:plan;
+ return (pair.length&&!plan.some(a=>a.kind==='heal'&&pair.some(p=>p.person===a.person))?[...pair,...plan.filter(a=>!pair.some(p=>p.person===a.person)&&a.kind!=='cover')]:plan).map(a=>a.attack===undefined?a:{...a,attack:Math.max(1,Math.floor(a.attack*woundForce(s,s.people[a.person])))});
 }

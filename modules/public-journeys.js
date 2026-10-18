@@ -9,7 +9,7 @@ import {observeFreightActor} from './freight-memory.js';
 import {canStartNPCActivity,npcAction,markNPCDeparture} from './npc-control.js';
 import {reserveRoadSupplies,roadNeeds} from './road-needs.js';
 import {recordDangerContact} from './danger-contact.js';
-import {recordLastingInjury} from './injury-state.js';
+import {recordLastingInjury} from './injury-events.js';
 import {encounterBestiary} from './bestiary.js';
 
 export function availablePublicTraveller(s,p,a){

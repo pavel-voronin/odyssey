@@ -1,3 +1,4 @@
+import {validateWounds} from './modules/wound-schema.js';
 import {validatePositions} from './modules/position-schema.js';
 import {validateGuardians} from './modules/guardian-schema.js';
 import {validateShortcuts} from './modules/shortcut-schema.js';
@@ -152,7 +153,7 @@ export function validateSave(s){
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

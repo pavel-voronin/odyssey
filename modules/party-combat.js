@@ -1,3 +1,4 @@
+import {woundActivity} from './wound-state.js';
 import {actorFact,companionKey} from '../actor-facts.js';
 import {npcAction} from './npc-control.js';
 import {consumeCarriedSupplies} from './stores.js';
@@ -25,7 +26,7 @@ export function partyCombatTurn(s,e,ctx){
   if(!npcAction(s,p,'party','combat'))continue;
   const action=p.partyCombat={version:1,tick:s.tick,enemy:e.id,leader:h.lineage,action:choice.kind,target:choice.target,energy:choice.energy,medicine:0,healed:0,damage:0,intercepted:0,reason:choice.reason};
   if(choice.pair)action.pair={started:choice.pair.started,partner:p.id===choice.pair.guard?choice.pair.striker:choice.pair.guard,phase:choice.pair.phase};
-  round.people.push(p.id);p.needs.energy=Math.max(0,p.needs.energy-choice.energy);
+  woundActivity(s,p,'arm');round.people.push(p.id);p.needs.energy=Math.max(0,p.needs.energy-choice.energy);
   if(choice.kind==='heal'){
    // The earlier check and claim are synchronous: no other body can spend this
    // finite stock between validation and this one actual operation.

@@ -1,3 +1,6 @@
+import {woundsTick} from './modules/wound-world.js';
+import {woundActivity} from './modules/wound-state.js';
+import {recordPersonRemains} from './modules/remains.js';
 import {positionPlan,positionAction,observePositions,finishPositionTurn} from './modules/position-actions.js';
 import {syncCoverPosition} from './modules/position-state.js';
 import {guardianPlan,guardianAction} from './modules/guardian-actions.js';
@@ -45,7 +48,7 @@ import {moneyCachePlan,moneyCacheAction} from './modules/money-caches.js';
 import {openInheritance} from './modules/inheritance.js';
 import {observeRouteMap,routeMapPlan,routeMapAction} from './modules/route-maps.js';
 import {mapCopyPlan,mapCopyAction} from './modules/map-copies.js';
-import {recordLastingInjury} from './modules/injury-state.js';
+import {recordLastingInjury} from './modules/injury-events.js';
 import {creatureTrace,observeBestiaryTraces,encounterBestiary,bestiaryCaution,studyBestiaryPlan,studyBestiaryAction} from './modules/bestiary.js';
 import {grateClosed,knownGrateBlocked} from './modules/mechanism-policy.js';
 import {blockedGratePlan,mechanismAction} from './modules/mechanisms.js';
@@ -594,16 +597,17 @@ function enemyResponse(s,enemy){
   if(partyCombatOn(s)&&h.partyCombat?.tick===s.tick&&h.partyCombat.enemy===enemy.id&&h.partyCombat.replied)return;
   if(!partyCombatPhase(s,enemy))return;
   const phase=enemy.battle?.intent||'idle';
+  const physicalWound=!(enabled(s,'mutations')&&enemy.mutation==='mirror'&&enemy.battle?.echo>0);
   const raw=enemyReply(s,enemy,enemy.attack+roll(s,4),context(s,'combat'));
   encounterBestiary(s,s.people[h.lineage],enemy);
   observeWeaponReply(s,enemy,phase);
   if(!raw){partyCoverDamage(s,enemy,0,{...context(s,'combat'),hurtCompanion});enemyRecovery(s,enemy,h.lastAction!=='windup'&&(profile(h).skill==='magic'||h.lastAction==='spell'));h.lastDamage=0;rememberCombatReply(s,enemy,0,phase);return;}
   const total=combatResponse(s,enemy,Math.max(1,raw-legacyArmorDefense(h)),context(s,'combat'));
-  const {received,excluded}=partyCoverDamage(s,enemy,total,{...context(s,'combat'),hurtCompanion});
+  const {received,excluded}=partyCoverDamage(s,enemy,total,{...context(s,'combat'),physicalWound,hurtCompanion});
   actorFact(s,'attack',enemy.id,'hero');
   if(received>0)actorFact(s,'hurt','hero',enemy.id,received);
-  partyHurt(s,received,context(s,'party-danger'),excluded);const hpBefore=h.hp;h.hp-=received;h.lastDamage=received;
-  recordLastingInjury(s,s.people[h.lineage],enemy,{before:hpBefore,after:h.hp,maximum:h.maxHp,area:h.area,controller:'actor'},context(s,'lasting-injuries'));
+  partyHurt(s,received,{...context(s,'party-danger'),physicalWound},excluded);const hpBefore=h.hp;h.hp-=received;h.lastDamage=received;
+  recordLastingInjury(s,s.people[h.lineage],enemy,{before:hpBefore,after:h.hp,maximum:h.maxHp,area:h.area,controller:'actor',physical:physicalWound},context(s,'lasting-injuries'));
   wearArmorHit(s,enemy,received,hpBefore,context(s,'item-wear'));
   rememberCombatReply(s,enemy,received,phase);
   log(s,`${enemy.name} отвечает: −${received} HP.`,'combat',h.area,{meaning:eventMeaning(s,'strike',{actor:enemyReference(enemy),target:actorReference(h),amount:received})});if(h.hp<=0)die(s,enemy,{kind:'battle',damage:received,hpBefore});pairCombatTick(s);
@@ -631,6 +635,13 @@ function npcVictory(s,a,enemy,p){
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
+  woundsTick(s,{bleed(p,h,amount){
+   if(h){const view=actorView(s,h);h.hp=Math.max(0,h.hp-amount);if(h.hp===0)die(view,{kind:'condition',name:'Кровопотеря из незакрывшейся раны'});syncActiveActor(view);return;}
+   const leader=detailedActors(s).find(h=>h.alive&&h.companions.some(c=>c.person===p.id)),c=leader?.companions.find(c=>c.person===p.id);
+   p.health=Math.max(0,p.health-amount);
+   if(p.health===0){p.deathCause='Кровопотеря из незакрывшейся раны';if(c){const view=actorView(s,leader);hurtCompanion(view,c,c.hp,context(view,'local-wounds'),'bleeding');}else{p.alive=false;p.status='dead';p.died=s.tick;recordPersonRemains(s,p);}}
+   else if(c)c.hp=Math.max(1,Math.ceil(c.maxHp*p.health/(p.maxHealth||100)));
+  }});
   waitingPackPetsTick(s);
   leverTeamTick(s,context(s,'mechanisms'));
   biomaterialTick(s);
@@ -706,7 +717,7 @@ export function advanceWorld(s) {
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
   const castsBefore=h.magic.casts;
-  try{actObserved(view);finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;

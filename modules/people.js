@@ -1,3 +1,4 @@
+import {woundStride,woundForce,woundActivity} from './wound-state.js';
 import {observeShortcutPerson} from './shortcut-observation.js';
 import {isShortcut} from './shortcut-state.js';
 import {pactLeaderTurn} from './branch-pacts.js';
@@ -178,7 +179,7 @@ function moveTask(s,p,ctx){
     tell(s,p,`${p.name} отказывается идти через живую угрозу и меняет план.`,ctx);p.agenda.task=null;p.agenda.due=s.tick+96;p.status=t.migration?'wandering':'resident';return false;
   }
   if(escape)p.rescueFlight.blocked=null;
-  if(Math.abs(p.x-x)*areaScale(s.areas[p.area])>1){if(navigationNPCStep(s,p,x,ctx)){objectAt(s,p);return false;}p.x+=areaStep(s.areas[p.area],p.x,x,6);objectAt(s,p);return false;}
+  if(Math.abs(p.x-x)*areaScale(s.areas[p.area])>1){if(navigationNPCStep(s,p,x,ctx)){objectAt(s,p);return false;}p.x+=areaStep(s.areas[p.area],p.x,x,6*woundStride(s,p));woundActivity(s,p,'leg');objectAt(s,p);return false;}
   if(next){const arrival=passage?.arrival??(x===100?5:95),r=passage?{status:'clear'}:npcFordGate(s,p,next,arrival,t,t.target,fordCargo);if(r.status==='clear')locate(s,p,next,arrival);else if(r.status==='arrived')locate(s,p,r.crossing.to,r.crossing.arrivalX);else if(r.status==='bypass')t.fordDetour={target:t.target,path:r.path};else if(['defer','unavailable','aborted'].includes(r.status)){p.agenda.task=null;p.agenda.due=s.tick+8;p.status=t.migration?'wandering':'resident';}return false;}
   return true;
 }
@@ -329,6 +330,8 @@ export function peopleTick(s,ctx){
     if(goodsEnabled(s)&&(['farm','rawGather'].includes(p.agenda.task.kind)||p.agenda.task.kind==='work'&&p.agenda.job==='artisan')){goodsWorkReceipt(s,p,p.agenda.task);p.needs.energy=Math.max(0,p.needs.energy-2);}
     if(p.agenda.task.kind==='toolMend'&&p.needs)p.needs.energy=Math.max(0,p.needs.energy-2);
     if(p.agenda.task.kind==='patrol'&&enabled(s,'npc-watch-needs')&&enabled(s,'npc-needs'))p.needs.energy=Math.max(0,p.needs.energy-2);
+    woundActivity(s,p,['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind)?'arm':'body',p.agenda.task.kind==='rest');
+    if(['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind))p.needs.energy=Math.max(0,p.needs.energy-2*(1/woundForce(s,p)-1));
     p.agenda.task.remaining--;if(p.agenda.task.remaining<=0)finish(s,p,ctx);
   }
 }

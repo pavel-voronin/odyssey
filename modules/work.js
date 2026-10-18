@@ -1,3 +1,4 @@
+import {woundForce,woundActivity} from './wound-state.js';
 import {containersOn} from './container-state.js';
 import {loadPackCargo,spillPackCargo} from './container-cargo.js';
 import {knownArea} from '../actor-atlas.js';
@@ -71,7 +72,7 @@ export function workTick(s,ctx){
   if(denyService(s,ctx,'employment',{job:job.id})){h.goal=null;h.workAfter=s.tick+48;return;}
   rememberWorkplace(s,g);
   if(goodsEnabled(s)&&job.id==='harvest')goodsWorkReceipt(s,s.people[h.lineage],g,job.duration);
-  g.remaining--;h.energy=Math.max(0,h.energy-2);h.lastAction='work';h.speech=job.name+'…';
+  g.remaining--;h.energy=Math.max(0,h.energy-2/woundForce(s));h.lastAction='work';woundActivity(s,s.people[h.lineage],'arm');h.speech=job.name+'…';
   if(g.remaining<=0){
     const site=job.id==='repair'?workshopSite(s,h.area):null,workArea=site?.area||s.areas[h.area],employer=workArea.civic,harvest=goodsEnabled(s)&&job.id==='harvest'?completeGoodsWork(s,s.areas[h.area],g.goodsWork,{units:8}):null;
     const pay=goodsEnabled(s)?harvest&&!harvest.quantity?0:Math.min(job.pay,Math.max(0,employer?.treasury||0)):job.pay;

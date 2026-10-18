@@ -1,3 +1,4 @@
+import {woundForce} from './wound-state.js';
 import {coverBlocks,positionedEnemy} from './position-state.js';
 import {physicalDistance} from '../geometry.js';
 import {wardDamage} from './guardian-state.js';
@@ -53,6 +54,7 @@ export function weaponDamageRange(s,e,style=null){
  let max=min+3;
  if(hasCondition(h,'curse')){min=Math.max(1,min-2);max=Math.max(1,max-2);}
  min=styleDamage(min,weaponStylesOn(s)?style:null);max=styleDamage(max,weaponStylesOn(s)?style:null);
+ min=Math.max(1,Math.floor(min*woundForce(s)));max=Math.max(1,Math.floor(max*woundForce(s)));
  const help=aggregatePartyAttack(s);min+=help;max+=help;
  if(activePower(s,e,'armored')&&p.skill!=='magic'){min=Math.max(1,min-3);max=Math.max(1,max-3);}
  const curse=enchantmentStrength(h,'curse'),spirit=enchantmentStrength(h,'spirit');min+=curse;max+=curse;

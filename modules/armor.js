@@ -1,3 +1,4 @@
+import {woundStride} from './wound-state.js';
 import {practicalClothingOn,clothingKind,clothingWalkExtra,clothingPreference,clothingSituation} from './clothing-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -6,7 +7,7 @@ const active=h=>h.ruleFlags?.['armor-balance']!==false&&h.ruleFlags?.equipment!=
 const heavy=item=>['mail','доспех'].includes(item?.base||String(item?.name||'').split(':')[0]);
 export function armorExtra(h,item=h.equipment?.armor){return active(h)&&itemWorking(item)&&item.slot==='armor'&&item.stat==='defense'&&heavy(item)?2:0;}
 export function armorWalkExtra(s,item=s.hero.equipment?.armor){return enabled(s,'armor-balance')&&enabled(s,'equipment')&&item?.slot==='armor'&&heavy(item) ? .4 : 0;}
-export function walkingEnergy(s,weather){return Math.max(.3,.7+armorWalkExtra(s)+clothingWalkExtra(s,s.hero.equipment?.armor,weather))*weather.energy;}
+export function walkingEnergy(s,weather){return Math.max(.3,.7+armorWalkExtra(s)+clothingWalkExtra(s,s.hero.equipment?.armor,weather))*weather.energy/woundStride(s);}
 // The legacy leather rating is an underlay/fallback, not a second copy of the
 // physical armor currently equipped. Preserve its stored ownership on removal.
 export function legacyArmorDefense(h){return active(h)&&itemWorking(h.equipment?.armor)?0:(h.armor||0)*2;}

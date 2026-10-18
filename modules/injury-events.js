@@ -1,0 +1,3 @@
+import {recordLastingInjury as recordScar} from './injury-state.js';
+import {recordLocalWound} from './wound-events.js';
+export function recordLastingInjury(s,p,e,receipt,ctx){const mark=recordScar(s,p,e,receipt,ctx),prior=p?.localWounds?.serial||0,w=recordLocalWound(s,p,e,{...receipt,scarPart:mark?.part});if(w&&w.id>prior&&s.hero.lineage===p.id)ctx?.log?.(s,`${p.name}: ${w.kind==='cut'?'порез':'ушиб'} — ${w.label}. ${w.kind==='cut'?'Рана должна закрыться, затем восстановится функция.':'Подвижность восстановится со временем.'}`,'condition');return mark;}

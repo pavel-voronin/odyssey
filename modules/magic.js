@@ -1,3 +1,4 @@
+import {woundFocus} from './wound-state.js';
 import {stoneFunding,spendSpellFunding} from './waystone-state.js';
 import {actorFact} from '../actor-facts.js';
 import { SPELLS } from '../content.js';
@@ -26,7 +27,7 @@ export function teachSpell(s,id,ctx,source='Обучение'){
 }
 export function magicRest(s){if(enabled(s,'magic'))s.hero.magic.mana=Math.min(s.hero.magic.maxMana,s.hero.magic.mana+4);}
 export function availableCombatSpells(s){
-  const h=s.hero,m=h.magic;if(!enabled(s,'magic')||!m)return [];
+  const h=s.hero,m=h.magic;if(!enabled(s,'magic')||!m||!woundFocus(s))return [];
   const time=enchantmentStrength(h,'time');
   return m.spells.map(id=>SPELLS.find(spell=>spell.id===id)).filter(Boolean).map(spell=>{const total=Math.max(1,spell.mana-time),funding=stoneFunding(s,h,total);return {...spell,totalManaCost:total,waystoneCost:funding.charge,waystoneItem:funding.item,manaCost:funding.mana,cooldownTicks:Math.max(1,spell.cooldown-time),effectPower:spell.power+Math.floor(stat(h,'wit')/2)+itemBonus(h,'magic')+(enabled(s,'lineage')&&h.race==='dragonkin'?3:0)};}).filter(spell=>spell.manaCost<=m.mana&&(m.cooldowns?.[spell.id]||0)<=s.tick&&(!['ward','cleanse'].includes(spell.kind)||enabled(s,'body')));
 }

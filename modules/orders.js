@@ -1,3 +1,4 @@
+import {woundForce,woundActivity} from './wound-state.js';
 import {commissionedOn,commissionGuard,guardWeapon,commissionedWalk,finishCommission,commissionReports} from './commissioned-orders.js';
 import {wearOwnedItem} from './item-condition.js';
 import {physicalDistance,areaOffset} from '../geometry.js';
@@ -10,7 +11,7 @@ import {watchNeedsActive,provisionWatch,watchNeeds,watchNote} from './watch-need
 import {recordDangerContact,guardSafetyAdvice} from './danger-contact.js';
 import {walkCampOrder} from './camp-route.js';
 import {beginWatchDuty,spendWatchDuty,canHoldWatch,relieveWatch} from './watch-duty.js';
-import {recordLastingInjury} from './injury-state.js';
+import {recordLastingInjury} from './injury-events.js';
 import {encounterBestiary} from './bestiary.js';
 
 export function sendGuards(s,source,crisis,ctx){
@@ -22,11 +23,11 @@ export function sendGuards(s,source,crisis,ctx){
   if(enabled(s,'npc-watch-needs'))watchNote(s,s.people[id],text,ctx,'orders');else ctx.log(s,text,'orders');return true;
 }
 function guardReply(s,order,p,enemy,source,target,ctx){
-  const before=p.health;
+  const before=p.health,physical=!(enabled(s,'mutations')&&enemy.mutation==='mirror'&&enemy.battle?.echo>0);
   const reply=enemyReply(s,enemy,enemy.attack+Math.floor(moduleRandom(s,'npc-combat')*3)+(enabled(s,'enemies')&&enemy.powers?.includes('fury')&&enemy.hp<enemy.maxHp*.35?3:0),{...ctx,combatArea:target.id},p);p.health=Math.max(0,p.health-reply);
   recordDangerContact(s,p,enemy,reply,'orders');
   if(p.health>0)encounterBestiary(s,p,enemy);
-  recordLastingInjury(s,p,enemy,{before,after:p.health,maximum:p.maxHealth||100,area:target.id,controller:'orders'},ctx);
+  recordLastingInjury(s,p,enemy,{before,after:p.health,maximum:p.maxHealth||100,area:target.id,controller:'orders',physical},ctx);
   if(enabled(s,'npc-watch-needs')&&reply>0)actorFact(s,'hurt',p.id,enemy.id,reply);
   if(enabled(s,'enemies')&&enemy.powers?.includes('regrowth'))enemy.hp=Math.min(enemy.maxHp,enemy.hp+2);
   if(p.health!==0)return;
@@ -99,7 +100,7 @@ export function ordersTick(s,ctx){
     if(needs.blocked){guardReply(s,order,p,enemy,source,target,ctx);continue;}
     spendWatchDuty(s,p,holding?'hold':'fight',holding?3:2);
     const armored=enabled(s,'enemies')&&enemy.powers?.includes('armored');
-    const hit=enemyDamage(s,enemy,Math.max(1,(order.commission?3+Math.min(6,guardWeapon(s,p,order.commission.weapon)?.power||0):p.attack)+Math.floor(moduleRandom(s,'npc-combat')*4)-(armored?3:0)),'physical',ctx,s.hero.area===target.id);enemy.hp-=hit;
+    woundActivity(s,p,'arm');const hit=enemyDamage(s,enemy,Math.max(1,woundForce(s,p)*((order.commission?3+Math.min(6,guardWeapon(s,p,order.commission.weapon)?.power||0):p.attack)+Math.floor(moduleRandom(s,'npc-combat')*4)-(armored?3:0))),'physical',ctx,s.hero.area===target.id);enemy.hp-=hit;
     if(order.commission&&hit>0)wearOwnedItem(s,guardWeapon(s,p,order.commission.weapon),p.id,'attack',enemy.id,ctx);
     actorFact(s,'attack',p.id,enemy.id);if(hit>0)actorFact(s,'hurt',enemy.id,p.id,hit);
     if(enemy.hp<=0){

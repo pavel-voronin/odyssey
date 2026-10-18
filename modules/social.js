@@ -3,7 +3,7 @@ import {petPack,petNear,packPetTrace} from './pack-pet-state.js';
 import {offerInvitation,declineInvitation,startInvitation} from './invitation-rhythm.js';
 import {shareMoneyCacheAddresses} from './money-caches.js';
 import {shareRouteMapReports} from './route-maps.js';
-import {recordLastingInjury} from './injury-state.js';
+import {recordLastingInjury} from './injury-events.js';
 import {shareBestiary,encounterBestiary} from './bestiary.js';
 import {areaOffset} from '../geometry.js';
 import {shareMarketKnowledge} from './market-knowledge.js';
@@ -94,7 +94,7 @@ export function hurtCompanion(s,c,damage,ctx,source=null){
   if(p)p.health=Math.ceil((p.maxHealth||100)*c.hp/c.maxHp);
   const enemy=source&&s.areas[h.area]?.objects.find(o=>o.id===source&&o.kind==='enemy');
   if(p&&enemy&&p.health>0)encounterBestiary(s,p,enemy);
-  if(p&&enemy)recordLastingInjury(s,p,enemy,{before:previousPersonHealth,after:p.health,maximum:p.maxHealth||100,area:h.area,controller:'party'},ctx);
+  if(p&&enemy)recordLastingInjury(s,p,enemy,{before:previousPersonHealth,after:p.health,maximum:p.maxHealth||100,area:h.area,controller:'party',physical:ctx.physicalWound!==false},ctx);
   if(c.hp===0){
     if(!c.uid)throw new Error('У попутчика отсутствует текущая личность');
     h.companions=h.companions.filter(other=>other!==c);h.social.lostCompanions++;
