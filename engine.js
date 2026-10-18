@@ -120,6 +120,7 @@ import {areaDanger} from './modules/danger.js';
 import {openSettlement} from './modules/districts.js';
 import {initializeDiplomacy} from './modules/diplomacy.js';
 import {initializeFactionPaths,factionPathTick,factionPathPlan,factionDuty} from './modules/faction-paths.js';
+import {heroFieldCraftPlan,fieldCraftAction} from './modules/field-craft-actors.js';
 import {heroCreditPlan,heroCreditAction} from './modules/provision-credit-actors.js';
 import {heroMerchantPlan,heroMerchantAction} from './modules/merchant-hero.js';
 import {caravanPlan,caravanRaid,noticeCaravan} from './modules/caravans.js';
@@ -331,6 +332,7 @@ function plan(s) {
   if(!q&&mapCopyPlan(s,context(s,'route-maps')))return;
   if(!q&&studyBestiaryPlan(s,context(s,'bestiary')))return;
   if(biomaterialPlan(s,context(s,'animal-materials')))return;
+  if(heroFieldCraftPlan(s,context(s,'field-craft'),{study:false,urgent:Boolean(q?.deadline&&q.deadline-s.tick<16)}))return;
   if(itemRepairPlan(s,context(s,'item-wear')))return;
   if(!q&&cookingPlan(s,context(s,'hearth-food')))return;
   if(!q&&toolPlan(s,context(s,'workshop-tools')))return;
@@ -347,6 +349,7 @@ function plan(s) {
   if(!q&&principlePlan(s,context(s,'principles')))return;
   if(!q&&verdictInquiryPlan(s,context(s,'verdict-knowledge')))return;
   if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
+  if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
   if(!q&&forgePlan(s,context(s,'forging')))return;
   if(!q&&refitPlan(s,context(s,'knife-refit')))return;
   if(!q&&landmarkPlan(s,context(s,'landmarks')))return;
@@ -845,6 +848,7 @@ function actObserved(s) {
   else if (g.kind === 'dogLesson') dogLessonAction(s,context(s,'pet-training'));
   else if (g.kind === 'dogSearch') dogSearchAction(s,context(s,'pet-training'));
   else if (g.kind === 'dogFeed') dogFeedAction(s,context(s,'pet-training'));
+  else if (['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(g.kind)) fieldCraftAction(s,s.people[h.lineage],g,context(s,'field-craft'));
   else if (['creditAsk','creditWait','creditDecide','creditWork'].includes(g.kind)) heroCreditAction(s,context(s,'provision-credit'));
   else if (['merchantBuy','merchantSell'].includes(g.kind)) heroMerchantAction(s,context(s,'merchant-trips'));
   else if (g.kind === 'questAction') questAction(s,h.quests.find(q=>q.id===g.quest),context(s,'quests'));

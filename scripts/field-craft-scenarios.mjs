@@ -1,0 +1,16 @@
+import {serialize,restore} from '../engine.js';import {setModule} from '../rules.js';
+import {skillFixture,actualAid,actualRepair,skillContext} from './skill-practice-scenarios.mjs';
+import {craftStudyPlan,craftStudyAction} from '../modules/craft-practice.js';
+import {learnKnife,startKnife,workKnife} from '../modules/forging.js';
+import {receiveItem} from '../modules/inventory.js';import {workshopSite} from '../modules/workshop-place.js';
+import {collectionItems} from '../modules/collection-state.js';import {tradeGoods} from '../modules/market.js';import {syncActiveActor} from '../actor-projection.js';
+export const fieldContext={...skillContext,receiveItem};
+let prepared=null;
+export function fieldFixture(){
+ if(!prepared){const f=skillFixture(),{s,h,a,o,patients}=f;for(const p of patients.slice(0,3))actualAid(f,p);for(let i=0;i<3;i++)actualRepair(f);h.x=o.x;h.goal=null;h.energy=100;if(!craftStudyPlan(s,fieldContext))throw Error('Expected actual craft study');for(let i=0;i<3;i++){s.tick++;craftStudyAction(s,fieldContext);}for(const id of ['forging','equipment','item-originals','item-wear'])setModule(s,id,true);setModule(s,'npc-needs',false);const teacher=patients[3];teacher.health=teacher.maxHealth||100;teacher.agenda.job='artisan';teacher.agenda.task=null;teacher.needs.energy=100;h.x=teacher.x;syncActiveActor(s);const p=s.people[h.lineage];for(let i=0;i<3;i++){s.tick++;if(!learnKnife(s,p,teacher,fieldContext))throw Error('Actual knife lesson failed');}h.x=o.x;h.goal=null;h.energy=100;syncActiveActor(s);const site=workshopSite(s,a,o.id),order=startKnife(s,p,site,fieldContext);if(!order)throw Error('Actual knife construction failed');while(order.status==='working'){s.tick++;if(!workKnife(s,p,fieldContext))throw Error('Actual knife work failed');}
+ h.x=50;syncActiveActor(s);s.tick++;if(!tradeGoods(s,a,p.id,'tools','buy',1).quantity)throw Error('Actual own tool purchase failed');h.energy=100;h.inventory.herbs=2;h.goal=null;setModule(s,'field-craft',true);
+ // A prepared worn state tests servicing without simulating hundreds of gathering actions.
+ s.tick+=240;const knife=collectionItems(s,p.id).find(i=>i.toolKind==='knife');Object.assign(knife.durability,{current:10,used:knife.durability.initial-10,lastTick:s.tick,lastUse:{tick:s.tick,actor:p.id,kind:'gather',source:a.id}});syncActiveActor(s);prepared={raw:serialize(s),area:a.id,workshop:o.id,teacher:teacher.id,knife:knife.id};}
+ const s=restore(prepared.raw),h=s.hero,a=s.areas[prepared.area],p=s.people[h.lineage],o=a.objects.find(o=>o.id===prepared.workshop),knife=collectionItems(s,p.id).find(i=>i.id===prepared.knife);return {s,h,a,p,o,knife,teacher:s.people[prepared.teacher]};
+}
+export function anotherFieldKnife(f){const {s,h,a,p,o}=f;s.tick=Math.max(s.tick+1,(p.forging.after||0)+1);h.x=o.x;syncActiveActor(s);const order=startKnife(s,p,workshopSite(s,a,o.id),fieldContext);if(!order)throw Error('Expected finite next knife');while(order.status==='working'){s.tick++;if(!workKnife(s,p,fieldContext))throw Error('Actual next knife work failed');}s.tick+=240;const knife=collectionItems(s,p.id).find(i=>i.id===order.item);Object.assign(knife.durability,{current:10,used:knife.durability.initial-10,lastTick:s.tick,lastUse:{tick:s.tick,actor:p.id,kind:'gather',source:a.id}});h.goal=null;syncActiveActor(s);return knife;}

@@ -1,3 +1,5 @@
+import {fieldCraftEnabled} from './field-craft-state.js';
+import {fieldCraftTask,fieldCraftAction} from './field-craft-actors.js';
 import {creditEnabled,creditStatus,creditSupplierTurn} from './provision-credit.js';
 import {npcCreditTask,npcCreditAction} from './provision-credit-actors.js';
 import {freightKeeperTurn,releaseDeadFreightCustody} from './freight-custody.js';
@@ -109,6 +111,7 @@ function plan(s,p,ctx){
   if(!a.civic){begin(p,'return',m.home,42,1,{knownNavigation:Boolean(p.navigation?.commute)});p.status='wandering';return;}
   if(damagedWorkplace(s,p)){if(!npcRepairPlan(s,p,ctx))m.due=s.tick+48;return;}
   if(npcToolPlan(s,p))return;
+  const fieldCraft=fieldCraftTask(s,p);if(fieldCraft){m.task=fieldCraft;return;}
   const practice=npcCraftStudyPlan(s,p);if(practice){m.task=practice;return;}
   const manufacture=npcDeedAllows(s,p,'manufacture')&&npcForgePlan(s,p);if(manufacture){m.task=manufacture;return;}
   if(!m.tools&&(marketEnabled(s)?quoteMarket(s,a,'tools','buy',1,{gold:m.wealth,trade:canBargain(s,p.id)}).quantity>0:m.wealth>=18&&a.civic.tools>0)){begin(p,'tool',p.area,58,2);return;}
@@ -222,6 +225,7 @@ export function peopleTick(s,ctx){
     releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
+    if(p.fieldTeachTick>=s.tick)continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
     const controller=npcController(s,p);
     if(enabled(s,'npc-control')&&!['personal','migration'].includes(controller)){if(controller==='none'&&p.agenda)p.agenda.task=null;continue;}
@@ -259,12 +263,14 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='toolMend'&&(!enabled(s,'workshop-tools')||!enabled(s,'property')||p.agenda.task.methodSource==='npc-paid-lessons'&&!enabled(s,'mentor-journeys'))){p.agenda.toolMendPending=p.agenda.task;p.agenda.task=null;}
     if(p.agenda.task?.kind==='rawGather'&&!goodsEnabled(s))continue;
     if(['creditTalk','creditWork'].includes(p.agenda.task?.kind)&&!creditEnabled(s))continue;
+    if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task?.kind)&&!fieldCraftEnabled(s))continue;
     if(p.agenda.task?.migration&&!enabled(s,'migrations'))continue;
     objectAt(s,p);
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}
     bindNPCDeedTask(s,p);
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task.kind)){fieldCraftAction(s,p,p.agenda.task,ctx);continue;}
     if(['creditTalk','creditWork'].includes(p.agenda.task.kind)){npcCreditAction(s,p,ctx);continue;}
     if(['materialCollect','materialReturn'].includes(p.agenda.task.kind)){workMaterialDelivery(s,p,ctx);continue;}
     if(['workshopTalk','workshopWait'].includes(p.agenda.task.kind)){npcDisputeAction(s,p,p.agenda.task,ctx);continue;}
