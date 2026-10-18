@@ -1,3 +1,4 @@
+import {carrierNewsContact} from './witness-news.js';
 import {areaScale,areaOffset,campPassage,physicalDistance} from '../geometry.js';
 import {npcFordGate} from './ford-actors.js';
 import {disruptionChoice,rememberDisruption,shedFreightCargo,disruptionEnabled} from './freight-disruption.js';
@@ -87,7 +88,7 @@ export function departFreight(s,source,destination,request,ctx,paid=null){
   s.logistics.convoys.push(c);p.status='caravan';p.agenda.task=null;
   markNPCDeparture(s,p,'caravan');
   source.population=source.population.filter(id=>id!==p.id);source.objects=source.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);
-  configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.${c.demand?` Потребность по сведениям от тика ${c.demand.seen}: ${c.demand.kind==='food'?'еда':c.demand.kind==='medicine'?'медицина':'инструменты'} ${c.demand.knownStock}/${c.demand.target}; партия ${c.demand.quantity}, резерв отправителя ${c.demand.reserve}.`:''}`,ctx);observeFreightActor(s,p);return c;
+  configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.${c.demand?` Потребность по сведениям от тика ${c.demand.seen}: ${c.demand.kind==='food'?'еда':c.demand.kind==='medicine'?'медицина':'инструменты'} ${c.demand.knownStock}/${c.demand.target}; партия ${c.demand.quantity}, резерв отправителя ${c.demand.reserve}.`:''}`,ctx);observeFreightActor(s,p);carrierNewsContact(s,p,ctx);return c;
 }
 export function advanceFreight(s,c,ctx){
   if(!enabled(s,'npc-logistics')||!s.logistics.convoys.includes(c)||c.lastTick===s.tick)return;
@@ -109,6 +110,7 @@ export function advanceFreight(s,c,ctx){
   c.remaining--;const progress=Math.max(0,Math.min(1,1-c.remaining/c.segmentTicks)),oldX=p.x;p.x=c.startX+(c.endX-c.startX)*progress;
   const local=s.areas[p.area],enemy=local.objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&!(c.escaped?.enemy===o.id&&c.escaped.area===p.area&&c.returning&&physicalDistance(local,p.x,o.x)>=physicalDistance(local,oldX,o.x))&&o.x>=Math.min(oldX,p.x)-areaOffset(s.areas[p.area],8)&&o.x<=Math.max(oldX,p.x)+areaOffset(s.areas[p.area],8));
   if(enemy){p.x=Math.abs(enemy.x-oldX)*areaScale(s.areas[p.area])<=8?oldX:enemy.x-Math.sign(p.x-oldX)*areaOffset(s.areas[p.area],8);captureFreight(s,c,p,local,ctx,enemy);return;}
+  carrierNewsContact(s,p,ctx);
   if(c.remaining>0)return;
   if(!next){if(c.path[c.index+1]){freightFailure(s,c,c.returning?'return-blocked':'blocked-road',ctx);return;}if(!local.civic){freightFailure(s,c,'market-gone',ctx);return;}finishFreight(s,c,ctx,c.returning?'returned':'delivered');return;}
   if(camp&&!camp.allowed){freightFailure(s,c,c.returning?'return-blocked':'blocked-gate',ctx);return;}

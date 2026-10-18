@@ -1,3 +1,4 @@
+import {publishAidNews} from './witness-news.js';
 import {confirmWord} from './word-custom.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
@@ -77,7 +78,7 @@ export function respondAid(s,ctx){
  if(!assessment.help){r.status='declined';r.answered=s.tick;r.reason=assessment.reason;h.lastAction='talk';h.speech='Сейчас не смогу.';tell(s,h,pending,`${h.name} отвечает на просьбу ${pending.name}: ${assessment.reason}`,'choice',ctx);return true;}
  const word=confirmWord(s,pending,h,r,{urgent:true});
  if(word.mode==='urgent'&&pending.wordCustom?.form==='witness')tell(s,h,pending,pending.name+': «Не до свидетелей. Сейчас нужна помощь».','talk',ctx);
- r.status='agreed';r.answered=s.tick;
+ r.status='agreed';r.answered=s.tick;publishAidNews(s,pending);
  const body=localContact(s,pending.id,h.area);ctx.goal(s,'aidPerson',body.area,body.x,'Помочь: '+pending.name,assessment.method.knowledge?.former?`Пригодятся прежние знания: ${assessment.method.knowledge.name}. Другие дела пока подождут.`:assessment.reason,{person:pending.id,aid:r.id});return false;
 }
 export function aidTarget(s){
@@ -90,7 +91,7 @@ export function performAid(s,ctx){
  const r=p.aidRequest,method=aidMethod(s,h),maximum=p.maxHealth||100;
  if(!method||p.health>=maximum*.85){r.status=method?'unneeded':'unable';h.goal=null;h.lastAction='talk';tell(s,h,p,method?'Состояние просившего уже улучшилось. Дополнительные припасы не понадобились.':`${h.name} не смог помочь: подходящего лекарства больше не осталось.`,'choice',ctx);return false;}
  h.inventory[method.resource]--;h.energy=Math.max(0,h.energy-AID_POLICY.energy);const before=p.health;p.health=Math.min(maximum,p.health+Math.max(1,Math.round(maximum*method.fraction)));
- r.status='helped';r.finished=s.tick;r.resource=method.resource;r.recovered=p.health-before;r.knowledge=method.knowledge?.id||null;h.goal=null;h.lastAction='heal';h.speech='Прижми повязку.';moral(s,2);ctx.gainXp(s,3);
+ r.status='helped';r.finished=s.tick;r.resource=method.resource;r.recovered=p.health-before;r.knowledge=method.knowledge?.id||null;publishAidNews(s,p);h.goal=null;h.lastAction='heal';h.speech='Прижми повязку.';moral(s,2);ctx.gainXp(s,3);
  if(skillBranchesEnabled(s))recordPracticalAid(s,Object.assign(r,{tick:s.tick,actor:h.lineage,patient:p.id,before,after:p.health,spent:1}));
  (p.agenda.bonds ||= {})[h.lineage]=Math.min(100,(p.agenda.bonds[h.lineage]||0)+4);
  if(enabled(s,'relationships')){const relation=h.relations[p.id] ||= {trust:0,met:s.tick,lastSeen:s.tick,helped:0};relation.trust=Math.min(100,relation.trust+4);relation.helped++;relation.lastSeen=s.tick;}
