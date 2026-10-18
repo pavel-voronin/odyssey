@@ -89,3 +89,6 @@ dialog p,.fact,.quest,.habit{overflow-wrap:anywhere}.fact{gap:8px}.fact b{min-wi
   #game-shell .intention{padding:1px 8px;--intent-max-font:10px}#game-shell .intention p{margin:0;line-height:1.2}#game-shell .intention div>span{line-height:1.2}
   #game-shell #journal p{font-size:10px}#game-shell #journal li{padding:4px 0}
 }
+
+/* Civil period stays in the existing scene footer; weather shares its width. */
+#game-shell .scene-bottom{align-items:flex-end;gap:8px}#game-shell .scene-bottom #weather{flex:1 1 35%;min-width:0}#game-shell .scene-bottom #tick{flex:1 1 65%;min-width:0;text-align:right;line-height:1.25;overflow-wrap:anywhere}.calendar-details{overflow-wrap:anywhere}.calendar-details summary{color:var(--ink)}

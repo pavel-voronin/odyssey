@@ -1,3 +1,4 @@
+import {calendarCaption,calendarSceneCaption,calendarDetailsHTML,refreshCalendarDetails} from './historical-calendar-sheet.js';
 import {knownArea,visitedArea} from './actor-atlas.js';
 import {verdictKnowledgeHTML} from './verdict-sheet.js';
 import {itemCustodyHTML} from './item-custody-sheet.js';
@@ -136,9 +137,9 @@ const areaType=a=>a.interior?.kind==='workshop'?'Мастерская':types[a.t
 function lifeName(life=state.hero){return life.actorMode==='npc'?'Житель мира':'Жизнь '+(life.generation??life.actorGeneration??state.generation);}
 function detail() {
   const h = state.hero;
-  $('sheet').querySelector('h2').textContent=(tab==='rules'?'Центр управления':tab==='log'?'Дневник':'Лист приключения')+' · '+dateLabel(state);
+  $('sheet').querySelector('h2').textContent=(tab==='rules'?'Центр управления':tab==='log'?'Дневник':'Лист приключения')+' · '+calendarCaption(state);
   if(tab==='skills'){renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape),{force:true});return;}
-  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=npc+(tab==='bag'?materialCargoHTML(state,h,escape):'');return;}
+  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+npc+(tab==='bag'?materialCargoHTML(state,h,escape):'');return;}
   if (tab === 'hero') {
     const traits = [h.personality.courage > .65 ? 'Смелый' : 'Осторожный', h.personality.curiosity > .65 ? 'Любопытный' : 'Вдумчивый', h.personality.sociability > .65 ? 'Общительный' : 'Немногословный', h.personality.generosity > .6 ? 'Отзывчивый' : 'Практичный'];
     const p = profession(h.profession), d = destiny(h.destiny.id);
@@ -174,7 +175,7 @@ function detail() {
   } else {
     const areas = Object.values(state.areas).filter(a => knownArea(state,a));
     const area=state.areas[h.area];
-    $('detail-panel').innerHTML=`<p class="detail-label">${escape(state.continents[area.continent].name)} · ${worldDate(state,state.tick,area).year} ГОД</p><p class="empty">${area.realm==='underground'?'Подземный мир':area.realm==='dream'?'Сновидение':area.realm==='clockwork'?'Мир механизмов':'Поверхность'}</p><p class="detail-label">МАРШРУТЫ ИЗ ТЕКУЩЕГО МЕСТА</p>${area.links.map(id=>{const edge=state.edges[edgeKey(area.id,id)];return `<div class="habit"><b>${escape(state.areas[id].name)}</b><p>${ROUTE_NAMES[edge?.mode||'road']} · ${elapsedLabel(edge?.duration||0)} в пути ${edge?.cost?'· плата '+edge.cost+' зол.':''}</p></div>`}).join('')}<div class="fact"><span>Рейсы / порталы / эпохи</span><b>${h.travel.voyages} / ${h.travel.portals} / ${h.travel.epochs}</b></div><p class="detail-label">ИЗВЕСТНЫЕ МЕСТА · ${areas.length}</p>${areas.map(a=>`<div class="map-node ${a.id===h.area?'current':''}"><span>${a.id===h.area?'◆':visitedArea(state,a)?'○':'·'}</span><span>${escape(a.name)}</span><small>${visitedArea(state,a)?areaType(a):'?'}</small></div>`).join('')}${state.chronology.echoes.length?`<p class="detail-label">СЛЕДСТВИЯ ВРЕМЕНИ</p><p class="empty">${state.chronology.echoes.slice(-5).map(e=>escape(e.text)).join('<br>')}</p>`:''}${state.graves.length?`<p class="detail-label">ПРОШЛЫЕ ЖИЗНИ</p>${state.graves.slice(-5).reverse().map(g=>`<div class="fact"><span>† ${escape(g.name)}, ур. ${g.level}</span><b>${elapsedLabel(g.tick-g.born)}</b></div>`).join('')}`:''}${state.changes.some(e=>knownWorldEvent(state,e))?`<p class="detail-label">ПОСЛЕДСТВИЯ</p><p class="empty">${state.changes.filter(e=>knownWorldEvent(state,e)).slice(-4).reverse().map(c=>escape(c.text)).join('<br>')}</p>`:''}`;
+    $('detail-panel').innerHTML=calendarDetailsHTML(state,escape)+`<p class="detail-label">${escape(state.continents[area.continent].name)} · ${worldDate(state,state.tick,area).year} ГОД</p><p class="empty">${area.realm==='underground'?'Подземный мир':area.realm==='dream'?'Сновидение':area.realm==='clockwork'?'Мир механизмов':'Поверхность'}</p><p class="detail-label">МАРШРУТЫ ИЗ ТЕКУЩЕГО МЕСТА</p>${area.links.map(id=>{const edge=state.edges[edgeKey(area.id,id)];return `<div class="habit"><b>${escape(state.areas[id].name)}</b><p>${ROUTE_NAMES[edge?.mode||'road']} · ${elapsedLabel(edge?.duration||0)} в пути ${edge?.cost?'· плата '+edge.cost+' зол.':''}</p></div>`}).join('')}<div class="fact"><span>Рейсы / порталы / эпохи</span><b>${h.travel.voyages} / ${h.travel.portals} / ${h.travel.epochs}</b></div><p class="detail-label">ИЗВЕСТНЫЕ МЕСТА · ${areas.length}</p>${areas.map(a=>`<div class="map-node ${a.id===h.area?'current':''}"><span>${a.id===h.area?'◆':visitedArea(state,a)?'○':'·'}</span><span>${escape(a.name)}</span><small>${visitedArea(state,a)?areaType(a):'?'}</small></div>`).join('')}${state.chronology.echoes.length?`<p class="detail-label">СЛЕДСТВИЯ ВРЕМЕНИ</p><p class="empty">${state.chronology.echoes.slice(-5).map(e=>escape(e.text)).join('<br>')}</p>`:''}${state.graves.length?`<p class="detail-label">ПРОШЛЫЕ ЖИЗНИ</p>${state.graves.slice(-5).reverse().map(g=>`<div class="fact"><span>† ${escape(g.name)}, ур. ${g.level}</span><b>${elapsedLabel(g.tick-g.born)}</b></div>`).join('')}`:''}${state.changes.some(e=>knownWorldEvent(state,e))?`<p class="detail-label">ПОСЛЕДСТВИЯ</p><p class="empty">${state.changes.filter(e=>knownWorldEvent(state,e)).slice(-4).reverse().map(c=>escape(c.text)).join('<br>')}</p>`:''}`;
   }
 }
 function enrichSheet(){
@@ -293,7 +294,7 @@ function render(automatic=false,batching=false) {
   document.documentElement.classList.toggle('no-animation',!enabled(state,'animation'));
   const h = state.hero, a = state.areas[h.area], time = calendar(state.tick);
   const date=worldDate(state);$('day').textContent = `${date.seasonName} · ${date.seasonDay}`;
-  $('tick').textContent = `${time.phase} · ${date.year} г.`;
+  $('tick').textContent = calendarSceneCaption(state);
   $('location').textContent=h.transit?.unknown?'В пути · положение неизвестно':h.transit?`${ROUTE_NAMES[h.transit.mode]} → ${state.areas[h.transit.to].name}`:a.name;
   $('biome').textContent=h.transit?.dead?'ГИБЕЛЬ В ПУТИ':h.transit?.unknown?'МАРШРУТ НЕ ЗАПИСАН':h.transit?`${elapsedLabel(h.transit.remaining)} в пути`:`${a.roadProfile==='long-tract'?'ДЛИННЫЙ ТРАКТ':areaType(a).toUpperCase()}${a.danger?' · опасность '+a.danger:''}${a.era?' · '+date.year:''}`;
   const weather=weatherAt(state,a),ford=fordLabel(state);$('weather').textContent=weather.icon+' '+weather.name+(ford?' · '+ford:'');$('weather').title=weather.text;
@@ -322,7 +323,10 @@ function render(automatic=false,batching=false) {
     journal.dataset.event = eventKey;
     $('announcement').textContent = notice?lootNoticeText(notice):first?.text || '';
   }
-  if($('sheet').open&&(!automatic||tab==='ties'||tab==='bag'&&h.actorMode==='npc'||tab==='quests'&&(h.actorMode==='npc'||materialContracts(state,h.lineage).length))){const panel=$('detail-panel'),scroll=panel.scrollTop;detail();enrichSheet();if(automatic)panel.scrollTop=scroll;} scene.update(state);renderEffects();
+  if($('sheet').open&&(!automatic||tab==='ties'||tab==='bag'&&h.actorMode==='npc'||tab==='quests'&&(h.actorMode==='npc'||materialContracts(state,h.lineage).length))){const panel=$('detail-panel'),scroll=panel.scrollTop;detail();enrichSheet();if(automatic)panel.scrollTop=scroll;} if($('sheet').open&&automatic&&tab==='map'){
+    $('sheet').querySelector('h2').textContent='Лист приключения · '+calendarCaption(state);
+    refreshCalendarDetails($('detail-panel'),calendarDetailsHTML(state,escape));
+  } scene.update(state);renderEffects();
   if(automatic&&$('sheet').open&&tab==='skills')renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape));
   if(automatic&&$('sheet').open&&tab==='bag'){const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
   $('scene').setAttribute('aria-label', `${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
