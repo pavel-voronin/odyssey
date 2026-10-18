@@ -1,3 +1,4 @@
+import {createGuardianNode} from './guardian-state.js';
 import {createDelveShortcut} from './delve-shortcuts.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -19,7 +20,7 @@ export function createDelveLayout(s,root,entrance,ctx){
  final.objects.push({id:final.id+'/deep-relic',kind:'relic',name:'Реликвия каменного зала',x:84,taken:false,layoutReward:{version:1,root:root.id,kind:'final'}});
  for(const a of rooms)for(const door of a.objects.filter(o=>o.kind==='gate')){const to=s.areas[door.to];door.layoutDoor={version:1,root:root.id,label:to.name,kind:to.id===entrance.id?'surface':to===side?'side':to===final?'deep':'corridor'};}
  root.dungeon.layout={version:1,built:s.tick,entrance:entrance.id,nodes:rooms.map(a=>a.id),links:links.map(([a,b])=>[a.id,b.id]),gate:mechanismKey(junction.id,service.id),guards:[sentry.id,cacheGuard.id,boss.id],rewards:[side.id+'/side-cache',final.id+'/deep-relic'],captive:root.dungeon.captive||null,finalClaimed:null};
- createDelveShortcut(s,root,ctx);return root.dungeon.layout;
+ createDelveShortcut(s,root,ctx);createGuardianNode(s,root,final,boss);return root.dungeon.layout;
 }
 export function layoutRoot(s,area){const id=s.areas[area]?.dungeon?.layoutNode?.root;return id&&s.areas[id]?.dungeon?.layout? id:null;}
 export function layoutMemory(s,root){return s.hero.delvePaths?.places[root]||null;}

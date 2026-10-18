@@ -1,3 +1,4 @@
+import {guardianPlan} from './guardian-actions.js';
 import {physicalDistance} from '../geometry.js';
 import {layoutOn,layoutRoot,layoutMemory,observeDelveLayout} from './delve-layout.js';
 import {areaAvoided,expectedLoss} from './route-memory.js';
@@ -39,6 +40,7 @@ export function layoutPlan(s,ctx){
  if(m.returning||fulfilled&&(h.personality.courage<.65||h.personality.curiosity<.6||gained.some(g=>g.role==='final'))||h.hp<h.maxHp*.55||h.energy<30)return leaving(s,m,ctx,m.returning||'Он добыл нужное или исчерпал безопасный запас сил. Возвращение важнее полной зачистки.');
  const enemy=s.areas[h.area].objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&physicalDistance(s.areas[h.area],h.x,o.x)<=30);
  if(enemy){
+  if(guardianPlan(s,enemy,ctx))return true;
   if(record?.status==='paused'&&record.last?.enemy===enemy.id&&!reconsiderDelve(s,ctx))return leaving(s,m,ctx,'Прежний риск не изменился. Он ищет обратный путь, сохраняя память о неудаче.');
   if(expectedLoss(s,enemy)>h.hp*(.35+h.personality.courage*.6)){pauseDelve(s,enemy,'observed-risk');h.memory.avoided[h.area]=s.tick+160;return leaving(s,m,ctx,'Увиденная угроза слишком велика. Он уходит по известным проходам.');}
   ctx.goal(s,'hunt',h.area,enemy.x,'Пройти мимо: '+enemy.name,'Препятствие действительно находится перед ним; чужие залы пока неизвестны.',{object:enemy.id,delve:true});return true;

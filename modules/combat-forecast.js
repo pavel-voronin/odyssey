@@ -1,3 +1,4 @@
+import {wardDamage} from './guardian-state.js';
 import {enabled} from '../rules.js';
 import {braceDamage} from './brace.js';
 import {ELEMENTS,spellChannel} from './elements.js';
@@ -29,6 +30,7 @@ function againstEnemy(s,e,min,max,channel){
   if(enabled(s,'tactics')&&e.tactic==='warden'&&e.battle?.intent==='guard'){min=Math.max(min>0?1:0,Math.round(min*.5));max=Math.max(max>0?1:0,Math.round(max*.5));}
   if(activePower(s,e,'temporal')&&profile(s.hero).skill!=='time'||enabled(s,'mutations')&&e.mutation==='phase')min=0;
  }
+ min=wardDamage(s,e,min,channel,true);max=wardDamage(s,e,max,channel,true);
  return {min,max,channel,knownRate:rates.known};
 }
 export function partyDamageRange(s,e,options={}){

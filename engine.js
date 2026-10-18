@@ -1,3 +1,5 @@
+import {guardianPlan,guardianAction} from './modules/guardian-actions.js';
+import {observeGuardians} from './modules/guardian-knowledge.js';
 import {knownShortcutBlocked,isShortcut} from './modules/shortcut-state.js';
 import {observeDelveLayout,recordLayoutCollection} from './modules/delve-layout.js';
 import {layoutAction,layoutOn} from './modules/delve-layout-plan.js';
@@ -754,7 +756,7 @@ function actObserved(s) {
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(transitTick(s,context(s,'travel')))return s;
   if(h.delve&&s.areas[h.delve.root]?.dungeon?.layout&&!layoutOn(s))return s;
-  observeDelveLayout(s);
+  observeDelveLayout(s);observeGuardians(s);
   observeTowers(s,context(s,'landmarks'));
   observeScentPlants(s);
   observeNavigationBlockers(s,context(s,'navigation-memory'));
@@ -765,7 +767,7 @@ function actObserved(s) {
     h.memory.shopAfter = s.tick + 240; h.goal = null;
     log(s, 'Поиски Савы затянулись. Герой откладывает покупку и возвращается к исследованию.', 'talk');
   }
-  if (h.combat) { fight(s, s.areas[h.area].objects.find(o => o.id === h.combat)); return s; }
+  if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   noticeCaravan(s,context(s,'caravans'));
   // Healing is an autonomous choice; herbs promised to a healer are kept if possible.
@@ -821,6 +823,7 @@ function actObserved(s) {
     target = Number(next.slice(1)) > Number(h.area.slice(1)) ? 100 : 0;
     const passage=interiorPassage(s,h.area,next);if(passage){target=passage.x;if(!passage.allowed){if(['mechanism','lift'].includes(passage.kind)){if(passage.kind==='lift'?blockedLiftPlan(s,next,context(s,'mechanisms')):teamLeverPlan(s,next,context(s,'mechanisms'))||blockedGratePlan(s,next,context(s,'mechanisms')))return s;if(physicalDistance(a,h.x,target)<=1){h.goal=null;return s;}}else{h.goal=null;h.tavernAfter=s.tick+240;log(s,'Дверь закрыта. Он возвращается к другим делам.','plan');return s;}}}
   }
+  if(guardianAction(s,{...context(s,'guardian-nodes'),move,enemyResponse:(world,enemy)=>{contactDelve(world,enemy);enemyResponse(world,enemy);}}))return s;
   // Threats interact only on the single movement axis.
   const direction = Math.sign(target - h.x);
   const threat = a.objects.find(o => o.kind === 'enemy' && o.alive && !o.resolved && !rescueGuardPass(s,o,h.lineage,target) && Math.abs(o.x - h.x)*areaScale(s.areas[h.area]) <= 9 && (o.x - h.x) * direction >= -areaOffset(a,1));

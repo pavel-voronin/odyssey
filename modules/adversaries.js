@@ -1,3 +1,5 @@
+import {wardDamage} from './guardian-state.js';
+import {observeGuardianHit} from './guardian-knowledge.js';
 import {enabled} from '../rules.js';
 import {initializeElement,elementalDamage,elementImpact,elementRate,ELEMENTS} from './elements.js';
 import {initializeMutation,mutatedDamage,mutationReply,MUTATIONS} from './mutations.js';
@@ -11,10 +13,11 @@ export function initializeEnemyTraits(s,a,e,fresh=false){
 }
 export function enemyDamage(s,e,amount,type,ctx,learn=true){
  e.battle ||= {turns:0,intent:'idle',summons:0,echo:0};
- const elemental=elementalDamage(s,e,amount,type,ctx,false),echo=e.battle.echo,mutated=mutatedDamage(s,e,elemental,type,ctx),damage=tacticalDamage(s,e,mutated,type);
+ const elemental=elementalDamage(s,e,amount,type,ctx,false),echo=e.battle.echo,mutated=mutatedDamage(s,e,elemental,type,ctx),unshielded=tacticalDamage(s,e,mutated,type),damage=wardDamage(s,e,unshielded,type);
+ if(learn)observeGuardianHit(s,e,unshielded,damage,type,ctx);
  if(learn){
   if(type==='physical'&&enabled(s,'mutations')&&e.mutation==='shell'&&mutated<elemental)observeThreat(s,e,'shell','reduced',ctx);
-  if(type==='physical'&&enabled(s,'tactics')&&e.tactic==='warden'&&damage<mutated)observeThreat(s,e,'warden','guard',ctx);
+  if(type==='physical'&&enabled(s,'tactics')&&e.tactic==='warden'&&unshielded<mutated)observeThreat(s,e,'warden','guard',ctx);
   if(type!=='physical'&&enabled(s,'mutations')&&e.mutation==='mirror'&&e.battle.echo>echo)observeThreat(s,e,'mirror','echo',ctx);
  }
  if(damage>0&&learn)elementalDamage(s,e,amount,type,ctx,true);return damage;
