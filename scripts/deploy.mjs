@@ -1,3 +1,4 @@
+import {uploadRelease} from './deploy-upload.mjs';
 import { execFileSync } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -43,7 +44,7 @@ if (previous === remote) {
   process.exit(0);
 }
 ssh(`set -eu\nmkdir -p '${remote}'\nchmod 755 '${remote}'`);
-run('scp', ['-q', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=30', '-o', 'ServerAliveInterval=10', '-o', 'ServerAliveCountMax=3', ...release.files.map(file => path.join(release.dir, file)), `${host}:${remote}/`]);
+uploadRelease(run,release,`${host}:${remote}/`);
 // Verify every payload on the server before switching the public pointer.
 const checks = Object.entries(release.manifest.files).map(([file, digest]) => `${digest}  ${file}`).join('\n');
 ssh(`set -eu

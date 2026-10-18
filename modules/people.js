@@ -1,3 +1,4 @@
+import {feastNPCTurn,feastNPCAction} from './feast-actions.js';
 import {migrationKnowledgeOn} from './migration-memory.js';
 import {textValuesOn} from './text-values.js';
 import {literacyEnabled,literacyTeacherTurn,textBuyerTurn} from './literacy.js';
@@ -258,6 +259,7 @@ export function peopleTick(s,ctx){
     observeFreightActor(s,p,p.area,true);
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(feastNPCTurn(s,p,ctx))continue;
     if(textBuyerTurn(s,p))continue;
     if(literacyTeacherTurn(s,p))continue;
     if(boardingPetCare(s,p))continue;
@@ -296,6 +298,7 @@ export function peopleTick(s,ctx){
     bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(feastNPCAction(s,p,ctx))continue;
     if(literacyNPCAction(s,p))continue;
     if(textNPCAction(s,p))continue;
     if(homeBuildingNPCAction(s,p))continue;

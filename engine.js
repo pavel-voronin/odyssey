@@ -1,3 +1,5 @@
+import {feastTick} from './modules/feasts.js';
+import {feastPlan,feastAction} from './modules/feast-actions.js';
 import {buildingRuinsTick} from './modules/building-ruins.js';
 import {textValuesOn,textNeed} from './modules/text-values.js';
 import {askSequenceWitness} from './modules/mechanism-sequences.js';
@@ -373,6 +375,7 @@ function plan(s) {
   if(!q&&verdictReviewPlan(s,context(s,'verdict-review')))return;
   if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
   if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
+  if(!q&&feastPlan(s,context(s,'local-feasts')))return;
   if(!q&&literacyPlan(s,context(s,'literacy')))return;
   if(!q&&textPlan(s,context(s,'texts')))return;
   if(!q&&homeBuildingPlan(s,context(s,'home-building')))return;
@@ -626,6 +629,7 @@ function worldTick(s) {
   propertyContractsTick(s,context(s,'property-contracts'));
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));
+  feastTick(s,context(s,'local-feasts'));
   peopleTick(s,context(s,'people'));
   migrationContactTick(s);
   npcPetsTick(s,context(s,'pet-transfer'));
@@ -893,6 +897,7 @@ function actObserved(s) {
   else if (g.kind === 'govern') governTick(s,context(s,'politics'));
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
   else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
+  else if(g.kind==='feastJoin')feastAction(s,context(s,'local-feasts'));
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));
   else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))textAction(s,context(s,'texts'));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))homeBuildingAction(s,context(s,'home-building'));
