@@ -1,3 +1,5 @@
+import {literacyPlan,literacyAction} from './modules/literacy-actions.js';
+import {birthLiteracy} from './modules/literacy-state.js';
 import {textPlan,textAction} from './modules/text-actions.js';
 import {homeBuildingPlan,homeBuildingAction} from './modules/home-building.js';
 import {homePlan,homeAction} from './modules/homes.js';
@@ -232,7 +234,7 @@ function createHero(s) {
   initializeSupply(s,h);
   rememberPracticalRole(s,s.people[h.lineage],h);
   initializeFoodKit(s,s.people[h.lineage],h,{newborn:true});
-  initializeActorAtlas(s,h);
+  initializeActorAtlas(s,h);birthLiteracy(s,s.people[h.lineage],h);
   return h;
 }
 export function createWorld(seed = Date.now(), {rules={}}={}) {
@@ -367,6 +369,7 @@ function plan(s) {
   if(!q&&verdictReviewPlan(s,context(s,'verdict-review')))return;
   if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
   if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
+  if(!q&&literacyPlan(s,context(s,'literacy')))return;
   if(!q&&textPlan(s,context(s,'texts')))return;
   if(!q&&homeBuildingPlan(s,context(s,'home-building')))return;
   if(!q&&homePlan(s,context(s,'homes')))return;
@@ -884,6 +887,7 @@ function actObserved(s) {
   else if (g.kind === 'govern') governTick(s,context(s,'politics'));
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
   else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
+  else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));
   else if(['textPaper','textWrite','textCopy','textRead','textGift'].includes(g.kind))textAction(s,context(s,'texts'));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))homeBuildingAction(s,context(s,'home-building'));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))homeAction(s,context(s,'homes'));

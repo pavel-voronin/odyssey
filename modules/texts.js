@@ -1,3 +1,4 @@
+import {literacyOn,registerLiteracy,readingScript,writingScript} from './literacy-state.js';
 import {physicalDistance} from '../geometry.js';
 import {enabled} from '../rules.js';
 import {localContact} from './npc-contacts.js';
@@ -25,6 +26,7 @@ export function buyTextPaper(s,p,ctx=null){
  textMemory(p).serial++;paper.writingMaterial={version:1,id:paper.id,source:raw.id,sourceArea:raw.place,area:a.id,buyer:p.id,created:s.tick,paid:2,stockBefore:before,stockAfter:raw.stock};paper.history.push({tick:s.tick,text:'Бумага приобретена из настоящего местного сырья за ◈2.'});bag(s,p).push(paper);actorItemLocation(s,paper,p.id);spend(s,p,1);return paper;
 }
 function inscribe(s,p,paper,work,sourceCopy=null){
+ registerLiteracy(s,p,textActor(s,p.id),sourceCopy?'copied-text':'written-text',work.id);
  paper.kind='textCopy';paper.base='booklet';paper.name=work.title;paper.value=2;paper.textCopy={version:1,content:work.id,revision:work.revision,owner:p.id,writer:p.id,written:s.tick,sourceCopy,condition:'intact',damage:null};paper.history.push({tick:s.tick,text:sourceCopy?'Переписано с физического экземпляра; содержание и редакция прежние.':'Автор записал лично наблюдённые сведения.'});actorItemLocation(s,paper,p.id);spend(s,p,2);return paper;
 }
 export function writeWorkNotice(s,p,paperID){
@@ -36,20 +38,28 @@ export function writeWorkNotice(s,p,paperID){
 }
 export function copyText(s,p,sourceID,paperID){
  const b=ready(s,p),items=heldTexts(s,p?.id),source=items.find(i=>i.id===sourceID),paper=items.find(i=>i.id===paperID&&i.kind==='writingPaper'),work=textWork(s,source);
- if(!b||!canWriteText(s,p)||!work||!paper||source.textCopy.owner!==p.id||source.textCopy.condition!=='intact'||p.textCraft?.copied.includes(work.id))return null;
+ if(!b||!work||!paper||(!literacyOn(s)?!canWriteText(s,p):!readingScript(s,p,work.language,textActor(s,p.id))||!writingScript(s,p,work.language,textActor(s,p.id)))||source.textCopy.owner!==p.id||source.textCopy.condition!=='intact'||p.textCraft?.copied.includes(work.id))return null;
  textMemory(p).copied.push(work.id);const result=inscribe(s,p,paper,work,source.id);p.textCraft.offer={item:result.id,content:work.id,tick:s.tick};return result;
 }
 export function readText(s,p,id){
  const b=ready(s,p),item=heldTexts(s,p?.id).find(i=>i.id===id),work=textWork(s,item);
- if(!b||!canReadText(s,p)||!work||item.textCopy.owner!==p.id||item.textCopy.condition!=='intact'||p.textCraft?.readings.some(e=>e.content===work.id))return false;
+ if(!b||!work||!canReadText(s,p,work.language)||item.textCopy.owner!==p.id||item.textCopy.condition!=='intact'||p.textCraft?.readings.some(e=>e.content===work.id))return false;
  const a=s.areas[b.area];spend(s,p,1);
  if(!a.interior&&!a.civic&&['rain','storm'].includes(weatherAt(s,a).id)){
   item.textCopy.condition='damaged';item.textCopy.damage={kind:'rain-while-open',actor:p.id,tick:s.tick,area:a.id};item.history.push({tick:s.tick,text:'Открытая запись промокла при чтении вне укрытия. Другие экземпляры не изменились.'});return false;
  }
- const m=textMemory(p),n=work.content;m.readings.push({content:work.id,copy:item.id,at:s.tick,author:work.author,revision:work.revision});
- initializeNPCKnowledge(s,p);let place=p.navigation.places.find(k=>k.area===n.area);if(!place){place={area:n.area,name:n.name,seen:n.observed};p.navigation.places.push(place);}
- if((place.workSeen??-1)<=n.observed)Object.assign(place,{payroll:n.available,workSeen:n.observed,text:work.id,source:work.author});
- const h=textActor(s,p.id);if(h){h.memory.services ||= {};const key=n.area+'/employment';if((h.memory.services[key]?.seen??-1)<=n.observed)h.memory.services[key]={version:1,area:n.area,kind:'employment',available:n.available,provider:null,reason:null,seen:n.observed,text:work.id,source:work.author};h.lastAction='think';}return true;
+ return rememberTextReading(s,p,item);
+}
+export function rememberTextInformation(s,p,work,info=work.content,source=work.author,reported=false){
+ const n=info;initializeNPCKnowledge(s,p);let place=p.navigation.places.find(k=>k.area===n.area);if(!place){place={area:n.area,name:n.name,seen:n.observed};p.navigation.places.push(place);}
+ if(typeof n.available==='boolean'&&(place.workSeen??-1)<=n.observed)Object.assign(place,{payroll:n.available,workSeen:n.observed,text:work.id,source,...(reported?{reported:true}:{} )});
+ const h=textActor(s,p.id);if(h&&typeof n.available==='boolean'){h.memory.services ||= {};const key=n.area+'/employment';if((h.memory.services[key]?.seen??-1)<=n.observed)h.memory.services[key]={version:1,area:n.area,kind:'employment',available:n.available,provider:null,reason:null,seen:n.observed,text:work.id,source,...(reported?{reported:true}:{} )};}
+}
+export function rememberTextReading(s,p,item){
+ const work=textWork(s,item);if(!work||p.textCraft?.readings.some(e=>e.content===work.id))return false;
+ const knowledge=registerLiteracy(s,p,textActor(s,p.id),'read-text',work.id);if(knowledge)knowledge.lastActionTick=s.tick;
+ textMemory(p).readings.push({content:work.id,copy:item.id,at:s.tick,author:work.author,revision:work.revision});rememberTextInformation(s,p,work);
+ const h=textActor(s,p.id);if(h)h.lastAction='think';return true;
 }
 export function giveText(s,from,to,id){
  const a=ready(s,from),b=ready(s,to),item=heldTexts(s,from?.id).find(i=>i.id===id),work=textWork(s,item);

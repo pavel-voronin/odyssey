@@ -27,6 +27,7 @@ export function projectNPCView(s,h,p,leader,previous){
   else if(p.interiorStay){h.intent='В общем зале';h.reason='Ненадолго остаётся внутри. Голод, усталость или закрытие могут изменить планы.';}
  }
  if(h.transit?.unknown)h.reason='Новое местоположение не записано. Можно выбрать другого наблюдателя.';
+ if(p.literacyTeaching&&p.literacyTeaching.until>=s.tick&&!h.transit&&!p.needs.sleeping){h.intent=p.literacyTeaching.turn<0?'Получил просьбу разобраться с записью':'Помогает разобраться с записью';h.reason=p.literacyTeaching.turn<0?'Ответит в свой свободный ход; занятия ещё не оплачены.':'Ждёт своего ученика или читает с ним. Время, нужды и плата настоящие.';if(p.literacyTeaching.turn===s.tick&&p.literacyTeaching.used)h.lastAction='talk';}
  const deed=p.npcIntentions?.current;if(deed&&task?.deedId===deed.id&&!leader&&!convoy&&!order&&!publicJourney&&!h.transit&&!p.needs.sleeping){h.intent=task.kind==='familySupply'?'Купить лекарство для родного':deed.title;h.reason=deed.reason;}
  const shared=p.companionAffairs?.agreement;if(leader&&shared&&s.tick<shared.until&&companionAffairsEnabled(s)&&!p.needs.sleeping)h.reason=p.companionAffairs.history.at(-1)?.reason||h.reason;
  const study=p.personalJourney;

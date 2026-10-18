@@ -6,8 +6,8 @@ import {marketWallet} from './market.js';
 function ownTask(s,p){
  const h=textActor(s,p.id),a=s.areas[h?.area||p.area],items=heldTexts(s,p.id),m=p.textCraft;
  if(!textsOn(s)||!p.alive||p.needs.sleeping||(h?h.energy:p.needs.energy)<35||(h?h.hunger:p.needs.hunger)>=60||h&&(h.combat||h.transit||h.quests.some(q=>q.status==='active')||h.stories.active))return null;
- const interested=h?h.personality.curiosity>=.65||h.career.path==='peaceful':p.agenda.job==='scholar';if(!interested)return null;
- const unread=canReadText(s,p)&&items.find(i=>textWork(s,i)&&i.textCopy.condition==='intact'&&!m?.readings.some(r=>r.content===i.textCopy.content));
+ const interested=h?h.personality.curiosity>=.65||h.career.path==='peaceful':p.agenda.job==='scholar'||p.agenda.curiosity>=.65;if(!interested)return null;
+ const unread=items.find(i=>textWork(s,i)&&canReadText(s,p,textWork(s,i).language)&&i.textCopy.condition==='intact'&&!m?.readings.some(r=>r.content===i.textCopy.content));
  if(unread)return {kind:'textRead',target:a.id,x:h?.x??p.x,item:unread.id,remaining:1};
  if(!canWriteText(s,p)||!a.civic||a.interior)return null;
  const source=items.find(i=>i.textCopy?.content===m?.work&&i.textCopy.condition==='intact'),paper=items.find(i=>i.kind==='writingPaper'),copy=source&&!m?.copied.includes(m.work)&&(h?h.personality.generosity>=.6:p.agenda.duty>=.5);
@@ -17,7 +17,7 @@ function ownTask(s,p){
 }
 export function textPlan(s,ctx){
  const h=s.hero,p=s.people[h.lineage];if(!textsOn(s)||h.goal||h.combat||h.transit||h.energy<35||h.hp<h.maxHp*.75||h.hunger>=60||h.quests.some(q=>q.status==='active')||h.stories.active)return false;
- if(canReadText(s,p)&&h.personality.curiosity>=.6)for(const q of Object.values(s.people)){
+ if(h.personality.curiosity>=.6)for(const q of Object.values(s.people)){
   const o=q.textCraft?.offer,b=o&&localContact(s,q.id,h.area);if(!o||!b||q.id===p.id||physicalDistance(s.areas[h.area],h.x,b.x)>12||p.textCraft?.readings.some(r=>r.content===o.content))continue;
   ctx.goal(s,'textGift',h.area,b.x,'Попросить запасной экземпляр','Местный автор предлагает отдельную копию. Передача требует встречи и не заменяет чтения.',{person:q.id,item:o.item});return true;
  }

@@ -1,3 +1,4 @@
+import {registerLiteracy} from './literacy-state.js';
 import { PROFESSIONS, DESTINIES, HABITS, CONDITIONS, ENEMY_SPECIES, ENEMY_POWERS, ITEM_BASES, ITEM_ORIGINS, ITEM_EPITHETS, ENCOUNTERS, PETS, FACTIONS, profession, destiny } from '../content.js';
 import { enabled } from '../rules.js';
 import {rememberPracticalRole} from './skill-branches.js';
@@ -44,6 +45,7 @@ export function changeProfession(s,id,ctx,reason){
   const h=s.hero,next=PROFESSIONS.find(p=>p.id===id);if(!next||h.profession===id||h.combat||!enabled(s,'identity'))return false;
   rememberPracticalRole(s,s.people[h.lineage],h);
   h.career.records ||= {};h.career.records[h.profession]={xp:h.career.xp,rank:h.career.rank};
+  registerLiteracy(s,s.people[h.lineage],h,'career-decision');
   const from=h.profession;h.profession=id;const saved=h.career.records[id]||{xp:0,rank:1};h.career.xp=saved.xp;h.career.rank=saved.rank;h.career.records[id]={...saved};
   h.career.path=['bard','merchant','alchemist','clockmaker'].includes(id)?'peaceful':'adventure';h.career.lastChange=s.tick;h.career.history ||= [];h.career.history.push({tick:s.tick,from,to:id,reason});
   rememberPracticalRole(s,s.people[h.lineage],h);
