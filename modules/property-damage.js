@@ -1,3 +1,4 @@
+import {damageStructure,structureFor} from './building-condition.js';
 import {takeGoods} from './goods.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
@@ -22,7 +23,7 @@ export function propertyDamageTick(s,ctx){
     const busy=heroBusy||npcBusy;
     const risk=w.id==='storm'? .02:(w.id==='heat'&&busy)? .035:0;
     if(!risk||ctx.random()>=risk)continue;
-    o.state='burned';o.damagedAt=s.tick;o.repair=null;
+    o.state='burned';o.damagedAt=s.tick;o.repair=null;damageStructure(s,a,structureFor(s,a,o),'fire');
     recordWorkshop(s,a,o,w.id==='storm'?'Молния повреждает мастерскую. Помещение непригодно для работы, но собственник остался прежним.':'Зной и работающий горн приводят к пожару. Рабочее место выгорело, право собственности сохранилось.','fire',ctx);
   }
 }

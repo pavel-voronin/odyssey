@@ -1,3 +1,4 @@
+import {paintRuinedHouse,ruinedSilhouette} from './building-ruins-view.js';
 import {paintHomeBuilding} from './home-building-view.js';
 import {paintQuadruped} from './quadruped-view.js';import {petCargoModel} from './pet-cargo-view.js';
 import {drawDescent} from './navigation-tool-view.js';
@@ -156,7 +157,7 @@ export class Scene {
     if(this.composition)this.paintSurface(w,ht,p,view,weather,water);
     const house=index=>!h.transit&&s.rules?.scenery!==false&&s.rules?.facades!==false&&terrain.facades?.profiles[index]||houseProfile(s.rules?.scenery===false?0:s.seed,s.rules?.scenery===false?{id:terrain.type,type:terrain.type}:terrain,index,view);
     if(travel?.mix)paintTransitLandmarks(c,s,travel.mix,w,backGround);
-    else if(view.district)this.district(w,backGround,view,terrain.type,s.tick,house,s.rules.property!==false&&a.objects.some(o=>o.kind==='workshop'&&o.state==='burned'));
+    else if(view.district)this.district(w,backGround,view,terrain.type,s.tick,house,s.rules.property!==false&&a.objects.some(o=>o.kind==='workshop'&&o.state==='burned'&&(s.rules.facades===false||!a.facades?.profiles.find(p=>p.id===o.building)?.structure)));
     else if (terrain.type === 'village') { for(let i=0;i<3;i++)this.house(w*(.15+i*.3+view.values[10+i]*.1),backGround,.8+view.values[20+i]*.5,undefined,undefined,house(i)); }
     else if(['port','undercity'].includes(terrain.type)){this.house(w*.22,backGround,.9,undefined,undefined,house(0));this.house(w*.75,backGround,1.1,undefined,undefined,house(1));}
     if (terrain.type === 'forest') for (let i = 0; i < 8; i++) this.tree(w * i / 7, ground, 80 + i % 3 * 24, '#243f2c', .9);
@@ -498,7 +499,8 @@ export class Scene {
     if(entrance)x=24+entrance.x/100*(this.canvas.clientWidth-48)-(layout?.door.x||0)*fitted;
     const occupied=this.composition?.occupied??(this.state.areas[this.state.hero.area].population||[]).some(id=>this.state.people[id]?.alive&&this.state.people[id].status==='resident');
     const contours=this.contours||(this.contours=new ContourCache());
-    this.shadowCasters.push({x,y,width:width*fitted,height:(height+roofHeight)*fitted,contour:contours.world(houseSilhouette(profile,width,height,roofHeight),{a:fitted,b:0,c:0,d:fitted,e:x,f:y})});
+    this.shadowCasters.push({x,y,width:width*fitted,height:(height+roofHeight)*fitted,contour:contours.world(profile.structure&&(profile.structure.roof<3||profile.structure.walls<3)?ruinedSilhouette(profile,width,height,roofHeight):houseSilhouette(profile,width,height,roofHeight),{a:fitted,b:0,c:0,d:fitted,e:x,f:y})});
+    if(profile.structure&&(profile.structure.roof<3||profile.structure.walls<3)){c.save();c.translate(x,y);c.scale(fitted,fitted);paintRuinedHouse(c,profile,width,height,roofHeight);c.restore();return;}
     c.save();c.translate(x,y);c.scale(fitted,fitted);c.fillStyle=profile.plaster||plaster;c.fillRect(-half,-height,width,height);
     if(profile.material==='timber'){c.strokeStyle=profile.woodColor||'#485d4d';c.lineWidth=3;for(let i=-1;i<=1;i++){c.beginPath();c.moveTo(i*half*.8,-height);c.lineTo(i*half*.8,0);c.stroke();}c.beginPath();c.moveTo(-half,-height/2);c.lineTo(half,-height/2);c.moveTo(-half,-height);c.lineTo(half,-height/2);c.stroke();}
     if(profile.material==='stone'){c.strokeStyle='#657265';c.lineWidth=1;c.globalAlpha=.45;for(let row=0;row<height;row+=12){c.beginPath();c.moveTo(-half,-row);c.lineTo(half,-row);c.stroke();for(let k=-half+(row%24?6:0);k<half;k+=16){c.beginPath();c.moveTo(k,-row);c.lineTo(k,-Math.min(height,row+12));c.stroke();}}c.globalAlpha=1;}

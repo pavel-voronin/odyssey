@@ -1,3 +1,4 @@
+import {buildingRuinsTick} from './modules/building-ruins.js';
 import {textValuesOn,textNeed} from './modules/text-values.js';
 import {askSequenceWitness} from './modules/mechanism-sequences.js';
 import {literacyPlan,literacyAction} from './modules/literacy-actions.js';
@@ -621,6 +622,7 @@ function worldTick(s) {
   societyTick(s,context(s,'society'));
   migrationsTick(s,context(s,'migrations'));
   propertyDamageTick(s,context(s,'property-damage'));
+  buildingRuinsTick(s,context(s,'building-ruins'));
   propertyContractsTick(s,context(s,'property-contracts'));
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));

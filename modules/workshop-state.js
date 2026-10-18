@@ -1,3 +1,4 @@
+import {restoreStructure} from './building-condition.js';
 import {takeGoods} from './goods.js';
 import {enabled} from '../rules.js';
 import {reservedRepair} from './workshop-contract-state.js';
@@ -22,7 +23,7 @@ export function recordWorkshop(s,a,o,text,kind,ctx,details={}){
 }
 export function restoreWorkshop(s,a,o,ctx,actor=s.hero.lineage){
   const details={actor,payer:o.repair?.payer||actor,damageAt:o.damagedAt,materialCost:18,...(o.repair?.purchase?{purchase:o.repair.purchase}:{})};
-  o.state='intact';o.repair=null;recordWorkshop(s,a,o,'Ремонт закончен. В мастерской снова можно работать.','repair',ctx,details);
+  restoreStructure(s,a,o,actor);o.state='intact';o.repair=null;recordWorkshop(s,a,o,'Ремонт закончен. В мастерской снова можно работать.','repair',ctx,details);
   witnessRepair(s,a,o,details);
   recordCraftRepair(s,a,o,details);
   recordDisputeRepair(s,a,o,details,ctx);

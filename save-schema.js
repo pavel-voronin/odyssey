@@ -1,3 +1,4 @@
+import {validateBuildingRuins} from './modules/building-ruins-schema.js';
 import {validateSequences} from './modules/sequence-schema.js';
 import {validateLiteracy} from './modules/literacy-schema.js';
 import {validateTexts} from './modules/text-schema.js';
@@ -139,6 +140,7 @@ export function validateSave(s){
  validateTexts(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
+ validateBuildingRuins(s,fail);
  for(const life of s.lives){fields(life,['generation','lineage','born','ended','outcome','cause','name','items','timeline'],'life');if(life.outcome!=='dead'||!s.people[life.lineage])fail('life.outcome');integer(life.born,'life.born');integer(life.ended,'life.ended');if(life.ended<life.born||life.ended>s.tick)fail('life.ended');if(own(life,'portraitSnapshot')){const q=life.portraitSnapshot;fields(q,['version','race','alive','look'],'life.portraitSnapshot');if(q.version!==1||q.alive!==false||q.race!==null&&!RACES.some(r=>r.id===q.race)||!object(q.look)||!['skin','hair','hairStyle','hat'].every(k=>typeof q.look[k]==='string')||!Array.isArray(q.look.injuryMarks)||q.look.injuryMarks.some(m=>!object(m)||!['scar','burn'].includes(m.kind)||!['face','cap','plating'].includes(m.part)))fail('life.portraitSnapshot');}}
  fields(s.society,['events','journeys','orders','nextEvent','nextEnemy'],'society');
  fields(s.logistics,['convoys','nextConvoy','nextDispatch','deliveries','losses','history'],'logistics');
