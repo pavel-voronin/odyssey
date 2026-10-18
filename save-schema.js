@@ -1,3 +1,4 @@
+import {validateEnemyPeople} from './modules/enemy-person-schema.js';
 import {validateProsthetics,validateProstheticItem} from './modules/prosthetic-schema.js';
 import {validateLimbLosses} from './modules/limb-schema.js';
 import {validatePatients} from './modules/patient-schema.js';
@@ -158,7 +159,7 @@ export function validateSave(s){
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

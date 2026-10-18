@@ -1,3 +1,4 @@
+import {releaseEnemyPerson} from './enemy-mercy.js';
 import {woundFocus} from './wound-state.js';
 import {stoneFunding,spendSpellFunding} from './waystone-state.js';
 import {actorFact} from '../actor-facts.js';
@@ -50,7 +51,7 @@ export function castInCombat(s,enemy,ctx,requestedSpellId=null){
   else if(spell.kind==='cleanse'){h.conditions=h.conditions.filter(c=>!['poison','curse','fever'].includes(c.id));ctx.log(s,'Названное настоящим именем проклятие больше не держится.','magic');}
   else if(spell.kind==='ward'){addCondition(s,'blessing',ctx,18);ctx.log(s,'Слово укрытия ложится между героем и чужими когтями.','magic');}
   else if(spell.kind==='pacify'){
-    if(moduleRandom(s,'magic')<.45){enemy.resolved=true;enemy.pacified=true;h.combat=null;h.goal=null;ctx.gainXp(s,7);ctx.log(s,'Колыбельная превращает угрозу в спящее существо. Герой проходит без убийства.','magic');}
+    if(moduleRandom(s,'magic')<.45){releaseEnemyPerson(s,enemy,'sleep',ctx);enemy.resolved=true;enemy.pacified=true;h.combat=null;h.goal=null;ctx.gainXp(s,7);ctx.log(s,'Колыбельная превращает угрозу в спящее существо. Герой проходит без убийства.','magic');}
     else ctx.log(s,'Колыбельная звучит. Противник недоволен музыкальным жанром.','magic');
   }else{const force=spell.id==='roots'&&enemy.tags?.includes('construct')?Math.round(power*1.25):power;const damage=enemyDamage(s,enemy,force,spellChannel(spell),ctx);enemy.hp=Math.max(0,enemy.hp-damage);if(damage>0)actorFact(s,'hurt',enemy.id,'hero',damage);ctx.log(s,`«${spell.name}»: ${damage} магического урона.${spell.kind==='time'?' Ответный удар не успевает случиться.':''}`,'magic');if(enemy.hp<=0)ctx.defeatEnemy(s,enemy);}
   return true;

@@ -201,7 +201,7 @@ export class Scene {
       const beastTrack=this.beastTracks.tracks.get(o.id),beastMotion=s.rules?.['creature-motion']!==false;
       const x = screenX(beastMotion&&beastTrack?beastTrack.from+(beastTrack.to-beastTrack.from)*phase:o.x);
       if(creatureTraceVisible(s,a,o))drawCreatureTrace(c,x,ground,o.trace.group);
-      if (o.kind === 'enemy' && o.alive) {
+      if (o.kind === 'enemy' && o.alive && (!o.person||o.person!==h.lineage&&s.people[o.person]?.enemyBody?.stage==='hostile')) {
         c.save();if(s.rules?.mutations!==false&&o.mutation==='giant'){c.translate(x,ground);c.scale(1.15,1.15);c.translate(-x,-ground);}if(s.rules?.mutations!==false&&o.mutation==='phase')c.globalAlpha=.65;
         const elementColors={fire:'#c99362',frost:'#8cbac8',storm:'#a6a5d4',venom:'#9dbd79',arcane:'#bc8fb7',grave:'#94a49b'};if(s.rules?.elements!==false&&elementColors[o.element]){c.save();c.strokeStyle=elementColors[o.element];c.globalAlpha=.45;c.lineWidth=2;c.beginPath();c.ellipse(x,ground-17,18,23,0,0,7);c.stroke();c.restore();}
         if (o.shape === 'wolf' || o.name.includes('волк')) {
@@ -210,7 +210,7 @@ export class Scene {
         }
         else if(beastMotion&&o.shape==='dog')this.quadruped(x,ground,quadrupedPose(beastTrack,phase,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))*(w-48)/100),'dog');
         else if (o.shape === 'guard' || !o.shape) this.guard(x, ground);
-        else if (o.shape === 'human') this.person(x, ground, o.pacified ? '#b2ba8a' : '#a38b78', false, -1, 0);
+        else if (o.shape === 'human'){const p=s.people[o.person],look=p?looks(p,p.appearance):null;this.person(x,ground,look?.cloak||(p?'#ac906b':o.pacified?'#b2ba8a':'#a38b78'),false,-1,0,false,false,look);}
         else if(beastMotion&&MOTION_SHAPES.includes(o.shape))this.formedCreature(x,ground,o.shape,creatureActionPose(o.shape,beastTrack,phase,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))));
         else this.creature(x, ground, o.shape, s.tick);
         c.restore();if(s.rules?.tactics!==false&&o.tactic==='charged'&&o.battle?.intent==='strike'){c.fillStyle='#d99b79';c.beginPath();c.moveTo(x,ground-61);c.lineTo(x-5,ground-52);c.lineTo(x+5,ground-52);c.fill();}

@@ -1,3 +1,4 @@
+import {releasedPersonPlan} from './enemy-mercy.js';
 import {prostheticNPCTurn} from './prosthetics.js';
 import {adaptNPCWork} from './limb-state.js';
 import {woundNPCTurn} from './wound-care.js';
@@ -98,6 +99,7 @@ function begin(p,kind,target,x,remaining=3,extra={}){p.agenda.task={kind,target,
 function plan(s,p,ctx){
   const a=s.areas[p.area],m=p.agenda;
   m.home ||= p.area;
+  if(releasedPersonPlan(s,p))return;
   if(p.migration&&s.migrations?.[p.migration]?.status==='active')return;
   if(rescueEscapePlan(s,p))return;
   if(p.role==='ребёнок'){begin(p,'learn',p.area,42,2);return;}
@@ -248,7 +250,7 @@ export function peopleTick(s,ctx){
     releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
-    if(p.fieldTeachTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
+    if(p.fieldTeachTick>=s.tick||p.enemyBody?.lastActionTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
     const controller=npcController(s,p);
     if(enabled(s,'npc-control')&&!['personal','migration'].includes(controller)){if(controller==='none'&&p.agenda)p.agenda.task=null;continue;}

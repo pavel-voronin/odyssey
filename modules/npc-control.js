@@ -16,6 +16,7 @@ function claims(input){
  return cache.owners;
 }
 export function npcController(s,p){
+ if(p?.alive&&p.enemyBody?.stage==='hostile')return 'enemy';
  if(p?.alive&&['waiting','supported'].includes(p.partyInjury?.stage))return 'injury';
  if(p?.alive&&['holding','returning'].includes(p.mechanismDuty?.stage))return 'mechanism';
  if(!p?.alive)return 'none';const owner=claims(s).get(p.id);if(owner)return owner;

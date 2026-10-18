@@ -1,3 +1,6 @@
+import {bindEnemyPerson} from './modules/enemy-person-create.js';
+import {syncEnemyPeople} from './modules/enemy-person-state.js';
+import {considerSurrender,killEnemyPerson} from './modules/enemy-mercy.js';
 import {prostheticTurn} from './modules/prosthetics.js';
 import {adaptLimbPlan} from './modules/limb-plan.js';
 import {weaponBody} from './modules/limb-state.js';
@@ -191,7 +194,7 @@ export function random(s) {
   return s.rng / 4294967296;
 }
 const roll = (s, n) => Math.floor(random(s) * n);
-function context(s, stream) { return { spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
   if(observingBodyActive(s)||type==='death'||type==='retirement')rememberMoment(s,s.journal[0]);else s.journal[0].afterLife=true;
@@ -541,12 +544,13 @@ function die(s, enemy,details={}) {
 }
 function fight(s, enemy) {
   const h = s.hero;
-  if (!enemy?.alive) { cancelWeapon(s,'Противник больше не участвует в бою.');h.combat = null; h.goal = null; return; }
+  if (!enemy?.alive||enemy.resolved) { cancelWeapon(s,'Противник больше не участвует в бою.');h.combat = null; h.goal = null; return; }
   encounterBestiary(s,s.people[h.lineage],enemy);
   contactDelve(s,enemy);
   causalReturn(s,enemy);
   if(storyCombatChoice(s,enemy,context(s,'stories'))){cancelWeapon(s,'Выбрано другое действие.');observeRejected(s,s.areas[h.area]);return;}
   rememberWeaponRole(s);
+  if(considerSurrender(s,enemy,context(s,'enemy-people')))return;
   h.action = 'БОЙ'; h.intent = `Сражаться: ${enemy.name}`; h.reason = 'Опасность уже рядом. Он оценивает раны после каждого удара.';
   let choice=woundCombatChoice(s,enemy,chooseCombatAction(s,enemy));rememberCombatChoice(s,enemy,choice,context(s,'combat'));
   const warned=enabled(s,'tactics')&&enemy.tactic==='charged'&&enemy.battle?.intent==='strike'&&Math.max(1,expectedStrike(s,enemy)-legacyArmorDefense(h)-itemBonus(h,'defense'))>h.hp*(.65+h.personality.courage*.4);
@@ -623,7 +627,7 @@ function enemyResponse(s,enemy){
 function defeatEnemy(s,enemy,killer=s.hero.lineage){
   if(!enemy.alive)return;
   markActorDeath(s,enemy,enemy.id,enemyShape(enemy));
-  const h=s.hero;enemy.hp=0;enemy.alive=false;dropRescuePurse(s,s.areas[h.area],enemy);h.combat=null;h.kills++;h.gold+=2+roll(s,4);gainXp(s,9);
+  const h=s.hero;enemy.hp=0;enemy.alive=false;killEnemyPerson(s,enemy,killer);dropRescuePurse(s,s.areas[h.area],enemy);h.combat=null;h.kills++;h.gold+=2+roll(s,4);gainXp(s,9);
   if(killer!==h.lineage)enemy.defeatedBy=killer;
   recordRemains(s,enemy,{kind:'enemy',id:enemy.id,area:h.area,x:enemy.x,shape:enemyShape(enemy),cause:{person:killer},facing:h.x<enemy.x?-1:1});
   observeRejected(s,s.areas[h.area]);
@@ -633,11 +637,11 @@ function defeatEnemy(s,enemy,killer=s.hero.lineage){
 }
 function spawnEnemy(s,a,settings={}){
  const enemy={id:a.id+'-arrival-'+s.society.nextEnemy++,kind:'enemy',name:'Пришлая угроза',x:settings.x||57,hp:20,maxHp:20,attack:4,alive:true,patrol:0,...settings,requestedSpecies:settings.requestedSpecies||settings.species};
- composeEnemy(s,a,enemy,()=>moduleRandom(s,'event-enemies'),true);a.objects.push(enemy);return enemy;
+ composeEnemy(s,a,enemy,()=>moduleRandom(s,'event-enemies'),true);a.objects.push(enemy);bindEnemyPerson(s,a,enemy);return enemy;
 }
 function npcVictory(s,a,enemy,p){
  markActorDeath(s,enemy,enemy.id,enemyShape(enemy));
- enemy.hp=0;enemy.alive=false;enemy.defeatedBy=p.id;const text=p.name+' побеждает '+enemy.baseName+' на дороге. Это поступок другого человека.';if(enabled(s,'npc-watch-needs'))watchNote(s,p,text,{log},'orders');else{s.society.events.unshift({tick:s.tick,area:a.id,text,kind:'orders'});s.changes.push({tick:s.tick,text});if(s.hero.area===a.id)log(s,text,'orders');}
+ enemy.hp=0;enemy.alive=false;killEnemyPerson(s,enemy,p.id);enemy.defeatedBy=p.id;const text=p.name+' побеждает '+enemy.baseName+' на дороге. Это поступок другого человека.';if(enabled(s,'npc-watch-needs'))watchNote(s,p,text,{log},'orders');else{s.society.events.unshift({tick:s.tick,area:a.id,text,kind:'orders'});s.changes.push({tick:s.tick,text});if(s.hero.area===a.id)log(s,text,'orders');}
  recordRemains(s,enemy,{kind:'enemy',id:enemy.id,area:a.id,x:enemy.x,shape:enemyShape(enemy),cause:{person:p.id},facing:Number.isFinite(p.x)?p.x<enemy.x?-1:1:undefined});
  dropRescuePurse(s,a,enemy);
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
@@ -691,7 +695,7 @@ function worldTick(s) {
   // Distant regions retain their identities. Only a small scheduled change is simulated.
   const activeFights=new Set(Object.values(s.actorStates).filter(h=>selfDrivenActor(s,h)&&h.combat).map(h=>h.combat));
   for (const a of Object.values(s.areas)) for (const o of a.objects) {
-    if (o.kind === 'enemy' && o.alive && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
+    if (o.kind === 'enemy' && o.alive && !o.resolved && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
       const beforeX=o.x;o.x += areaOffset(a,o.patrol*1.4);creatureTrace(s,a,o,beforeX);
       if (o.x < 29 || o.x > 83) o.patrol *= -1;
     }
@@ -716,7 +720,7 @@ export function advanceWorld(s) {
  initializeInteriors(s);
  initializeLodging(s);
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
- worldTick(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
+ worldTick(s);syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
   applyActorExternal(s,h);weaponTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
@@ -726,7 +730,7 @@ export function advanceWorld(s) {
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
   const castsBefore=h.magic.casts;
-  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;

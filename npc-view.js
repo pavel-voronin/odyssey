@@ -4,6 +4,7 @@ import {materialDeliveryEnabled,pendingMaterialContract,materialContracts} from 
 import {partyCombatOn} from './modules/party-combat-policy.js';
 // Read-only presentation of the existing NPC controller; never a second travel or work action.
 export function projectNPCView(s,h,p,leader,previous){
+ if(p.alive&&p.enemyBody?.stage==='hostile'){h.lastAction='guard';h.intent='Вооружённый путник на дороге';h.reason='Следит за дорогой и не подпускает путников. Разговор может оказаться безопаснее боя.';h.transit=null;return;}
  if(!p.alive){const route=p.deathJourney;h.lastAction='dead';h.transit=route&&s.areas[route.from]&&s.areas[route.to]?{...route,remaining:0,total:1,viewOnly:true,dead:true}:!p.area?{from:h.area,to:h.area,mode:'road',remaining:0,total:1,viewOnly:true,unknown:true,dead:true}:null;h.intent='Жизнь закончилась. Мир продолжается';h.reason='Можно остаться наблюдать это место или явно выбрать другую историю.';return;}
  const journey=s.society?.journeys.find(j=>j.person===p.id&&j.movement==='timed'),remaining=journey?Math.max(0,journey.arrival-s.tick):0,old=h.transit;
  if(leader?.transit)h.transit={...leader.transit,viewOnly:true};

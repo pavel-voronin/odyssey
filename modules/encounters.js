@@ -1,3 +1,5 @@
+import {releaseEnemyPerson} from './enemy-mercy.js';
+import {enemyPerson} from './enemy-person-state.js';
 import {recordPetCustody} from './pet-custody-state.js';
 import {offerInvitation,declineInvitation,startInvitation} from './invitation-rhythm.js';
 import {knownArea,revealArea} from '../actor-atlas.js';
@@ -70,10 +72,12 @@ export function encounter(s, o, ctx) {
 
 export function tryParley(s, enemy, ctx) {
   const h = s.hero;
+  if(!enemy.alive||enemy.resolved)return false;
   if (!enemy.tags?.includes('human') || enemy.parleyAttempted || !(hasHabit(h, 'mercy') || profile(h).skill === 'parley')) return false;
   enemy.parleyAttempted = true;
   if (stat(h,'spirit') + stat(h,'guile') + ctx.random(s) * 8 > 10) {
-    enemy.pacified = true; enemy.resolved = true; moral(s, 5); repute(s, enemy.faction, 2); ctx.gainXp(s, 6);
+    const linked=enemyPerson(s,enemy);if(linked&&!releaseEnemyPerson(s,enemy,'parley',ctx))return false;
+    enemy.pacified = true; enemy.resolved = true; moral(s, 5); if(!linked)repute(s, enemy.faction, 2); ctx.gainXp(s, 6);
     h.goal = null; h.lastAction = 'talk'; ctx.log(s, `${enemy.baseName} принимает разговор вместо боя. Дорога становится безопасной без новой могилы.`, 'choice'); return true;
   }
   ctx.log(s, 'Предложение мира отвергнуто. Спокойные слова не всегда меняют чужие планы.', 'talk'); return true;
