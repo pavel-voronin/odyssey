@@ -2483,3 +2483,14 @@ Pages214: Actions39170729884 success, HTML HTTP200/buildacff01d; commit1d591217b
 Pages215: Actions39171086522 success, HTML HTTP200/build8c4b183; commit652c3b5c74a9c56b9f1918d5aad3f4d922276a03.
 
 Опубликовано https://odyssey.kolpaque.dev:525742935d064a7a;433 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.
+
+<a id="stage-217"></a>
+## Этап217 · R-09.3 · тихая ложбина
+
+Первый новый forest получает одно локальное правило: знакомое заклинание стоит ещё2маны. Прежние травы/еда и настоящий путь сохраняют пользу места; обычный шаг/труд/немаг не платят. Личные знаки и настоящий расход дают знание; слух/restore/ON не создают law в старом месте. Камень тратит только свой конечный остаток, минимум1личнойманы сохраняется. Общий spellInvoice связывает preview/forecast/подготовку/дебет; осторожный знающий маг при недостатке маны выбирает настоящий известный обход. Наблюдение другого тела не передаёт расход или запись. Полный договор — CONTRACTS place-rule.v1.
+
+Код modules/place-rule-state/place-rules/spell-invoice/place-rule-schema, magic/preparation/travel/engine/rules/save-schema, place-rule-view/scene/app; test/place-rules и scripts/place-rule-scenarios/render-place-rules. PARTIAL7/7 exit0,645мс, artifacts/checks/3271288e976bf7fc.log; revision03949fe750032eb9.6малых групп: реальный constructor/отсутствующий старый закон/слух/строгая форма, точная граница5/6 и физический fallback/4шага немага, настоящий original waystone/один расход/save, личный известный обход с реальным входом за<=2шага и три иных решения, другой detailed caster без чужого journal/mana,4step spell batch/replay/OFF/проверка receipt. Renderer320/390: знаки, личная цена4+2, немаг без расхода; read-only/overflow0, осмотрено. Build/smoke пройдены; full/SOAK/длинные жизни/все сочетания не запускались.
+
+Pages216: Actions39172270940 success, HTML HTTP200/build5257429; commit96f70e4c199b3a72954b120eedb2660d66c7ceb0.
+
+Опубликовано https://odyssey.kolpaque.dev:03949fe750032eb9;438 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.

@@ -89,6 +89,7 @@ import {deathSheet} from './death-sheet.js';
 import {runWorldBatch,requestYearCancel,lifeFinished,advanceLife} from './playback.js';
 import {beginYearRun,updateYearClock,endYearRun} from './year-clock.js';
 import {savedRunNotice} from './playback-view.js';
+import {placeRuleHTML} from './place-rule-view.js';
 import {beginGesture,moveGesture,isTap} from './gestures.js';
 import {bindFreshAction,bindFreshChoice} from './fresh-action.js';
 import {rememberObservers,observerChoices,observerRequest,commitObserverRequest} from './observer-choice.js';
@@ -299,6 +300,7 @@ function enrichSheet(){
     if(cityRoot)$('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">РАЙОНЫ ${escape(cityRoot.name)}</p>${cityRoot.districts.map(id=>`<p class="empty">${escape(state.areas[id].district)} · ${(state.areas[id].population||[]).filter(p=>state.people[p]?.alive).length} жителей</p>`).join('')}`);
     $('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ПОТРЕБНОСТИ ЖИТЕЛЕЙ</p>${inhabitants.filter(p=>p.needs).map(p=>`<p class="empty">${escape(p.role)} ${escape(p.name)}: голод ${Math.round(p.needs.hunger)}, силы ${Math.round(p.needs.energy)}, разговоров ${p.needs.conversations}${p.needs.sleeping?' · спит':''}</p>`).join('')}`);
     const localSource=localFoodSourceHTML(state,escape);
+    $('detail-panel').insertAdjacentHTML('beforeend',placeRuleHTML(state,escape));
     $('detail-panel').insertAdjacentHTML('beforeend',hearthMealHTML(state,escape));
     if(localSource)$('detail-panel').insertAdjacentHTML('beforeend',localSource);
     else if(forage?.max)$('detail-panel').insertAdjacentHTML('beforeend',`<div class="fact"><span>${escape(forage.kind)}</span><b>${forage.stock} / ${forage.max}</b></div>`);

@@ -1,3 +1,4 @@
+import {knownLawBurden} from './place-rules.js';
 import {supportedPatient} from './patient-state.js';
 import {initializeHistoricalCalendar} from './historical-calendar.js';
 import {startInvitation,exoticInvitationPenalty} from './invitation-rhythm.js';
@@ -179,5 +180,5 @@ export function routePreference(s,a){
   if(hasHabit(h,'homebody'))penalty+=(a.continent!==s.areas[h.area].continent?4:0);
   if(enabled(s,'psychology')&&h.mind.type==='claustrophobic'&&a.realm==='underground')penalty+=5;
   if(!h.memory.places.includes(a.id))penalty-=enchantmentStrength(h,'explore');
-  return penalty+exoticInvitationPenalty(s,a);
+  return penalty+exoticInvitationPenalty(s,a)+(knownLawBurden(s,a.id)?8:0);
 }

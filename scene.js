@@ -46,6 +46,7 @@ import {precipitationWeather,weatherParticles} from './weather-view.js';
 import {areaEnvironment} from './area-environment.js';
 import {sceneCamera,sceneFrame,CameraTrack,applyCamera,cameraLocalMatrix} from './scene-camera.js';
 import {billboardFrame,readableContext,surfaceContext} from './camera-perspective.js';
+import {paintPlaceRule} from './place-rule-view.js';
 import {recordSilhouette,ContourCache,paintSilhouette,paintRoof,houseSilhouette} from './silhouette.js';
 import {campPassage} from './geometry.js';
 import {contourBounds,lightContributions,lightInViewport,contactContour,groundLightReach} from './light-contributions.js';
@@ -191,6 +192,7 @@ export class Scene {
     if(a.interior){this.shadowCasters=[];paintInterior(c,a,w,ht,ground,s);}
     for(const caster of this.shadowCasters){if(caster.contour&&s.rules?.['contour-shadows']!==false)this.castContourShadow(caster.contour,{x:caster.x,y:caster.y},false,.65,5);else this.castShadow(caster.x, this.composition?caster.y:ground,caster.width,caster.height,false,.65);}
     if(water){c.fillStyle='#284e60';c.fillRect(0,ground-8,w,ht-ground+8);c.strokeStyle='#9cb6b8';c.lineWidth=1;c.globalAlpha=.35;for(let row=0;row<5;row++){c.beginPath();for(let x=0;x<w;x+=10)c.lineTo(x,ground+row*17+Math.sin(x/31+s.tick*.2+row)*3);c.stroke();}c.globalAlpha=1;c.fillStyle='#6e654a';c.beginPath();c.moveTo(12,ground+1);c.lineTo(w-12,ground+1);c.lineTo(w-42,ground+30);c.lineTo(45,ground+30);c.fill();c.fillStyle='#b0a078';c.fillRect(13,ground-3,w-26,4);c.strokeStyle='#9b9d86';c.lineWidth=2;c.beginPath();c.moveTo(w*.56,ground);c.lineTo(w*.56,ground-100);c.stroke();c.fillStyle='#d4d0a9';c.beginPath();c.moveTo(w*.56+3,ground-97);c.lineTo(w*.56+3,ground-26);c.lineTo(w*.56+65,ground-26);c.fill();}
+    paintPlaceRule(surfaceContext(c,this.camera),s,a,screenX,ground);
     this.paintFixtures();
     if(!travel)canvas.dataset.fordIds=paintFords(c,s,a,screenX,ground,now,{camera:this.camera,dpr}).map(f=>f.edge).join(',');
     paintFoodSource(c,s,a,screenX,ground,{camera:this.camera,dpr});

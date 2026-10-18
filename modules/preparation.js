@@ -1,3 +1,4 @@
+import {spellInvoice} from './spell-invoice.js';
 import {clothingEffectKey} from './clothing-state.js';
 import {knownArea} from '../actor-atlas.js';
 import {foodWalkingTicks,mealWarmth} from './hearth-food.js';
@@ -29,7 +30,7 @@ export function estimatePlan(s,g,ctx){
   if(g.kind==='itemRepairWork'){const q=s.people[h.lineage]?.itemRepair,o=q?.orders[q.active];cost+=Math.max(0,(o?.required??4)-(o?.progress??0))*2;}
   if(g.kind==='hunt')cost+=12;
   const knownSpells=enabled(s,'magic')?SPELLS.filter(sp=>h.magic.spells.includes(sp.id)):[];
-  const mana=g.kind==='hunt'&&knownSpells.length?Math.min(h.magic.maxMana,Math.min(...knownSpells.map(sp=>sp.mana))*2):0;
+  const mana=g.kind==='hunt'&&knownSpells.length?Math.min(h.magic.maxMana,Math.min(...knownSpells.map(sp=>enabled(s,'place-rules')?spellInvoice(s,h,sp,{area:g.area,known:true}).totalManaCost:sp.mana))*2):0;
   return {ticks,energyCost:Math.ceil(cost),energy:Math.min(85,Math.ceil(cost)+24),health:Math.ceil(h.maxHp*(g.kind==='hunt'?.82:.55)),mana};
 }
 export function preparePlan(s,ctx){

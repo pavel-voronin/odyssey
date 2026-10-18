@@ -1,3 +1,5 @@
+import {createPlaceRule} from './modules/place-rule-state.js';
+import {observePlaceRule,knownLawBurden} from './modules/place-rules.js';
 import {hostileLifeTick} from './modules/hostile-life.js';
 import {rivalryTurn,rivalryTick} from './modules/craft-rivalry.js';
 import {bindEnemyPerson} from './modules/enemy-person-create.js';
@@ -241,7 +243,7 @@ function addArea(s, type, name, depth = 0,metadata={}) {
   civicArea(s,area);
   supplyArea(s,area);
   peopleArea(s,area);
-  initializeDescent(s,area);migrationArea(area);initializeFacades(s);registerSpatialArea(s,area);return id;
+  createPlaceRule(s,area);initializeDescent(s,area);migrationArea(area);initializeFacades(s);registerSpatialArea(s,area);return id;
 }
 function createHero(s) {
   const village = Object.values(s.areas).find(a => isTown(a));
@@ -296,6 +298,7 @@ function enter(s, id) {
   initializeInteriors(s);
   initializeLodging(s);
   const firstVisit=!visitedArea(s,a);h.area = id;syncCoverPosition(s);petPassageEntered(s);recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
+  observePlaceRule(s,context(s,'place-rules'));
   if(a.temporaryCamp)return;
   if (firstVisit) { gainXp(s, 3 + (hasHabit(h, 'diary') ? 2 : 0)); log(s, `Открыто место: ${a.name}.`, 'discover'); }
   if (!h.memory.places.includes(id)) {const bonus=enchantedDiscovery(s,a,context(s,'enchantments'));if(bonus)gainXp(s,bonus);h.memory.places.push(id);}
@@ -324,9 +327,18 @@ export function knownRoute(s,from,to){
   countMarket(s,'route');
   if(!s.hero.atlas||!s.areas[from]||!s.areas[to]||from!==to&&petRouteDeferred(s,to))return [];
   const blockedFords=new Set(fordBlocked(s,s.hero));
-  if(from!==to&&!knownArea(s,to))return [];const membership=s.hero.atlas.known.length>3?routeMembership(s):null,queue=[from],parents={[from]:null};
-  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){if(id in parents||knownShortcutBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownLiftBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownGrateBlocked(s,s.people[s.hero.lineage],queue[i],id)||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;parents[id]=queue[i];queue.push(id);}
-  if(!(to in parents))return [];const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();
+  if(from!==to&&!knownArea(s,to))return [];const membership=s.hero.atlas.known.length>3?routeMembership(s):null;
+  const search=avoidLaw=>{
+    const queue=[from],parents={[from]:null};
+    for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){
+      if(id in parents||avoidLaw&&id!==to&&knownLawBurden(s,id)||knownShortcutBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownLiftBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownGrateBlocked(s,s.people[s.hero.lineage],queue[i],id)||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;
+      parents[id]=queue[i];queue.push(id);
+    }
+    if(!(to in parents))return [];const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();
+  };
+  const path=search(false);
+  if(path.slice(1,-1).some(id=>knownLawBurden(s,id))){const alternate=search(true);if(alternate.length)return alternate;}
+  return path;
 }
 
 function closest(s, predicate) {
@@ -787,6 +799,7 @@ function actObserved(s) {
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(transitTick(s,context(s,'travel')))return s;
   if(h.delve&&s.areas[h.delve.root]?.dungeon?.layout&&!layoutOn(s))return s;
+  observePlaceRule(s,context(s,'place-rules'));
   observeDelveLayout(s);observeGuardians(s);observePositions(s);
   observeTowers(s,context(s,'landmarks'));
   observeScentPlants(s);
