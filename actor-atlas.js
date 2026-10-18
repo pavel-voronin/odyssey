@@ -1,3 +1,4 @@
+import {rememberRoadPrice} from './modules/metric-route-state.js';
 // Knowledge belongs to a person. Area flags retain only the world's historical projection.
 const roadKey=(a,b)=>[a,b].sort().join('|');
 export function initializeActorAtlas(s,h){
@@ -18,7 +19,7 @@ export function routeMembership(s){
  const atlas=s.hero.atlas,areas=s.areas,known=new Set(atlas.known),roads=new Set(atlas.roads);
  return {area(id){const a=areas[id];return Boolean(a&&known.has(a.id));},road(a,b){return roads.has(roadKey(a,b));}};
 }
-export function revealRoad(s,a,b){const atlas=s.hero?.atlas;if(!atlas||!knownArea(s,a)||!knownArea(s,b)||!s.areas[a]?.links.includes(b))return;const key=roadKey(a,b);if(!atlas.roads.includes(key))atlas.roads.push(key);}
+export function revealRoad(s,a,b){const atlas=s.hero?.atlas;if(!atlas||!knownArea(s,a)||!knownArea(s,b)||!s.areas[a]?.links.includes(b))return;const key=roadKey(a,b);if(!atlas.roads.includes(key))atlas.roads.push(key);if(!s.hero.transit&&[a,b].includes(s.hero.area)&&(s.edges[key]?.metric||s.geographyFrame)){atlas.roadCosts ||= {};rememberRoadPrice(s,atlas.roadCosts,a,b);}}
 export function revealArea(s,area){const a=typeof area==='string'?s.areas[area]:area;if(!a)return;const atlas=s.hero.atlas;if(atlas&&!atlas.known.includes(a.id))atlas.known.push(a.id);a.discovered=true;if(s.areas[s.hero.area]?.links.includes(a.id))revealRoad(s,s.hero.area,a.id);}
 export function hideNewArea(s,area){const a=typeof area==='string'?s.areas[area]:area;if(!a)return;const atlas=s.hero.atlas;if(atlas){atlas.known=atlas.known.filter(id=>id!==a.id);atlas.roads=atlas.roads.filter(key=>!key.split('|').includes(a.id));}a.discovered=false;}
 export function recordAreaVisit(s,area){const a=typeof area==='string'?s.areas[area]:area;revealArea(s,a);a.visits++;a.visited=true;const atlas=s.hero.atlas;if(atlas){if(!atlas.visited.includes(a.id))atlas.visited.push(a.id);atlas.visits[a.id]=(atlas.visits[a.id]||0)+1;}}

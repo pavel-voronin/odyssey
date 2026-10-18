@@ -1,3 +1,4 @@
+import {metricTravelRate} from './metric-route.js';
 import {areaScale,areaOffset,campPassage,physicalDistance} from '../geometry.js';
 import {recordPersonRemains} from './remains.js';
 import {npcFordGate} from './ford-actors.js';
@@ -34,6 +35,7 @@ function report(s,p,text,ctx,kind='journey'){
 function configure(s,j,p){
   const next=j.path[j.index+1];j.remaining=j.segmentTicks=Math.ceil(20*areaScale(s.areas[p.area]));j.startX=p.x;
   j.endX=next?(Number(next.slice(1))>Number(p.area.slice(1))?100:0):42;p.facing=Math.sign(j.endX-p.x)||p.facing||1;
+  const metric=next&&s.edges[[p.area,next].sort().join('|')]?.metric;if(metric)j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,j.endX)/metricTravelRate(s,p,metric).speed));
   const passage=next&&campPassage(s,p.area,next,p.id);if(passage){j.endX=passage.x??p.x;j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,j.endX)/6));p.facing=Math.sign(j.endX-p.x)||p.facing||1;}
 }
 export function startPublicJourney(s,p,a,destination,ctx){
@@ -69,10 +71,10 @@ export function advancePublicJourney(s,j,ctx){
   if(!npcAction(s,p,'journey'))return;
   j.lastTick=s.tick;j.elapsed++;
   if(p.status!=='travelling'||p.area!==j.path[j.index]){if(enabled(s,'npc-control'))finish(s,j,p,ctx,'stopped');return;}
-  if(!p.fordCrossing&&!p.liftTransit&&j.elapsed>720){finish(s,j,p,ctx,'stopped');return;}
-  if(!p.fordCrossing&&!p.liftTransit&&j.elapsed>480&&!j.returning){turnBack(s,j,p,ctx);return;}
+  if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&j.elapsed>720){finish(s,j,p,ctx,'stopped');return;}
+  if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&j.elapsed>480&&!j.returning){turnBack(s,j,p,ctx);return;}
   if(roadNeeds(s,p,ctx)){if(!p.alive)finish(s,j,p,ctx,'dead');return;}
-  if(p.fordCrossing||p.liftTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit).to,(p.fordCrossing||p.liftTransit).arrivalX,j,j.path.at(-1));if(r.status==='arrived'){p.area=r.crossing.to;p.x=r.crossing.arrivalX;j.index++;observe(s,p);configure(s,j,p);}else if(['aborted','unavailable'].includes(r.status))turnBack(s,j,p,ctx);return;}
+  if(p.fordCrossing||p.liftTransit||p.roadTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit||p.roadTransit).to,(p.fordCrossing||p.liftTransit||p.roadTransit).arrivalX,j,j.path.at(-1));if(r.status==='arrived'){p.area=r.crossing.to;p.x=r.crossing.arrivalX;j.index++;observe(s,p);configure(s,j,p);}else if(['aborted','unavailable'].includes(r.status))turnBack(s,j,p,ctx);return;}
   const camp=j.path[j.index+1]&&campPassage(s,p.area,j.path[j.index+1],p.id);if(camp&&!camp.allowed){turnBack(s,j,p,ctx);return;}
   if(camp&&j.endX!==camp.x){j.startX=p.x;j.endX=camp.x;j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,camp.x)/6));}
   j.remaining--;const oldX=p.x,progress=Math.max(0,Math.min(1,1-j.remaining/j.segmentTicks));p.x=j.startX+(j.endX-j.startX)*progress;

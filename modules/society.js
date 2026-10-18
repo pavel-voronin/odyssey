@@ -91,7 +91,7 @@ function applyEvent(s,a,ctx){
     }
     const towns=civicDestinations(s,a);
     if(towns.length&&p.role!=='ребёнок'){
-      const destination=pick(s,towns),path=ctx.route(s,a.id,destination.id);if(pathHasFord(s,path)||path.some((id,i)=>i>0&&liftAt(s,path[i-1],id)))return;const duration=enabled(s,'background-towns')?20:Math.max(20,Math.ceil(routeDistance(s,path)/100*20));
+      const destination=pick(s,towns),path=ctx.route(s,a.id,destination.id);if(path.slice(1).some((id,i)=>s.edges[[path[i],id].sort().join('|')]?.metric)||pathHasFord(s,path)||path.some((id,i)=>i>0&&liftAt(s,path[i-1],id)))return;const duration=enabled(s,'background-towns')?20:Math.max(20,Math.ceil(routeDistance(s,path)/100*20));
       p.status='travelling';p.area=null;a.population=a.population.filter(id=>id!==p.id);
       s.society.journeys.push({version:1,movement:'timed',person:p.id,from:a.id,to:destination.id,arrival:s.tick+duration,...(enabled(s,'scene-boundaries')?{departedAt:s.tick,duration}:{}),reason:c.food<40?'Ищет место без голода.':'Хочет увидеть родственников и другой рынок.'});
       markNPCDeparture(s,p,'journey');

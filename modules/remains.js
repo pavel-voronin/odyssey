@@ -56,7 +56,7 @@ export function recordPersonRemains(s,p,options={}){
   if(!Number.isSafeInteger(p.died)||p.died<0||p.died>s.tick)throw new Error('Не указан момент действительной смерти');
   const h=s.actorStates?.[p.id];
   const body=recordRemains(s,p,{kind:'person',id:p.id,area:p.area,x:p.x,
-    transit:p.deathJourney||null,tick:p.died,cause:p.deathCause||null,
+    transit:p.deathJourney||p.roadTransit||null,tick:p.died,cause:p.deathCause||null,
     anchor:marker(s,p),look:h?heroAppearance({...s,hero:h}):personAppearance(s,p),traveller:Boolean(h&&h.actorMode!=='npc'),...options});
   if(body&&h)h.remainsId=body.id;
   return body;

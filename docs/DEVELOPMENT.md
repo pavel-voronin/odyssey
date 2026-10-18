@@ -2527,3 +2527,14 @@ PARTIAL7/7 exit0,849мс, artifacts/checks/03820bc79f2d3a01.log; revision918b2d7
 Pages219: Actions39175753084 success, HTML HTTP200/build1ab301b; commit7f9e88d59139800a2f0d75d96aa2e6e981e006d5.
 
 Опубликовано https://odyssey.kolpaque.dev:918b2d7fc6671473;443 payload-хеша/HTTPS подтверждены, проверки переиспользованы.
+
+<a id="stage-221"></a>
+## Этап221 · MAP-01.3 · действительная цена дороги
+
+Новые географические road получают конечный промежуток с единым progress/снимком отправления для героя, NPC/возчика и группы. Погода/рельеф/груз/ноги меняют скорость, усталость даёт привал, еда расходуется действительно; исходный склад недоступен между местами. Личный известный time/food/energy/risk/fare влияет на путь/подготовку. Optional страх воды имеет источник личности/реального шторма. Прежние неметрические длительности и saves144 сохраняются без backfill; полный транспорт остаётся последующими задачами. Код modules/metric-route*, known-route-price и соответствующие adapters; CONTRACT route-distance.v1.
+
+PARTIAL14/14 exit0,907мс, artifacts/checks/b0d2bebb8371f2ad.log, revision4f0342f4c498396c.7новых малых групп +map-scales6/smoke, seed0/1, ≤16actual steps/случай. Герой/public-NPC:50мер/10тиков/одинаковые силы; настоящий encounter/fit пса/тот же групповой progress,4offline/partial exact replay; известные альтернативы/обновление цены/страх/припасы/отказ timed convoy без дебета. Browser320/390:3actual ticks/12из50, actual sheets добавляют0тиков/overflow0, осмотрено. Build пройден; full/SOAK/длинные жизни не запускались.
+
+Pages220: Actions39177102020 success, HTML HTTP200/build918b2d7; commit8fb0d5e979a9a75af9b1139d0d1601dfdb2407bd.
+
+Опубликовано https://odyssey.kolpaque.dev:4f0342f4c498396c;447 payload-хешей/HTTPS подтверждены, проверки переиспользованы.

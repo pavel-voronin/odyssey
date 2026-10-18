@@ -1,3 +1,5 @@
+import {pricedNavigation,knownRoadWeight} from './modules/known-route-price.js';
+import {initialWaterPreference} from './modules/metric-route-state.js';
 import {createGeographyFrame} from './modules/geography-frame.js';
 import {createPlaceRule} from './modules/place-rule-state.js';
 import {observePlaceRule,knownLawBurden} from './modules/place-rules.js';
@@ -259,7 +261,7 @@ function createHero(s) {
   };
   initializeHero(s, h, () => moduleRandom(s, 'identity'));
   h.ruleFlags = s.rules;
-  initializeLineage(s,h);initializeMind(s,h);initializeMagic(s,h);
+  initializeLineage(s,h);initializeMind(s,h);initializeMagic(s,h);initialWaterPreference(s,h);
   initializeWeather(s,h);initializePreparation(h);initializeCommitments(h);initializeInnerLife(s,h);initializeFinances(h);initializeMigrations(s);
   initializeWork(s,h);
   initializeWorkMaterials(h);
@@ -331,11 +333,11 @@ export function knownRoute(s,from,to){
   const blockedFords=new Set(fordBlocked(s,s.hero));
   if(from!==to&&!knownArea(s,to))return [];const membership=s.hero.atlas.known.length>3?routeMembership(s):null;
   const search=avoidLaw=>{
-    const queue=[from],parents={[from]:null};
-    for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){
-      if(id in parents||avoidLaw&&id!==to&&knownLawBurden(s,id)||knownShortcutBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownLiftBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownGrateBlocked(s,s.people[s.hero.lineage],queue[i],id)||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;
-      parents[id]=queue[i];queue.push(id);
-    }
+    const queue=[from],parents={[from]:null},prices={[from]:0},weighted=pricedNavigation(s),done=new Set();
+    while(queue.length){if(weighted)queue.sort((a,b)=>prices[a]-prices[b]||a.localeCompare(b));const here=queue.shift();if(done.has(here))continue;done.add(here);for(const id of s.areas[here]?.links||[]){
+      if(done.has(id)||!weighted&&id in parents||avoidLaw&&id!==to&&knownLawBurden(s,id)||knownShortcutBlocked(s,s.people[s.hero.lineage],here,id)||knownLiftBlocked(s,s.people[s.hero.lineage],here,id)||knownGrateBlocked(s,s.people[s.hero.lineage],here,id)||blockedFords.has(fordKey(here,id))||!campLink(s,here,id)||s.areas[here]?.temporaryCamp&&here!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(here,id):knownRoad(s,here,id))||areaAvoided(s,id))continue;
+      const price=prices[here]+(weighted?knownRoadWeight(s,here,id,to):1);if(!Number.isFinite(price)||id in prices&&prices[id]<=price)continue;prices[id]=price;parents[id]=here;queue.push(id);
+    }}
     if(!(to in parents))return [];const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();
   };
   const path=search(false);

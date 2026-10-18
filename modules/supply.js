@@ -51,11 +51,11 @@ export function serviceReachable(s,a,x,ctx,knownPath=null){
   }
   return true;
 }
-export function foodPlan(s,ctx){
+export function foodPlan(s,ctx,{reserve=false}={}){
   if(!enabled(s,'supply'))return false;
   const h=s.hero;
-  if(edibleBroth(s,h)){const fire=actualHearth(s,h.area);ctx.goal(s,'brothEat',h.area,fire.x,'Поесть у очага','Здесь осталась приготовленная похлёбка. Готовое блюдо ждёт у огня.');return true;}
-  if(carriedFood(s.people[h.lineage],h.inventory)>0){ctx.goal(s,'eat',h.area,h.x,'Съесть дорожные припасы','Еда уже в сумке; голод не требует похода в поселение.');return true;}
+  if(!reserve&&edibleBroth(s,h)){const fire=actualHearth(s,h.area);ctx.goal(s,'brothEat',h.area,fire.x,'Поесть у очага','Здесь осталась приготовленная похлёбка. Готовое блюдо ждёт у огня.');return true;}
+  if(!reserve&&carriedFood(s.people[h.lineage],h.inventory)>0){ctx.goal(s,'eat',h.area,h.x,'Съесть дорожные припасы','Еда уже в сумке; голод не требует похода в поселение.');return true;}
   if(heroCreditPlan(s,ctx,{request:true}))return true;
   const local=localFoodChoice(s,s.people[h.lineage],h,s.areas[h.area]);
   if(local&&serviceReachable(s,s.areas[h.area],local.x,ctx)){ctx.goal(s,'forage',h.area,local.x,local.kind==='fish'?'Поймать рыбу':'Собрать знакомые грибы',`${local.name}: известен способ и есть собственное средство. ${local.remaining} рабочих действий у местного источника.`,{remaining:local.remaining,foodSource:local.id});return true;}
@@ -191,7 +191,7 @@ export function convoyHistory(s,c,outcome){s.logistics.history ||= [];if(c.movem
 export function launchConvoy(s,source,destination,ctx){
   if(enabled(s,'npc-logistics'))return enabled(s,'supply')?createFreight(s,source,destination,ctx):null;
   if(!enabled(s,'supply')||!source?.civic||!destination?.civic||source.id===destination.id||source.civic.food<12)return null;
-  const path=ctx.route(s,source.id,destination.id);if(path.length<2||pathHasFord(s,path))return null;
+  const path=ctx.route(s,source.id,destination.id);if(path.length<2||pathHasFord(s,path)||path.slice(1).some((id,i)=>s.edges[[path[i],id].sort().join('|')]?.metric))return null;
   if(source.era!==destination.era||path.slice(1).some((node,i)=>['time','portal'].includes(s.edges[[path[i],node].sort().join('|')]?.mode)))return null;
   takeGoods(s,source,'food',12,{flow:'exported',reason:'legacy-convoy'});const medicine=Math.min(4,Math.max(0,source.civic.medicine-30));source.civic.medicine-=medicine;
   const person=createPerson(s,{name:'Возчик '+['Ивар','Адель','Корен','Юна','Летта','Саф'][s.logistics.nextConvoy%6],race:s.people[source.population?.[0]]?.race||'human',role:'возчик',alive:true,status:'caravan',area:source.id,procedural:true});

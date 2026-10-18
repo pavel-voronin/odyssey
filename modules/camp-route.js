@@ -9,7 +9,7 @@ import {npcFordGate} from './ford-actors.js';
 // their previous contract. No new clock, route knowledge, stock or body is made.
 export function walkCampOrder(s,p,target,x,ctx,holder={}){
  observeShortcutPerson(s,p);
- if(p.fordCrossing||p.liftTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit).to,(p.fordCrossing||p.liftTransit).arrivalX,holder,target);if(r.status==='arrived'){const a=s.areas[p.area];a.objects=a.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);p.area=r.crossing.to;p.x=r.crossing.arrivalX;s.areas[p.area].objects.push({id:'watch-'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x});}return ['aborted','unavailable'].includes(r.status)?'blocked':'walking';}
+ if(p.fordCrossing||p.liftTransit||p.roadTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit||p.roadTransit).to,(p.fordCrossing||p.liftTransit||p.roadTransit).arrivalX,holder,target);if(r.status==='arrived'){const a=s.areas[p.area];a.objects=a.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);p.area=r.crossing.to;p.x=r.crossing.arrivalX;s.areas[p.area].objects.push({id:'watch-'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x});}return ['aborted','unavailable'].includes(r.status)?'blocked':'walking';}
  const path=fordDetour(s,p,holder,target,ctx.route(s,p.area,target,p));if(!path.length)return 'blocked';
  const a=s.areas[p.area],next=path[1],passage=next&&campPassage(s,a.id,next,p.id);
  if(passage&&!passage.allowed&&(!isShortcut(s,a.id,next)||physicalDistance(a,p.x,passage.x)<=30))return 'blocked';

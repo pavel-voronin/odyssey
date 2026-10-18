@@ -1,3 +1,6 @@
+import {eat} from './supply.js';
+import {carriedFood} from './stores.js';
+import {startMetricTravel,advanceMetricTravel} from './metric-route.js';
 import {knownLawBurden} from './place-rules.js';
 import {supportedPatient} from './patient-state.js';
 import {initializeHistoricalCalendar} from './historical-calendar.js';
@@ -28,7 +31,7 @@ export function annotateRegion(s,a,metadata={}){
 }
 export function addRoute(s,a,b,options={}){
   s.edges ||= {};const existing=s.edges[edgeKey(a,b)];s.edges[edgeKey(a,b)]={a,b,mode:'road',duration:0,cost:0,...existing,...options};
-  const o=s.edges[edgeKey(a,b)];
+  const o=s.edges[edgeKey(a,b)];if(o.mode!=='road')delete o.metric;
   if(!existing)newFord(s,o);
   if(o.mode!=='road'){
     for(const [id,to]of [[a,b],[b,a]]){
@@ -102,9 +105,11 @@ export function beginTransit(s,next,arrivalX,ctx){
   if(grateClosed(s,h.area,next)){h.goal=null;ctx.log?.(s,'Решётка закрыла проход. Нужен местный рычаг или обход.','plan');return true;}
   if(liftBlocked(s,h.area,next)){h.goal=null;return true;}
   const lift=enabled(s,'mechanisms')&&edge?.lift,mode=lift?'lift':edge?.mode;
-  if(!edge||mode==='road'||!enabled(s,'travel')&&!lift)return false;
+  if(mode==='road'){const t=startMetricTravel(s,h,next,arrivalX);if(!t){if(edge?.metric){h.goal=null;h.lastAction='wait';return true;}return false;}h.transit={...t,savedIntent:h.intent,savedReason:h.reason};h.lastAction='travel';h.action='ДОРОГА';ctx.log(s,`Он выходит на дорожный участок: ${t.metric.distance} единиц пути. Дальний конец ещё предстоит пройти.`,'travel');return true;}
+  if(edge&&s.geographyFrame&&!lift&&!enabled(s,'travel')){h.goal=null;h.lastAction='wait';return true;}
+  if(!edge||!enabled(s,'travel')&&!lift)return false;
   if(lift&&physicalDistance(s.areas[h.area],h.x,Number(next.slice(1))>Number(h.area.slice(1))?100:0)>1)return true;
-  if(edge.mode==='portal'&&!enabled(s,'portals')||edge.mode==='time'&&!enabled(s,'time'))return false;
+  if(edge.mode==='portal'&&!enabled(s,'portals')||edge.mode==='time'&&!enabled(s,'time')){if(s.geographyFrame){h.goal=null;h.lastAction='wait';return true;}return false;}
   const cost=lift||profile(h).skill==='sea'&&edge.mode==='sea'?0:edge.cost;
   if(['portal','time'].includes(edge.mode))startInvitation(s,edge.mode,edgeKey(h.area,next));
   let crew=false;
@@ -120,12 +125,13 @@ export function beginTransit(s,next,arrivalX,ctx){
 export function transitTick(s,ctx){
   const h=s.hero,t=h.transit;if(!t)return false;
   if(t.liftRide&&t.liftRide.lastTick===s.tick)return true;
-  h.lastAction='travel';t.remaining--;if(t.liftRide){t.liftRide.remaining=t.remaining;t.liftRide.lastTick=s.tick;}h.energy=Math.max(0,h.energy-.2);
+  if(t.metric&&t.metric.lastTick!==s.tick&&enabled(s,'supply')&&h.hunger>75&&carriedFood(s.people[h.lineage],h.inventory)>0){const g=h.goal;eat(s,ctx);h.goal=g;t.metric.lastTick=s.tick;return true;}
+  h.lastAction='travel';if(t.metric){advanceMetricTravel(s,h,t);}else{t.remaining--;if(t.liftRide){t.liftRide.remaining=t.remaining;t.liftRide.lastTick=s.tick;}h.energy=Math.max(0,h.energy-.2);}
   if(t.mode==='sea'&&!t.eventDone&&t.remaining<=Math.floor(t.total/2)){
     t.eventDone=true;const chance=moduleRandom(s,'voyages');
     if(chance<.2&&enabled(s,'travel')){
       const damage=profile(h).skill==='sea'?1:3+Math.floor(moduleRandom(s,'voyages')*5);
-      const hpBefore=h.hp;h.hp-=damage;t.remaining+=2;h.travel.storms++;
+      const hpBefore=h.hp;h.hp-=damage;t.remaining+=2;h.travel.storms++;if(enabled(s,'geography-frame')&&enabled(s,'psychology'))h.routePreferences={...h.routePreferences,water:{version:1,source:'storm',at:s.tick,person:h.lineage,edge:edgeKey(t.from,t.to),aversion:1}};
       ctx.log(s,`Шторм. Герой удерживает снасти: −${damage} HP. Корабль теряет два мига.`,'storm');
       if(h.hp<=0){ctx.die(s,{name:'Морской шторм'},{kind:'storm',damage,hpBefore});h.transit=null;return true;}
     }else if(chance<.38){const gold=3+Math.floor(moduleRandom(s,'voyages')*5);h.gold+=gold;ctx.log(s,`Команда вытаскивает плавающий сундук. Доля героя: ◈${gold}.`,'treasure');}

@@ -43,7 +43,7 @@ export function registerSpatialEdge(input,id){
  registerSpatialArea(s,a);registerSpatialArea(s,b);const world=registry(s);if(world.version!==1||a.spatial?.version!==1||b.spatial?.version!==1)return;
  const ends=[{...end(s,a,b),areaRevision:a.spatial.revision},{...end(s,b,a),areaRevision:b.spatial.revision}],cross=a.spatial.layer!==b.spatial.layer||a.spatial.continent!==b.spatial.continent,attached=a.spatial.attachment?.parent===b.id?a.spatial.attachment:b.spatial.attachment?.parent===a.id?b.spatial.attachment:null;
  const kind=e.mode==='road'?(attached?.kind==='camp'?'camp':cross?'legacy-connector':'road'):e.mode||'road';
- const signature=JSON.stringify([e.a,e.b,e.mode,e.duration,e.cost,kind,ends]);if(e.spatial?.signature===signature)return e.spatial;
+ const signature=JSON.stringify([e.a,e.b,e.mode,e.duration,e.cost,kind,ends,...(e.metric?[e.metric]:[])]);if(e.spatial?.signature===signature)return e.spatial;
  e.spatial={version:1,id:'edge/'+id,revision:(e.spatial?.revision||0)+1,kind,scheme:'schematic-v1',ends,signature};world.revision++;return e.spatial;
 }
 // Called by actual world writers, never by a renderer/address query.
@@ -70,17 +70,17 @@ export function spatialAddress(input,id,x=50){
 }
 export function spatialPassage(input,id){
  const s=rootWorld(input),e=s.edges?.[id],p=e?.spatial;if(!p||p.version!==1)return {status:'unknown',reason:'unregistered-edge',edge:id};
- if(JSON.stringify([e.a,e.b,e.mode,e.duration,e.cost,p.kind,p.ends])!==p.signature)return {status:'unknown',reason:'changed-edge',edge:id};
+ if(JSON.stringify([e.a,e.b,e.mode,e.duration,e.cost,p.kind,p.ends,...(e.metric?[e.metric]:[])])!==p.signature)return {status:'unknown',reason:'changed-edge',edge:id};
  if(!s.areas[e.a]?.links.includes(e.b)||!s.areas[e.b]?.links.includes(e.a))return {status:'unknown',reason:'broken-edge',edge:id};
  if(p.ends.some(end=>s.areas[end.area]?.spatial?.revision!==end.areaRevision))return {status:'unknown',reason:'changed-endpoint',edge:id};
  const ends=p.ends.map(end=>({area:end.area,departureX:end.departureX,arrivalX:end.arrivalX,address:spatialAddress(s,end.area,pct(end.departureX)?end.departureX:50)}));
- return {status:ends.some(e=>e.address.status==='unknown')?'unknown':ends.some(e=>!pct(e.departureX)||e.address.status==='partial')?'partial':'known',id:p.id,revision:p.revision,kind:p.kind,mode:e.mode,scheme:p.scheme,ends,duration:e.duration,cost:e.cost,worldDistance:null,spatialUnit:'diagram',crossLayer:ends[0].address.layer!==ends[1].address.layer};
+ return {status:ends.some(e=>e.address.status==='unknown')?'unknown':ends.some(e=>!pct(e.departureX)||e.address.status==='partial')?'partial':'known',id:p.id,revision:p.revision,kind:p.kind,mode:e.mode,scheme:p.scheme,ends,duration:e.duration,cost:e.cost,worldDistance:e.metric?.distance??null,spatialUnit:'diagram',...(e.metric?{distanceUnit:e.metric.unit}:{}),crossLayer:ends[0].address.layer!==ends[1].address.layer};
 }
 export function actorSpatialAddress(input,h=input.hero){
  const s=rootWorld(input);if(!h)return unknown(null,null,'missing-actor');
  // NPC/group presence belongs to its existing controller, not the last drawn scene.
  const location=h.alive&&!selfDrivenActor(s,h)&&s.people[h.lineage]?personLocation(s,h.lineage):h;
  if(!location)return unknown(null,null,'missing-presence');
- if(location.transit){const t=location.transit;if(t.unknown)return unknown(null,null,'unknown-transit');const id=key(t.from,t.to),passage=spatialPassage(s,id);return {version:1,status:passage.status==='unknown'?'unknown':'partial',kind:'transit',actor:h.lineage,edge:passage.id||null,from:t.from,to:t.to,mode:t.mode??null,scene:null,point:null,physicalProgress:null,departureVersion:null,geometryBasis:'current-edge',time:{remaining:t.remaining??null,total:t.total??null,unit:'tick'},passage};}
+ if(location.transit){const t=location.transit;if(t.unknown)return unknown(null,null,'unknown-transit');const id=key(t.from,t.to),passage=spatialPassage(s,id);return {version:1,status:passage.status==='unknown'?'unknown':'partial',kind:'transit',actor:h.lineage,edge:passage.id||null,from:t.from,to:t.to,mode:t.mode??null,scene:null,point:null,physicalProgress:t.metric?{travelled:t.metric.travelled,distance:t.metric.distance,unit:t.metric.unit}:null,departureVersion:t.metric?.departureVersion??null,geometryBasis:t.metric?'departure-snapshot':'current-edge',time:{remaining:t.remaining??null,total:t.total??null,unit:'tick'},passage};}
  return {...spatialAddress(s,location.area,location.x),kind:'scene',actor:h.lineage};
 }

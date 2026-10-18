@@ -40,6 +40,7 @@ export function boundaryMotifs(s,a,{width,viewportWidth=width,scroll=0}={}){
 }
 export function transitProgress(s,t=s.hero.transit){
  if(!t||t.unknown||t.dead)return null;
+ if(t.metric)return clamp(t.metric.travelled/t.metric.distance);
  let total=t.total,remaining=t.remaining;
  if(t.viewOnly){
   const leader=actorPartyLeader(s,s.hero.lineage),actual=leader?.transit;
@@ -54,7 +55,7 @@ export function transitProgress(s,t=s.hero.transit){
 }
 export function transitLandscape(s){
  const h=s.hero,t=h.transit;if(!t)return null;
- const legacy={...s.areas[h.area],id:`transit-${t.from}-${t.to}`,length:100,roadProfile:null,district:null,city:null,type:t.unknown?'road':t.mode==='sea'?'sea':s.areas[t.to]?.type||'road',objects:[]};
+ const legacy={...s.areas[h.area],id:`transit-${t.from}-${t.to}`,length:100,roadProfile:null,district:null,city:null,type:t.unknown||t.metric?'road':t.mode==='sea'?'sea':s.areas[t.to]?.type||'road',objects:[]};
  if(!on(s)||t.mode!=='road')return {area:legacy,mix:null};
  const link=passage(s,t.from,t.to),progress=transitProgress(s,t);
  if(!link||link.p.kind!=='road'||link.p.crossLayer||!surface(link.a)||!surface(link.b)||link.a.continent!==link.b.continent||(link.a.era??0)!==(link.b.era??0)||progress===null)return {area:{...legacy,type:'road',facades:null,links:[]},mix:null};

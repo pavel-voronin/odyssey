@@ -23,7 +23,7 @@ export function npcController(s,p){
  if(!['resident','wandering'].includes(p.status))return 'none';const m=s.migrations?.[p.migration];if(m?.status==='active'&&m.members.includes(p.id)&&!m.arrivals[p.id])return 'migration';return 'personal';
 }
 export function npcControlledBy(s,p,owner){if(selfDrivenActor(s,p?.id))return owner==='actor';if(actorPartyLeader(s,p?.id))return owner==='party';return !enabled(s,'npc-control')||npcController(s,p)===owner;}
-export function canStartNPCActivity(s,p){if(partyBodySpent(s,p)||selfDrivenActor(s,p?.id)||actorPartyLeader(s,p?.id))return false;const delivery=p&&pendingMaterialContract(rootWorld(s),p.id);if(delivery?.carrier===p.id&&delivery.status!=='quoted')return false;return !enabled(s,'npc-control')||p?.actionControl?.tick!==s.tick;}
+export function canStartNPCActivity(s,p){if(p?.roadTransit||partyBodySpent(s,p)||selfDrivenActor(s,p?.id)||actorPartyLeader(s,p?.id))return false;const delivery=p&&pendingMaterialContract(rootWorld(s),p.id);if(delivery?.carrier===p.id&&delivery.status!=='quoted')return false;return !enabled(s,'npc-control')||p?.actionControl?.tick!==s.tick;}
 export function markNPCDeparture(s,p,owner){if(enabled(s,'npc-control'))p.actionControl={tick:s.tick,owner,phases:['depart']};}
 export function npcAction(s,p,owner,phase='act'){
  if(partyBodySpent(s,p)&&!PARTY_PASSIVE_PHASES.includes(phase))return false;

@@ -158,7 +158,7 @@ function plan(s,p,ctx){
 }
 function moveTask(s,p,ctx){
   const migration=s.migrations?.[p.migration],fordCargo=migration?.status==='active'&&migration.carrier===p.id?{carrier:true,cargoFood:migration.cargo.food}:{};
-  if(p.fordCrossing||p.liftTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit).to,(p.fordCrossing||p.liftTransit).arrivalX,p.agenda.task,p.agenda.task?.target,fordCargo);if(r.status==='arrived')locate(s,p,r.crossing.to,r.crossing.arrivalX);return false;}
+  if(p.fordCrossing||p.liftTransit||p.roadTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit||p.roadTransit).to,(p.fordCrossing||p.liftTransit||p.roadTransit).arrivalX,p.agenda.task,p.agenda.task?.target,fordCargo);if(r.status==='arrived')locate(s,p,r.crossing.to,r.crossing.arrivalX);return false;}
   npcWorkshopTarget(s,p);if(!p.agenda.task)return false;
   const t=p.agenda.task;
   mentorTarget(s,p,t);

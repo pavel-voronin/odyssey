@@ -20,7 +20,7 @@ function relativeIds(s,p){
 export function initializeNPCContacts(s,p){initializeNPCKnowledge(s,p);p.navigation.contacts ??=[];}
 export function localContact(s,id,area){
   const p=s.people[id];if(!p?.alive)return null;
-  if(p.liftTransit)return null;const aid=p.partyInjury,patientCarrier=s.hero.lineage===aid?.leader?s.hero:s.actorStates?.[aid?.leader];if(aid?.stage==='supported')return patientCarrier?.alive&&!patientCarrier.transit&&patientCarrier.area===area?{person:p,area,x:patientCarrier.x}:null;
+  if(p.liftTransit||p.roadTransit)return null;const aid=p.partyInjury,patientCarrier=s.hero.lineage===aid?.leader?s.hero:s.actorStates?.[aid?.leader];if(aid?.stage==='supported')return patientCarrier?.alive&&!patientCarrier.transit&&patientCarrier.area===area?{person:p,area,x:patientCarrier.x}:null;
   const leader=actorPartyLeader(s,id),detailed=s.actorStates?.[id];
   if(leader)return !leader.transit&&leader.area===area?{person:p,area,x:leader.x}:null;
   if(selfDrivenActor(s,detailed))return !detailed.transit&&detailed.area===area&&p.status!=='captive'?{person:p,area,x:detailed.x}:null;

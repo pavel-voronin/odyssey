@@ -1,3 +1,4 @@
+import {newMetricRoute} from './metric-route-state.js';
 import {enabled} from '../rules.js';
 import {CONTINENT_NAMES,BIOMES} from '../content.js';
 import {registerSpatialArea} from './spatial.js';
@@ -27,7 +28,7 @@ export function createGeographyFrame(s,base,ctx){
   const id=base[site.key]||ctx.addArea(s,site.type,site.name,site.tier==='wild'?2:0,{continent:site.landmass||'c0',realm:site.realm,geography});
   const a=s.areas[id];site.area=id;a.geography=geography;a.expanded=true;registerSpatialArea(s,a);
  }
- for(const r of frame.roads){const a=frame.sites[r.from].area,b=frame.sites[r.to].area;ctx.connect(s,a,b,{mode:r.mode,duration:r.duration,cost:r.cost});}
+ for(const r of frame.roads){const a=frame.sites[r.from].area,b=frame.sites[r.to].area;ctx.connect(s,a,b,{mode:r.mode,duration:r.duration,cost:r.cost,...(r.mode==='road'?{metric:newMetricRoute(frame.sites[r.from],frame.sites[r.to])}:{})});}
  // Existing constructors own all stock, people, workshops and rights, exactly once.
  for(const site of Object.values(frame.sites)){const a=s.areas[site.area];ctx.openSettlement(s,a,{...ctx,log:()=>{}});}
 }

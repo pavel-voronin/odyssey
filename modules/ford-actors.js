@@ -1,3 +1,4 @@
+import {npcMetricGate} from './metric-route.js';
 import {fordPassage,fordChoice} from './fords.js';
 import {liftAt,npcLiftPassage} from './lift-policy.js';
 const taskTag=g=>g&&JSON.stringify([g.kind,g.area,g.started??null,g.quest??null]);
@@ -15,6 +16,7 @@ export function heroFordGate(s,next,arrivalX,ctx){const h=s.hero,r=fordPassage(s
 // Caller already owns the person's one action and movement/cargo. This adapter
 // never locates the person or transfers goods, including on the arriving tick.
 export function npcFordGate(s,p,to,arrivalX,holder,target,{carrier=false,cargoFood=0}={}){
+ const metric=npcMetricGate(s,p,to,arrivalX,{carrier,cargoFood});if(metric)return metric;
  if(p.liftTransit||liftAt(s,p.area,to))return npcLiftPassage(s,p,to,arrivalX);
  const r=fordPassage(s,p,to,arrivalX,{carrier});if(r.status!=='closed')return r;
  const choice=fordChoice(s,p,target,r,{carrier,cargoFood});if(choice.kind==='bypass')return {status:'bypass',path:choice.path};if(choice.kind==='defer')return {status:'defer',until:choice.until};return {status:'waiting',expected:choice.expected};

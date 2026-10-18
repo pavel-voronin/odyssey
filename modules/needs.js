@@ -18,7 +18,7 @@ export function personNeeds(s,p,ctx,adapter=null){
   if(adapter?.aid?.()||adapter?.migration!==false&&migrationAid(s,p,{skipPersonal:personal}))return true;
   if(n.hunger>=65&&personal&&enabled(s,'supply')&&consumeCarriedSupplies(p,null,'food',1)){n.hunger=Math.max(0,n.hunger-48);n.meals++;return true;}
   if(n.hunger>=65&&(adapter?.meal?.()||adapter?.migration!==false&&migrationMeal(s,p,{skipPersonal:personal})))return true;
-  if(n.hunger>=65&&adapter?.localFood!==false&&a.civic&&(!enabled(s,'supply')||a.civic.food>0)){
+  if(n.hunger>=65&&!p.roadTransit&&adapter?.localFood!==false&&a.civic&&(!enabled(s,'supply')||a.civic.food>0)){
     if(marketEnabled(s)&&enabled(s,'supply')){
       const deal=tradeGoods(s,a,p.id,'food','buy',1);
       if(deal.quantity)consumeCarriedSupplies(p,null,'food',1);
