@@ -2,7 +2,7 @@
 
 Развивающаяся браузерная ZPG по GDD v0.1 для компьютера и телефона. Игру можно запустить без установки зависимостей; публикация создаёт статическую сборку.
 
-Игра: https://pavel-voronin.github.io/odyssey/ · https://odyssey.kolpaque.dev
+Игра: https://pavelvoronin.com/odyssey/ · https://odyssey.kolpaque.dev
 
 Исходники: https://github.com/pavel-voronin/odyssey. Push в main автоматически собирает и публикует игру на GitHub Pages. Workflow использует Node.js 24 без установки зависимостей. Локальные отчёты, сборки и временные инструменты исключены из репозитория.
 

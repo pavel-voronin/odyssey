@@ -12,7 +12,7 @@ PROCESS-01 выполнена. Пользователь отменил обяз�
 
 ## Публикация
 
-Основной репозиторий: https://github.com/pavel-voronin/odyssey. GitHub Pages: https://pavel-voronin.github.io/odyssey/. Push в main запускает .github/workflows/pages.yml: статическая сборка и публикация без длинных тестов. Нужные короткие проверки выполнять до push. Не коммитить tmp, artifacts, dist, локальные сохранения или секреты. Существующая публикация odyssey.kolpaque.dev сохраняется.
+Основной репозиторий: https://github.com/pavel-voronin/odyssey. GitHub Pages: https://pavelvoronin.com/odyssey/. Push в main запускает .github/workflows/pages.yml: статическая сборка и публикация без длинных тестов. Нужные короткие проверки выполнять до push. Не коммитить tmp, artifacts, dist, локальные сохранения или секреты. Существующая публикация odyssey.kolpaque.dev сохраняется.
 
 Пользователь поручил выкладывать готовые изменения на https://odyssey.kolpaque.dev после каждого завершённого этапа, чтобы смотреть игру с телефона. Публикация авторизована; дополнительное подтверждение не требуется.
 
