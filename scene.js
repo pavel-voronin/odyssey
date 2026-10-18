@@ -557,7 +557,7 @@ export class Scene {
   }
   paintPerson(x, y, color, hero, direction, stride, attack = false, rest = false, appearance=null, species=null,pose={}) {
     const c=this.ctx,look=appearance||{},gait=pose.walking?walkPose(pose.progress,pose.distance):{feet:[{x:-4,y:0},{x:5,y:0}],bodyY:0,arm:0};
-    rest=rest||Boolean(look.missingLimbs?.leftLeg&&look.missingLimbs?.rightLeg);
+    rest=rest||Boolean(look.missingLimbs?.leftLeg&&look.missingLimbs?.rightLeg&&!look.prostheticLegs);
     const crouch=pose.kind==='collect',guard=pose.kind==='guard',windup=pose.kind==='windup',lower=rest?10:crouch?7:guard?4:windup?2:0,working=['work','farm','medicine','tool','learn','factionDuty'].includes(pose.kind),t=pose.progress||0;
     c.save();c.translate(x,y);c.scale(direction*(species?.height||1)*(look.width||1),species?.height||1);
     if(this.state.rules?.['source-shadows']===false){c.fillStyle='#14241d';c.globalAlpha=.18;c.beginPath();c.moveTo(-7,0);c.lineTo(6,0);c.lineTo(9,2);c.lineTo(-9,2);c.fill();c.globalAlpha=1;}
@@ -565,7 +565,9 @@ export class Scene {
     const skin=pose.hurt?'#d2a18a':actorSkin(look,species);
     const feet=lower?[{x:-12,y:-lower},{x:13,y:-lower}]:gait.feet;
     for(let i=0;i<2;i++){
-      if(look.missingLimbs?.[i?'rightLeg':'leftLeg'])continue;
+      const side=i?'rightLeg':'leftLeg',peg=look.prostheticLegs?.[side];
+      if(look.missingLimbs?.[side]&&!peg)continue;
+      if(peg){const foot=feet[i],hip=i?3:-3;c.strokeStyle='#c39a60';c.lineWidth=3;c.beginPath();c.moveTo(hip,-12+gait.bodyY);c.lineTo(foot.x,foot.y-1);c.stroke();c.strokeStyle='#674b32';c.lineWidth=2;c.beginPath();c.moveTo(hip-3,-10+gait.bodyY);c.lineTo(hip+3,-10+gait.bodyY);c.moveTo(foot.x-2,foot.y);c.lineTo(foot.x+3,foot.y);c.stroke();continue;}
       const hip=i?3:-3,foot=feet[i];c.strokeStyle=look.trousers||'#283629';c.lineWidth=4;c.beginPath();c.moveTo(hip,-12+gait.bodyY);c.lineTo((hip+foot.x)/2+2,(-12+foot.y)/2-1);c.lineTo(foot.x,foot.y-1);c.stroke();
       c.fillStyle=look.shoes||'#3f382e';c.fillRect(foot.x-3,foot.y-3,7,3);
     }

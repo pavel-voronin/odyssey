@@ -1,3 +1,4 @@
+import {prostheticNPCTurn} from './prosthetics.js';
 import {adaptNPCWork} from './limb-state.js';
 import {woundNPCTurn} from './wound-care.js';
 import {woundStride,woundForce,woundActivity} from './wound-state.js';
@@ -247,7 +248,7 @@ export function peopleTick(s,ctx){
     releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
-    if(p.fieldTeachTick>=s.tick)continue;
+    if(p.fieldTeachTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
     const controller=npcController(s,p);
     if(enabled(s,'npc-control')&&!['personal','migration'].includes(controller)){if(controller==='none'&&p.agenda)p.agenda.task=null;continue;}
@@ -266,6 +267,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(prostheticNPCTurn(s,p,ctx))continue;
     if(pactLeaderTurn(s,p,ctx))continue;
     if(feastNPCTurn(s,p,ctx))continue;
     if(textBuyerTurn(s,p))continue;

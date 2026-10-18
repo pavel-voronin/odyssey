@@ -29,7 +29,7 @@ function legacyHeroAppearance(s){
 }
 export function heroAppearance(s){
  const look=legacyHeroAppearance(s),h=s.hero;
- look.injuryMarks=injuryLook(s.people[h.lineage]);const missing=limbLook(s.people[h.lineage]);if(missing)look.missingLimbs=missing;
+ look.injuryMarks=injuryLook(s.people[h.lineage]);Object.assign(look,withLimbLook(s.people[h.lineage],look));
  if(s.rules?.['outfit-appearance']===false||s.rules?.appearance===false)return look;
  // A myconid's cap is physiology, even though old saves stored its tint in cloak.
  look.capColor=look.cloak;

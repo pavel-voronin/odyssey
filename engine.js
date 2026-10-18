@@ -1,3 +1,4 @@
+import {prostheticTurn} from './modules/prosthetics.js';
 import {adaptLimbPlan} from './modules/limb-plan.js';
 import {weaponBody} from './modules/limb-state.js';
 import {patientPlan,patientClinicAction,patientsTick,syncPatient} from './modules/party-injuries.js';
@@ -795,6 +796,7 @@ function actObserved(s) {
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
+  if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   noticeCaravan(s,context(s,'caravans'));
   // Healing is an autonomous choice; herbs promised to a healer are kept if possible.

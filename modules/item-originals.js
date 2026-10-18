@@ -7,6 +7,7 @@ export const ITEM_CAPACITY=24;
 export const originalsOn=s=>enabled(s,'item-originals');
 export function presentItem(input,id){
  const s=rootWorld(input),actors=new Map(Object.values(s.actorStates||{}).map(h=>[h.lineage,h]));actors.set(input.hero.lineage,input.hero);
+ for(const p of Object.values(s.people))if(p.prosthetic?.item?.id===id)return {item:p.prosthetic.item,kind:'person',id:p.id};
  for(const h of actors.values())for(const item of [...h.bag,...Object.values(h.equipment).filter(Boolean)])if(item.id===id)return {item,kind:'person',id:h.lineage};
  for(const p of Object.values(s.people))for(const c of [...(p.pets||[]),...(p.petBoarding?[p.petBoarding.pet]:[])])for(const item of petPack(c)?.items||[])if(item.id===id)return {item,kind:'companion',id:c.uid};
  for(const h of actors.values())for(const c of h.companions)for(const item of petPack(c)?.items||[])if(item.id===id)return {item,kind:'companion',id:c.uid};
@@ -21,7 +22,7 @@ export function presentItem(input,id){
 export function itemLocation(s,item,holder){
  if(item?.textCopy&&holder.kind==='person')item.textCopy.owner=holder.id;else if(item?.textCopy&&holder.kind==='merchant')item.textCopy.owner='merchant';
  if(!item||!originalsOn(s)&&!item.physical&&!item.durability&&!containersOn(s))return;
- let container;if(containersOn(s)){if(holder.kind==='person'){const h=s.hero.lineage===holder.id?s.hero:s.actorStates?.[holder.id];container=Object.values(h?.equipment||{}).includes(item)?'equipment/'+holder.id:'pack/'+holder.id;}else if(holder.kind==='companion')container='pet/'+holder.id;else if(holder.kind==='cache')container='cache/'+holder.area+'/'+holder.object;else if(holder.kind==='merchant')container='merchant/'+holder.id;}item.physical={version:1,holder:{...holder,...(container?{container}:{})},movedAt:s.tick};
+ let container;if(containersOn(s)){if(holder.kind==='person'){const h=s.hero.lineage===holder.id?s.hero:s.actorStates?.[holder.id];container=s.people[holder.id]?.prosthetic?.item===item?'prosthesis/'+holder.id:Object.values(h?.equipment||{}).includes(item)?'equipment/'+holder.id:'pack/'+holder.id;}else if(holder.kind==='companion')container='pet/'+holder.id;else if(holder.kind==='cache')container='cache/'+holder.area+'/'+holder.object;else if(holder.kind==='merchant')container='merchant/'+holder.id;}item.physical={version:1,holder:{...holder,...(container?{container}:{})},movedAt:s.tick};
 }
 export function actorItemLocation(s,item,actor=s.hero.lineage){itemLocation(s,item,{kind:'person',id:actor});}
 export function consumeOriginal(s,item,{area,object,reason}){
