@@ -128,7 +128,7 @@ export function buyProperty(s,ctx){
 export function workspaceAccess(s,ctx){
   const home=homeWorkbenchSite(s,s.hero.area);if(home)return homeAdmission(s,home.room,s.hero.lineage)?'ready':'denied';
   if(!enabled(s,'property'))return 'ready';
-  const h=s.hero,g=h.goal,physical=s.areas[h.area],site=workshopSite(s,physical),a=site?.inside?site.area:physical,o=workshopAt(s,physical);initializeProperty(h);observeProperty(s,physical,ctx);
+  const h=s.hero,g=h.goal,physical=s.areas[h.area],site=workshopSite(s,physical,g.kind==='forgeWork'?g.property:null),a=site?.inside?site.area:physical,o=g.kind==='forgeWork'?site?.object:workshopAt(s,physical);initializeProperty(h);observeProperty(s,physical,ctx);
   if(!o||o.state!=='intact'||enabled(s,'work-loss')&&g.workplace&&g.workplace.id!==o.id){
     const anchor=g.workplace||g.workspace,known=anchor&&h.property.known[anchor.id];
     if(enabled(s,'work-loss')&&known&&(!o||o.id!==anchor.id))Object.assign(known,{state:'missing',seen:s.tick});

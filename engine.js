@@ -1,3 +1,4 @@
+import {rivalryTurn,rivalryTick} from './modules/craft-rivalry.js';
 import {bindEnemyPerson} from './modules/enemy-person-create.js';
 import {syncEnemyPeople} from './modules/enemy-person-state.js';
 import {considerSurrender,killEnemyPerson} from './modules/enemy-mercy.js';
@@ -671,7 +672,7 @@ function worldTick(s) {
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   feastTick(s,context(s,'local-feasts'));
-  peopleTick(s,context(s,'people'));
+  rivalryTick(s);peopleTick(s,context(s,'people'));
   migrationContactTick(s);
   npcPetsTick(s,context(s,'pet-transfer'));
   petBoardingWorldTick(s,context(s,'pet-passage'));
@@ -802,6 +803,7 @@ function actObserved(s) {
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
   if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
+  if(rivalryTurn(s,context(s,'craft-rivalry')))return s;
   noticeCaravan(s,context(s,'caravans'));
   // Healing is an autonomous choice; herbs promised to a healer are kept if possible.
   if (h.hp < h.maxHp * .48 && h.inventory.herbs > 0 && activeQuest(h)?.kind !== 'herbs') {
