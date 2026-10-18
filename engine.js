@@ -1,3 +1,5 @@
+import {findWaystone} from './modules/waystones.js';
+import {waystonePlan,waystoneAction} from './modules/waystone-actions.js';
 import {pactTalkPlan,pactTalkAction} from './modules/branch-pacts.js';
 import {feastTick} from './modules/feasts.js';
 import {feastPlan,feastAction} from './modules/feast-actions.js';
@@ -376,6 +378,7 @@ function plan(s) {
   if(!q&&verdictReviewPlan(s,context(s,'verdict-review')))return;
   if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
   if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
+  if(waystonePlan(s,context(s,'waystones')))return;
   if(!q&&pactTalkPlan(s,context(s,'branch-pacts')))return;
   if(!q&&feastPlan(s,context(s,'local-feasts')))return;
   if(!q&&literacyPlan(s,context(s,'literacy')))return;
@@ -486,7 +489,7 @@ function collect(s, object) {
   if (object.kind === 'herb' && object.count > 0&&stackRoom(s,h.lineage,'herbs',1)>0&&scentPlantKnown(s,h,a,object)&&physicalDistance(a,h.x,object.x)<=9) { object.count--; h.inventory.herbs++; log(s, 'Лунная трава найдена. Её можно отдать лекарю или приложить к ране.', 'loot'); }
   if (object.kind === 'loot' && !object.taken) { object.taken = true; h.gold += object.gold; log(s, `В забытом кошеле ${object.gold} монет. На дороге стало чуть меньше тайн.`, 'loot'); }
   if(object.kind==='heirloom'&&!object.taken)recoverHeirloom(s,object,context(s,'loot')); 
-  if (object.kind === 'relic' && !object.taken) { object.taken = true; h.inventory.relics++; h.counters.relics++; gainXp(s, 10); log(s, 'Найден осколок древнего света.', 'loot'); if (enabled(s, 'equipment')) receiveItem(s, context(s, 'loot'), 2); }
+  if (object.kind === 'relic' && !object.taken) { object.taken = true; h.inventory.relics++; h.counters.relics++; gainXp(s, 10); log(s, 'Найден осколок древнего света.', 'loot'); if (enabled(s, 'equipment')&&!findWaystone(s,object,context(s,'loot'))) receiveItem(s, context(s, 'loot'), 2); }
   h.lastAction = 'collect'; h.goal = null;
   temporalCollection(s,object,context(s,'epochs'));
 }
@@ -899,6 +902,7 @@ function actObserved(s) {
   else if (g.kind === 'govern') governTick(s,context(s,'politics'));
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
   else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
+  else if(['waystoneFill','waystoneTransfer'].includes(g.kind))waystoneAction(s,context(s,'waystones'));
   else if(g.kind==='pactTalk')pactTalkAction(s,context(s,'branch-pacts'));
   else if(g.kind==='feastJoin')feastAction(s,context(s,'local-feasts'));
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));

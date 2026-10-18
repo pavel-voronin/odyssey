@@ -1,3 +1,4 @@
+import {stoneFunding,spendSpellFunding} from './waystone-state.js';
 import {actorFact} from '../actor-facts.js';
 import { SPELLS } from '../content.js';
 import { enabled,moduleRandom } from '../rules.js';
@@ -27,7 +28,7 @@ export function magicRest(s){if(enabled(s,'magic'))s.hero.magic.mana=Math.min(s.
 export function availableCombatSpells(s){
   const h=s.hero,m=h.magic;if(!enabled(s,'magic')||!m)return [];
   const time=enchantmentStrength(h,'time');
-  return m.spells.map(id=>SPELLS.find(spell=>spell.id===id)).filter(Boolean).map(spell=>({...spell,manaCost:Math.max(1,spell.mana-time),cooldownTicks:Math.max(1,spell.cooldown-time),effectPower:spell.power+Math.floor(stat(h,'wit')/2)+itemBonus(h,'magic')+(enabled(s,'lineage')&&h.race==='dragonkin'?3:0)})).filter(spell=>spell.manaCost<=m.mana&&(m.cooldowns?.[spell.id]||0)<=s.tick&&(!['ward','cleanse'].includes(spell.kind)||enabled(s,'body')));
+  return m.spells.map(id=>SPELLS.find(spell=>spell.id===id)).filter(Boolean).map(spell=>{const total=Math.max(1,spell.mana-time),funding=stoneFunding(s,h,total);return {...spell,totalManaCost:total,waystoneCost:funding.charge,waystoneItem:funding.item,manaCost:funding.mana,cooldownTicks:Math.max(1,spell.cooldown-time),effectPower:spell.power+Math.floor(stat(h,'wit')/2)+itemBonus(h,'magic')+(enabled(s,'lineage')&&h.race==='dragonkin'?3:0)};}).filter(spell=>spell.manaCost<=m.mana&&(m.cooldowns?.[spell.id]||0)<=s.tick&&(!['ward','cleanse'].includes(spell.kind)||enabled(s,'body')));
 }
 export function castInCombat(s,enemy,ctx,requestedSpellId=null){
   const h=s.hero,m=h.magic;if(!enabled(s,'magic'))return false;
@@ -42,7 +43,7 @@ export function castInCombat(s,enemy,ctx,requestedSpellId=null){
   if(!spell&&offensive.length&&knownSpellRate(s,enemy,spellChannel(offensive[0]))<.7&&(offensive[0].power+Math.floor(stat(h,'wit')/2)+itemBonus(h,'magic'))*knownSpellRate(s,enemy,spellChannel(offensive[0]))<5+h.weapon*3+itemBonus(h,'attack')){h.reason='Он узнал сопротивление к чарам и выбирает оружие, чтобы не тратить ману.';return false;}
   spell ||= offensive[0];
   if(!spell)return false;
-  const castsBefore=m.casts;m.mana-=spell.manaCost;m.cooldowns[spell.id]=s.tick+spell.cooldownTicks;m.casts++;m.responseSkipped=spell.kind==='time';h.lastAction='spell';h.action='МАГИЯ';enchantedSpell(s,spell,ctx);
+  const castsBefore=m.casts;if(!spendSpellFunding(s,h,spell.totalManaCost,spell.id))return false;m.cooldowns[spell.id]=s.tick+spell.cooldownTicks;m.casts++;m.responseSkipped=spell.kind==='time';h.lastAction='spell';h.action='МАГИЯ';enchantedSpell(s,spell,ctx);
   const power=spell.effectPower;wearFocusCast(s,castsBefore,spell.id,ctx);
   if(spell.kind==='heal'){h.hp=Math.min(h.maxHp,h.hp+power);ctx.log(s,`«${spell.name}»: раны стягиваются, +${power} HP.`,'magic');}
   else if(spell.kind==='cleanse'){h.conditions=h.conditions.filter(c=>!['poison','curse','fever'].includes(c.id));ctx.log(s,'Названное настоящим именем проклятие больше не держится.','magic');}

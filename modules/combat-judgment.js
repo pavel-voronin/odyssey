@@ -9,7 +9,7 @@ import {knownComposition} from './composite-threats.js';
 function attackOption(s,e,damage,{action='attack',spell=null}={}){
  const win=damage.min>=e.hp,enemyHp={min:Math.max(0,e.hp-damage.max),max:Math.max(0,e.hp-damage.min)},currentEcho=e.battle?.echo||0;
  const echo=enabled(s,'mutations')&&e.mutation==='mirror'&&spell?{min:Math.min(12,currentEcho+Math.ceil(damage.min/4)),max:Math.min(12,currentEcho+Math.ceil(damage.max/4))}:{min:currentEcho,max:currentEcho};
- return {id:spell?.id||'attack',action,spell:spell?.id,hp:s.hero.hp,damage,mana:spell?.manaCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{enemyHp,echo,skip:win||spell?.kind==='time'})};
+ return {id:spell?.id||'attack',action,spell:spell?.id,hp:s.hero.hp,damage,mana:spell?.manaCost||0,charge:spell?.waystoneCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{enemyHp,echo,skip:win||spell?.kind==='time'})};
 }
 export function combatOptions(s,e){
  const h=s.hero,options=[attackOption(s,e,weaponDamageRange(s,e))];
@@ -19,7 +19,7 @@ export function combatOptions(s,e){
  if(h.inventory.potions>0){const hp=Math.min(h.maxHp,h.hp+19);options.push({id:'potion',action:'potion',hp,mana:0,potions:1,reply:incomingReply(s,e,{hp})});}
  for(const spell of availableCombatSpells(s)){
   if(['damage','time'].includes(spell.kind)){options.push(attackOption(s,e,spellDamageRange(s,e,spell),{action:'spell',spell}));continue;}
-  const option={id:spell.id,action:'spell',spell:spell.id,hp:h.hp,mana:spell.manaCost,potions:0};
+  const option={id:spell.id,action:'spell',spell:spell.id,hp:h.hp,mana:spell.manaCost,charge:spell.waystoneCost||0,potions:0};
   if(spell.kind==='heal'){option.hp=Math.min(h.maxHp,h.hp+spell.effectPower);if(option.hp<=h.hp)continue;option.reply=incomingReply(s,e,{hp:option.hp});}
   else if(spell.kind==='ward'&&!hasCondition(h,'blessing')){option.reply=incomingReply(s,e,{blessed:true});option.protection=true;}
   else if(spell.kind==='pacify'){
@@ -30,7 +30,7 @@ export function combatOptions(s,e){
  if(braceAvailable(s,e))options.push({id:'brace',action:'brace',hp:h.hp,mana:0,potions:0,energy:BRACE_ENERGY,protection:true,reply:incomingReply(s,e,{brace:true})});
  return options;
 }
-const price=o=>o.mana*.15+o.potions*3+(o.energy||0)*.2;
+const price=o=>o.mana*.15+(o.charge||0)*.2+o.potions*3+(o.energy||0)*.2;
 const score=o=>o.reply.survivalLow*100+(o.win?35:0)+Math.min(20,o.hp-o.reply.max)*.15+(o.damage?.min||0)*.05-price(o);
 const best=list=>list.slice().sort((a,b)=>score(b)-score(a))[0];
 export function chooseCombatAction(s,e,{retreatBlocked=false}={}){
