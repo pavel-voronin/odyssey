@@ -1,3 +1,5 @@
+import {positionPlan,positionAction,observePositions,finishPositionTurn} from './modules/position-actions.js';
+import {syncCoverPosition} from './modules/position-state.js';
 import {guardianPlan,guardianAction} from './modules/guardian-actions.js';
 import {observeGuardians} from './modules/guardian-knowledge.js';
 import {knownShortcutBlocked,isShortcut} from './modules/shortcut-state.js';
@@ -277,7 +279,7 @@ function enter(s, id) {
   initializeAreaFacades(s,a);
   initializeInteriors(s);
   initializeLodging(s);
-  const firstVisit=!visitedArea(s,a);h.area = id;petPassageEntered(s);recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
+  const firstVisit=!visitedArea(s,a);h.area = id;syncCoverPosition(s);petPassageEntered(s);recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
   if(a.temporaryCamp)return;
   if (firstVisit) { gainXp(s, 3 + (hasHabit(h, 'diary') ? 2 : 0)); log(s, `Открыто место: ${a.name}.`, 'discover'); }
   if (!h.memory.places.includes(id)) {const bonus=enchantedDiscovery(s,a,context(s,'enchantments'));if(bonus)gainXp(s,bonus);h.memory.places.push(id);}
@@ -457,7 +459,7 @@ function move(s, target) {
   h.facing = Math.sign(delta) || h.facing;
   const weather=weatherAt(s,s.areas[h.area]);
   const amount=areaStep(s.areas[h.area],h.x,target,foodWalkingStride(s,h)*weather.speed);
-  h.x+=amount;h.distance+=Math.abs(amount)*areaScale(s.areas[h.area]);h.energy=Math.max(0,h.energy-walkingEnergy(s,weather));h.lastAction='walk';
+  h.x+=amount;h.distance+=Math.abs(amount)*areaScale(s.areas[h.area]);h.energy=Math.max(0,h.energy-walkingEnergy(s,weather));h.lastAction='walk';syncCoverPosition(s);
 }
 function gainXp(s, amount) {
   const h = s.hero; h.xp += amount;
@@ -508,7 +510,7 @@ function die(s, enemy,details={}) {
   const meaning=deathMeaning(s,enemy),report=deathRecord(s,enemy,details);
   finishDelve(s,'death');
   cancelWeapon(s,'Смерть прекращает подготовку.');
-  const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';
+  const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';syncCoverPosition(s);
   h.intent = 'Жизнь закончилась. Мир продолжается'; h.reason = 'Можно наблюдать, что станет с этим местом, или отдельно начать другую историю.'; h.action = 'НАСЛЕДИЕ';
   for (const q of h.quests) if (q.status === 'active') q.status = 'failed';
   const grave = { name: h.name, family: h.family, lineage: h.lineage, race: h.race, area: h.area, x: h.x, tick: s.tick, born: h.born, level: h.level, kills: h.kills, cause: enemy.name };
@@ -561,6 +563,7 @@ function fight(s, enemy) {
   if((legacy||choice?.action==='spell')&&castInCombat(s,enemy,context(s,'magic'),choice?.action==='spell'?choice.spell:null)){cancelWeapon(s,'Чары прерывают размах.');resolveCombatChoice(s,'spell',{manaSpent:manaBefore-h.magic.mana});if(enemy.alive&&!enemy.resolved){if(h.magic.responseSkipped)partyCombatPhase(s,enemy,true);else enemyResponse(s,enemy);}return;}
   const technique=['quick','release','windup'].includes(choice?.action)?{id:choice.action,reason:choice.reason}:legacy?chooseWeaponStyle(s,enemy):null;
   if(technique)h.reason=technique.reason;
+  if(h.coverPosition)h.coverPosition=null;
   if(technique?.id==='windup'&&beginWeapon(s,enemy,context(s,'combat'))){resolveCombatChoice(s,'windup',{energySpent:2,reason:technique.reason});enemyResponse(s,enemy);return;}
   const style=technique&&finishWeapon(s,enemy,technique.id==='release'?'heavy':technique.id)?technique.id==='release'?'heavy':technique.id:null;
   if(!style)cancelWeapon(s,'Выбран обычный удар.');
@@ -585,6 +588,7 @@ function partyCombatPhase(s,enemy,skipResponse=false){
  if(skipResponse&&round)round.replied=true;
  return enemy.alive&&!enemy.resolved;
 }
+function respondInContact(s,enemy){contactDelve(s,enemy);enemyResponse(s,enemy);}
 function enemyResponse(s,enemy){
   const h=s.hero;if(!enemy.alive||enemy.resolved)return;
   if(partyCombatOn(s)&&h.partyCombat?.tick===s.tick&&h.partyCombat.enemy===enemy.id&&h.partyCombat.replied)return;
@@ -701,7 +705,8 @@ export function advanceWorld(s) {
   observeRouteMap(view,s.people[h.lineage]);
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
-  try{actObserved(view);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  const castsBefore=h.magic.casts;
+  try{actObserved(view);finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
@@ -756,7 +761,7 @@ function actObserved(s) {
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(transitTick(s,context(s,'travel')))return s;
   if(h.delve&&s.areas[h.delve.root]?.dungeon?.layout&&!layoutOn(s))return s;
-  observeDelveLayout(s);observeGuardians(s);
+  observeDelveLayout(s);observeGuardians(s);observePositions(s);
   observeTowers(s,context(s,'landmarks'));
   observeScentPlants(s);
   observeNavigationBlockers(s,context(s,'navigation-memory'));
@@ -767,7 +772,7 @@ function actObserved(s) {
     h.memory.shopAfter = s.tick + 240; h.goal = null;
     log(s, 'Поиски Савы затянулись. Герой откладывает покупку и возвращается к исследованию.', 'talk');
   }
-  if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
+  if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   noticeCaravan(s,context(s,'caravans'));
   // Healing is an autonomous choice; herbs promised to a healer are kept if possible.
@@ -823,6 +828,7 @@ function actObserved(s) {
     target = Number(next.slice(1)) > Number(h.area.slice(1)) ? 100 : 0;
     const passage=interiorPassage(s,h.area,next);if(passage){target=passage.x;if(!passage.allowed){if(['mechanism','lift'].includes(passage.kind)){if(passage.kind==='lift'?blockedLiftPlan(s,next,context(s,'mechanisms')):teamLeverPlan(s,next,context(s,'mechanisms'))||blockedGratePlan(s,next,context(s,'mechanisms')))return s;if(physicalDistance(a,h.x,target)<=1){h.goal=null;return s;}}else{h.goal=null;h.tavernAfter=s.tick+240;log(s,'Дверь закрыта. Он возвращается к другим делам.','plan');return s;}}}
   }
+  if(positionAction(s,{...context(s,'dungeon-positions'),move,fight,enemyResponse:(world,enemy)=>{contactDelve(world,enemy);enemyResponse(world,enemy);}}))return s;
   if(guardianAction(s,{...context(s,'guardian-nodes'),move,enemyResponse:(world,enemy)=>{contactDelve(world,enemy);enemyResponse(world,enemy);}}))return s;
   // Threats interact only on the single movement axis.
   const direction = Math.sign(target - h.x);

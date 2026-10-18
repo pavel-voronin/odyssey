@@ -1,3 +1,5 @@
+import {coverBlocks,positionedEnemy} from './position-state.js';
+import {physicalDistance} from '../geometry.js';
 import {wardDamage} from './guardian-state.js';
 import {enabled} from '../rules.js';
 import {braceDamage} from './brace.js';
@@ -62,7 +64,7 @@ export function spellDamageRange(s,e,spell){
  const power=spell.id==='roots'&&e.tags?.includes('construct')?Math.round(spell.effectPower*1.25):spell.effectPower;
  const personal=againstEnemy(s,e,power,power,spellChannel(spell)),party=partyDamageRange(s,e,{skipResponse:spell.kind==='time'});return {...personal,min:personal.min+party.min,max:personal.max+party.max};
 }
-export function incomingReply(s,e,{hp=s.hero.hp,blessed=hasCondition(s.hero,'blessing'),enemyHp={min:e.hp,max:e.hp},echo={min:e.battle?.echo||0,max:e.battle?.echo||0},skip=false,brace=false}={}){
+export function incomingReply(s,e,{hp=s.hero.hp,blessed=hasCondition(s.hero,'blessing'),enemyHp={min:e.hp,max:e.hp},echo={min:e.battle?.echo||0,max:e.battle?.echo||0},skip=false,brace=false,exposed=false}={}){
  const h=s.hero,shield=enchantmentStrength(h,'blessing'),dodge=enabled(s,'lineage')&&h.race==='halfling'?.1:0,low=[],high=[];
  const protect=(raw,targetHp)=>{
   if(!raw)return 0;
@@ -70,9 +72,10 @@ export function incomingReply(s,e,{hp=s.hero.hp,blessed=hasCondition(s.hero,'ble
   damage=Math.max(1,damage-shield);if(enabled(s,'lineage')&&h.race==='orc')damage=Math.max(1,damage-1);return braceDamage(s,e,damage,{preview:brace});
  };
  for(let roll=0;roll<4;roll++){
-  const raw=skip?0:tacticalResponseValue(s,e,e.attack+roll,{hp});
-  low.push(skip?0:protect(mutationResponseValue(s,e,raw,echo.min),enemyHp.max));
-  high.push(skip?0:protect(mutationResponseValue(s,e,raw,echo.max),enemyHp.min));
+  const distant=positionedEnemy(s,e)&&(!s.areas[h.area]?.objects.some(body=>body.kind==='enemy'&&body.id===e.id)||physicalDistance(s.areas[h.area],h.x,e.x)>e.positionAttack.range),blocked=coverBlocks(s,e,h,{exposed});
+  const raw=skip||distant||blocked?0:tacticalResponseValue(s,e,e.attack+roll,{hp});
+  low.push(skip||distant||blocked?0:protect(mutationResponseValue(s,e,raw,echo.min),enemyHp.max));
+  high.push(skip||distant?0:protect(mutationResponseValue(s,e,raw,echo.max),enemyHp.min));
  }
  return {min:dodge?0:Math.min(...low),hitMin:Math.min(...low),max:Math.max(...high),survivalLow:dodge+(1-dodge)*high.filter(d=>d<hp).length/4,survivalHigh:dodge+(1-dodge)*low.filter(d=>d<hp).length/4,lethalPossible:high.some(d=>d>=hp),lethalOnEveryHit:low.every(d=>d>=hp),dodgeChance:dodge};
 }

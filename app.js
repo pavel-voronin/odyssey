@@ -1,3 +1,4 @@
+import {positionHTML} from './position-sheet.js';
 import {guardianHTML} from './guardian-sheet.js';
 import {delveLayoutHTML} from './delve-layout-sheet.js';
 import {waystoneItemHTML} from './waystone-sheet.js';
@@ -276,7 +277,7 @@ function enrichSheet(){
     const cases=state.storyCases.filter(c=>c.owner===state.hero.lineage);
     const knownVerdicts=cases.map(c=>verdictKnowledgeHTML(state,c,escape,eventDate)).join('');
     if(knownVerdicts)$('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ПРОВЕРКА ПРЕЖНИХ ПРИГОВОРОВ</p>${knownVerdicts}`);
-    $('detail-panel').insertAdjacentHTML('beforeend',homeHTML(state,escape)+homeBuildingHTML(state,escape)+textHTML(state,escape)+literacyHTML(state,escape)+sequenceHTML(state,escape)+newsHTML(state,escape)+migrationKnowledgeHTML(state,escape)+feastHTML(state,escape)+branchPactHTML(state,escape)+delveLayoutHTML(state,escape)+guardianHTML(state,escape));
+    $('detail-panel').insertAdjacentHTML('beforeend',homeHTML(state,escape)+homeBuildingHTML(state,escape)+textHTML(state,escape)+literacyHTML(state,escape)+sequenceHTML(state,escape)+newsHTML(state,escape)+migrationKnowledgeHTML(state,escape)+feastHTML(state,escape)+branchPactHTML(state,escape)+delveLayoutHTML(state,escape)+guardianHTML(state,escape)+positionHTML(state,escape));
     $('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ДОЛГИЕ ИСТОРИИ</p>${cases.map(c=>`<details class="habit"><summary>${escape(STORY_NAMES[c.kind])} · ${escape(({active:'Продолжается',done:'Завершена',failed:'Не удалось',declined:'Отказался',abandoned:'Оставлена'})[c.status])}</summary><p>${escape(c.summary||({opening:'Необычное предложение',owed:'Долг: '+c.debt+' зол. к '+dateLabel(state,c.due),collection:'Долг пришёл за героем',evidence:'Сбор улик',trial:'Разбирательство',investigate:'Исследование'})[c.stage]||c.stage)}</p>${c.shipRecovery?`<p>${escape(shipRecoveryText(c))}</p>`:''}${c.choices.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}${c.effects.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}</details>`).join('')||'<p class="empty">Новые встречи ещё могут изменить эту жизнь.</p>'}`);
   }
   if(tab==='map'){

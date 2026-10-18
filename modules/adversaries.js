@@ -1,3 +1,4 @@
+import {positionBeforeReply,positionTacticalReply} from './position-replies.js';
 import {wardDamage} from './guardian-state.js';
 import {observeGuardianHit} from './guardian-knowledge.js';
 import {enabled} from '../rules.js';
@@ -23,7 +24,8 @@ export function enemyDamage(s,e,amount,type,ctx,learn=true){
  if(damage>0&&learn)elementalDamage(s,e,amount,type,ctx,true);return damage;
 }
 export function enemyReply(s,e,raw,ctx,actor=s.hero){
-  e.battle ||= {turns:0,intent:'idle',summons:0,echo:0};const damage=mutationReply(s,e,tacticalReply(s,e,raw,ctx,actor),ctx,actor);if(actor===s.hero&&enabled(s,'tactics')&&e.tactic==='warden'&&e.battle.intent==='guard')observeThreat(s,e,'warden','guard',ctx);if(damage)elementImpact(s,e,ctx,actor);return damage;
+  if(positionBeforeReply(s,e,actor,ctx))return 0;
+  e.battle ||= {turns:0,intent:'idle',summons:0,echo:0};const tactical=tacticalReply(s,e,raw,ctx,actor),damage=mutationReply(s,e,positionTacticalReply(s,e,actor,tactical,ctx),ctx,actor);if(actor===s.hero&&enabled(s,'tactics')&&e.tactic==='warden'&&e.battle.intent==='guard')observeThreat(s,e,'warden','guard',ctx);if(damage)elementImpact(s,e,ctx,actor);return damage;
 }
 export function knownSpellRate(s,e,type){return enabled(s,'elements')?(s.hero.memory.threats?.[e.id]?.rates[type]??1):1;}
 export function expectedStrike(s,e){return e.attack*(enabled(s,'tactics')&&e.tactic==='charged'&&e.battle?.intent==='strike'?3:1)+(enabled(s,'mutations')?e.battle?.echo||0:0);}

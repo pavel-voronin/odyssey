@@ -13,7 +13,7 @@ export function weaponAlternatives(s,e){
 // never claims a kill or skips the current enemy response. Next action is judged
 // again from the actual new state, not a promised two-turn scripted sequence.
 export function chooseWeaponStyle(s,e){
- const h=s.hero,options=weaponAlternatives(s,e),ordinary=weaponDamageRange(s,e),reply=incomingReply(s,e);
+ const h=s.hero,options=weaponAlternatives(s,e),ordinary=weaponDamageRange(s,e),reply=incomingReply(s,e,{exposed:true});
  const release=options.find(o=>o.id==='release');if(release)return {...release,reason:'Размах готов. Он снова проверяет раны и завершает удар.'};
  const quick=options.find(o=>o.id==='quick');
  if(quick){if(ordinary.min>=e.hp&&quick.damage.min<e.hp)return null;return {...quick,reason:'Он сокращает замах и бережёт силы коротким ударом.'};}

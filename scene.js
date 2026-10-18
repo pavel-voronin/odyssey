@@ -1,3 +1,5 @@
+import {occupiedCover} from './modules/position-state.js';
+import {paintStoneCover,paintPositionRay} from './position-view.js';
 import {paintGuardianShield,paintGuardianNode} from './guardian-view.js';
 import {paintRuinedHouse,ruinedSilhouette} from './building-ruins-view.js';
 import {paintHomeBuilding} from './home-building-view.js';
@@ -210,7 +212,7 @@ export class Scene {
         else if(beastMotion&&MOTION_SHAPES.includes(o.shape))this.formedCreature(x,ground,o.shape,creatureActionPose(o.shape,beastTrack,phase,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))));
         else this.creature(x, ground, o.shape, s.tick);
         c.restore();if(s.rules?.tactics!==false&&o.tactic==='charged'&&o.battle?.intent==='strike'){c.fillStyle='#d99b79';c.beginPath();c.moveTo(x,ground-61);c.lineTo(x-5,ground-52);c.lineTo(x+5,ground-52);c.fill();}
-        paintGuardianShield(c,s,o,x,ground);
+        paintGuardianShield(c,s,o,x,ground);paintPositionRay(c,s,o,screenX,ground);
         if (o.pacified) { c.fillStyle = '#c8d3ac'; c.font = '11px monospace'; c.fillText('=',x-3,ground-51); }
         if (h.combat === o.id || o.hp < o.maxHp) { c.fillStyle = '#302e28'; c.fillRect(x - 17, ground - 41, 34, 3); c.fillStyle = '#d38b72'; c.fillRect(x - 17, ground - 41, 34 * o.hp / o.maxHp, 3); }
       }
@@ -267,7 +269,7 @@ export class Scene {
       if (['loot','heirloom'].includes(o.kind) && !o.taken) { c.fillStyle = '#b7a071'; c.beginPath(); c.ellipse(x, ground - 5, 6, 5, 0, 0, 7); c.fill(); }
       if(o.kind==='supplyCache'&&!o.taken){c.fillStyle='#9b815b';c.fillRect(x-9,ground-13,18,13);c.strokeStyle='#d0b47b';c.strokeRect(x-9,ground-13,18,13);}
       if(o.kind==='practicePart'){c.fillStyle='#8e704e';c.fillRect(x-7,ground-4,14,4);c.fillStyle=o.state==='demonstration'?'#bec4b9':'#b49a6e';c.fillRect(x-4,ground-7,8,3);c.fillStyle='#4f5c53';c.fillRect(x-1,ground-6,2,3);}
-      paintGuardianNode(c,s,a,o,screenX,ground);
+      paintGuardianNode(c,s,a,o,screenX,ground);paintStoneCover(c,s,o,screenX,ground);
       if (o.kind === 'relic' && !o.taken) { c.shadowBlur = 16; c.shadowColor = '#c0daaa'; c.fillStyle = '#d1dfb0'; c.beginPath(); c.moveTo(x, ground - 22); c.lineTo(x + 7, ground - 11); c.lineTo(x, ground - 4); c.lineTo(x - 7, ground - 11); c.fill(); c.shadowBlur = 0; }
       if (o.kind === 'grave'&&!ownBody&&!(remains&&(beastMotion||remains.body))) { this.castShadow(x,ground,10,17);c.fillStyle = '#8b9985'; c.fillRect(x - 5, ground - 17, 10, 17); c.fillStyle = '#394d38'; c.fillRect(x - 1, ground - 13, 2, 8); c.fillRect(x - 3, ground - 11, 6, 2); }
       if(o.kind==='story'&&(!o.resolved||o.sealRecord&&!o.destroyed&&o.state!=='burned')){c.fillStyle='#9caaae';c.fillRect(x-9,ground-24,18,24);c.strokeStyle='#d7c391';c.strokeRect(x-7,ground-22,14,12);if(o.sealRecord){c.beginPath();c.moveTo(x,ground-22);c.lineTo(x,ground-11);c.stroke();}c.fillStyle='#d7c391';c.font='12px monospace';c.textAlign='center';c.fillText(o.resolved?'≡':'!',x,ground-34);c.textAlign='left';}
@@ -304,7 +306,7 @@ export class Scene {
     if(!h.transit)for(const other of Object.values(s.actorStates||{}))if(other!==h&&selfDrivenActor(s,other)&&!other.transit&&other.area===a.id){
       detailedDrawn++;const track=this.beastTracks.tracks.get(other.lineage),from=track?.from??other.x,to=track?.to??other.x,walking=animate&&from!==to&&phase<1,px=screenX(from+(to-from)*phase),direction=track?.direction||other.facing||1;
       const look=s.rules?.appearance===false?{...other.appearance,prop:other.weapon>0?'blade':'none'}:heroAppearance({...s,hero:other});
-      this.person(px,ground,look?.cloak||'#a9c686',false,direction,0,Boolean(track?.attack)&&actionPhase<.8,other.lastAction==='rest',look,s.rules?.lineage===false?null:race(other.race),{kind:other.lastAction,progress:actionPhase,walking,distance:Math.abs(to-from)*(w-48)/100,hurt:Boolean(track?.hurt)&&actionPhase>.45&&actionPhase<.95});
+      this.person(px,ground,look?.cloak||'#a9c686',false,direction,0,Boolean(track?.attack)&&actionPhase<.8,other.lastAction==='rest'||Boolean(occupiedCover(s,other)),look,s.rules?.lineage===false?null:race(other.race),{kind:occupiedCover(s,other)?'rest':other.lastAction,progress:actionPhase,walking,distance:Math.abs(to-from)*(w-48)/100,hurt:Boolean(track?.hurt)&&actionPhase>.45&&actionPhase<.95});
       if(s.rules?.companions!==false)for(let i=0;i<other.companions.length;i++){
         const companion=other.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(companion.person===h.lineage||body&&body.area!==a.id)continue;const cx=body?screenX(body.x):px-direction*petPartyOffset(other.companions,i),petTrack=this.beastTracks.tracks.get(companionKey(companion));
         if(companion.role==='person'){const p=s.people[companion.person],look=p?looks(p,p.appearance):null;this.person(cx,ground,look?.cloak||'#ad9872',false,direction,0,Boolean(petTrack?.attack)&&phase<.8,other.lastAction==='rest',look,s.rules?.lineage===false?null:race(companion.race),{kind:other.lastAction==='rest'?'rest':walking?'walk':'idle',progress:phase,walking,distance:Math.abs(to-from)*(w-48)/100});}
@@ -323,7 +325,7 @@ export class Scene {
       const bob = 0;
       if (h.lastAction === 'rest') { c.fillStyle = '#bcd18e'; c.font = '12px Georgia'; c.fillText('z', hx + 16, ground - 43); }
       const heroLook=s.rules?.appearance===false?h.appearance:heroAppearance(s);
-      this.person(hx, ground - bob, heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, h.lastAction === 'rest', heroLook, s.rules?.lineage===false?null:race(h.race),{kind:h.lastAction,progress:actionPhase,walking,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
+      this.person(hx, ground - bob, heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{kind:occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
       if(s.rules?.equipment!==false&&s.rules?.enchantments!==false&&h.equipment?.charm){const color=CHARM_LIGHT_COLORS[h.equipment.charm.modifier];if(color){c.fillStyle=color;c.shadowColor=color;c.shadowBlur=5;c.fillRect(hx+3,ground-24-bob,3,3);c.shadowBlur=0;}}
       if (s.rules?.companions !== false) for (let i=0;i<(h.companions?.length||0);i++) {
         const companion=h.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(body&&body.area!==a.id)continue;
