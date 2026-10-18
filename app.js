@@ -1,3 +1,4 @@
+import {petMemoriesHTML} from './pet-custody-sheet.js';
 import {packPetHTML} from './pack-pet-sheet.js';
 import {clothingHTML} from './clothing-sheet.js';
 import {navigationMemoryHTML} from './navigation-memory-sheet.js';
@@ -203,6 +204,7 @@ function enrichSheet(){
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',itemRepairHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',`<div id="delivery-cargo-live">${deliveryCargoHTML(state,state.people[state.hero.lineage],escape)}</div>`+localBodyMaterialsHTML(state,escape));
   if(tab==='quests'&&state.hero.actorMode!=='npc')$('detail-panel').insertAdjacentHTML('afterbegin',materialDeliveriesHTML(state,state.people[state.hero.lineage],escape));
+  if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));

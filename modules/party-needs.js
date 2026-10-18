@@ -56,7 +56,7 @@ export function partyPrepared(s,estimate){
 }
 
 export function partyAvailable(s,c){
- if(petPack(c)&&(!petNear(s,c,12)||c.petTraining?.energy<25||c.petTraining?.hunger>=80))return false;
+ if((petPack(c)||c.petCustody)&&(!petNear(s,c,12)||c.petTraining?.energy<25||c.petTraining?.hunger>=80))return false;
  if(c.petTraining?.lastActionTick===s.tick)return false;
  if(c.person&&partyBodySpent(s,s.people[c.person]))return false;
  if(!active(s)||!c.person)return true;

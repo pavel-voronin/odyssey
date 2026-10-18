@@ -1,3 +1,4 @@
+import {petTransferPlan,petTransferAction} from './modules/pet-transfer.js';import {npcPetsTick} from './modules/pet-transfer-actors.js';
 import {cacheItems} from './modules/item-originals.js';
 import {packPetPlan,packPetAction,packPetCare,advancePackPets,waitingPackPetsTick} from './modules/pack-pets.js';
 import {clothingPlan,clothingPriority,clothingAction} from './modules/clothing-retail.js';
@@ -608,6 +609,7 @@ function worldTick(s) {
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   peopleTick(s,context(s,'people'));
+  npcPetsTick(s,context(s,'pet-transfer'));
   propertyGiftsTick(s,context(s,'property-gifts'));
   propertyAidTick(s,context(s,'property-aid'));
   ordersTick(s,context(s,'npc-combat'));
@@ -757,6 +759,7 @@ function actObserved(s) {
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(clothingPriority(s))return s;
   if(!urgent&&packPetCare(s,context(s,'pack-pets')))return s;
+  if(!urgent)petTransferPlan(s,context(s,'pet-transfer'));
   if(!urgent)packPetPlan(s,context(s,'pack-pets'));
   if(!urgent)clothingPlan(s,context(s,'practical-clothing'));
   if(changeSpareOutfit(s,context(s,'spare-outfit')))return s;
@@ -832,6 +835,7 @@ function actObserved(s) {
   else if(g.kind==='propertyContract')propertyContractAction(s,context(s,'property-contracts'));
   else if(g.kind==='propertyRepair')repairProperty(s,context(s,'property'));
   else if(g.kind==='craftStudy')craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))});
+  else if(g.kind==='petTransfer')petTransferAction(s,context(s,'pet-transfer'));
   else if(['petPackFit','petPackLoad','petPackUnload'].includes(g.kind))packPetAction(s,context(s,'pack-pets'));
   else if(['clothingBuy','clothingDress','clothingSell'].includes(g.kind))clothingAction(s,context(s,'practical-clothing'));
   else if(g.kind==='navReturn')finishNavigationReturn(s,context(s,'navigation-memory'));

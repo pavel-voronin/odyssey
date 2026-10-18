@@ -1,0 +1,3 @@
+import {petTransfersOn} from './modules/pet-custody-state.js';import {petTrainingHTML} from './modules/pet-training.js';
+export function npcPetsHTML(s,p,escape){if(!petTransfersOn(s)||!p?.pets?.length)return '';return '<p class="detail-label">СВОЙ ПИТОМЕЦ</p>'+p.pets.map(c=>'<div class="habit"><b>'+escape(c.name)+'</b><p>HP '+c.hp+' / '+c.maxHp+' · тот же выученный запах.</p>'+petTrainingHTML(c)+'</div>').join('');}
+export function petMemoriesHTML(s,escape){if(!petTransfersOn(s)||!s.hero.petTransfers?.events.length)return '';return '<p class="detail-label">ПАМЯТЬ О ПСЕ</p>'+s.hero.petTransfers.events.slice(-4).map(e=>'<div class="habit"><b>'+escape(e.name)+'</b><p>'+escape(e.reason)+'</p></div>').join('');}

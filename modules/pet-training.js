@@ -1,3 +1,4 @@
+import {petTransfersOn} from './pet-custody-state.js';
 import {packPetsOn,petPack,petNear} from './pack-pet-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -10,8 +11,8 @@ const learned=c=>c?.petTraining?.lessons.length===3;
 const state=(s,c)=>(c.petTraining ||= {version:1,energy:100,hunger:10,lastUpkeep:s.tick,lastActionTick:-1,after:0,lessons:[],finds:[]});
 function ready(s,c){const h=s.hero,t=c?.petTraining;return on(s)&&present(s,c)&&safe(s)&&c.loyalty>=60&&h.energy>=35&&h.hunger<65&&h.hp>=h.maxHp*.65&&(!t||t.energy>=35&&t.hunger<65&&t.lastActionTick!==s.tick);}
 export function petTrainingTick(s){
- if(!on(s)&&!packPetsOn(s))return;const h=s.hero;
- for(const c of h.companions){const t=c.petTraining;if(!on(s)&&!petPack(c)||c.person||c.id!=='dog'||!t||c.hp<=0||t.lastUpkeep===s.tick||s.tick%8!==0)continue;t.lastUpkeep=s.tick;t.hunger=Math.min(100,t.hunger+.8);t.energy=Math.max(0,t.energy-.4);if(h.goal?.kind==='rest'&&!h.combat&&petNear(s,c))t.energy=Math.min(100,t.energy+4);}
+ if(!on(s)&&!packPetsOn(s)&&!petTransfersOn(s))return;const h=s.hero;
+ for(const c of h.companions){const t=c.petTraining;if(!on(s)&&!petPack(c)&&(!c.petCustody||!petTransfersOn(s))||c.person||c.id!=='dog'||!t||c.hp<=0||t.lastUpkeep===s.tick||s.tick%8!==0)continue;t.lastUpkeep=s.tick;t.hunger=Math.min(100,t.hunger+.8);t.energy=Math.max(0,t.energy-.4);if(h.goal?.kind==='rest'&&!h.combat&&petNear(s,c))t.energy=Math.min(100,t.energy+4);}
 }
 export function dogTrainingPlan(s,ctx){
  const h=s.hero,p=s.people[h.lineage];if(!on(s))return false;

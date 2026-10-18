@@ -1,3 +1,4 @@
+import {npcPetCare} from './pet-transfer-actors.js';
 import {npcClothingTurn} from './clothing-actors.js';
 import {navigationNPCStep} from './navigation-tools.js';
 import {fieldCraftEnabled} from './field-craft-state.js';
@@ -245,6 +246,7 @@ export function peopleTick(s,ctx){
     observeFreightActor(s,p,p.area,true);
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(npcPetCare(s,p))continue;
     if(freightKeeperTurn(s,p))continue;
     if(creditSupplierTurn(s,p,ctx))continue;
     if(npcInteriorStay(s,p))continue;

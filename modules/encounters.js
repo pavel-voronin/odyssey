@@ -1,3 +1,4 @@
+import {recordPetCustody} from './pet-custody-state.js';
 import {offerInvitation,declineInvitation,startInvitation} from './invitation-rhythm.js';
 import {knownArea,revealArea} from '../actor-atlas.js';
 import { PROFESSIONS, DESTINIES, HABITS, CONDITIONS, ENEMY_SPECIES, ENEMY_POWERS, ITEM_BASES, ITEM_ORIGINS, ITEM_EPITHETS, ENCOUNTERS, PETS, FACTIONS, profession, destiny } from '../content.js';
@@ -38,7 +39,7 @@ export function encounter(s, o, ctx) {
   } else if (kind === 'familiar') {
     if (!enabled(s, 'companions') || h.companions.length >= 3 || !offerInvitation(s,'familiar',o.id)) { ctx.log(s, 'Маленькое существо провожает отряд взглядом и остаётся на знакомой тропе.', 'companion'); }
     else if (stat(h,'spirit') + h.personality.generosity * 4 + ctx.random(s) * 5 > 7 || skill === 'beast') {
-      const returning=Boolean(o.existingPet),pet=o.existingPet||{...choose(s,ctx.random,PETS)};Object.assign(pet,{joined:s.tick,uid:pet.uid||`${o.id}-${s.generation}`,hp:pet.hp||24,maxHp:pet.maxHp||24,ethics:0});if(pet.packCargo?.version===1){pet.packCargo.owner=h.lineage;pet.packCargo.lastKnown={area:h.area,x:o.x,at:s.tick,reason:'rejoined'};}h.companions.push(pet);delete o.existingPet;h.counters.companions++;
+      const returning=Boolean(o.existingPet),pet=o.existingPet||{...choose(s,ctx.random,PETS)};Object.assign(pet,{joined:s.tick,uid:pet.uid||`${o.id}-${s.generation}`,hp:pet.hp||24,maxHp:pet.maxHp||24,ethics:0});if(pet.petCustody)recordPetCustody(s,pet,pet.petCustody.owner,h.lineage,0,'rejoined',{area:h.area,x:o.x});if(pet.packCargo?.version===1){pet.packCargo.owner=h.lineage;pet.packCargo.lastKnown={area:h.area,x:o.x,at:s.tick,reason:'rejoined'};}h.companions.push(pet);delete o.existingPet;h.counters.companions++;
       startInvitation(s,'familiar',o.id);moral(s, 2); ctx.log(s, returning?`${pet.name} ждал прежнего хозяина. Теперь он выбирает другого путника.`:`${pet.name} решает идти следом. Еда, тепло и осторожность теперь нужны не одному.`, 'companion');
     } else {declineInvitation(s,'familiar',o.id);ctx.log(s, 'Существо обнюхивает героя и исчезает. Доверие не покупается одним взглядом.', 'choice');}
   } else if (kind === 'gambler') {
