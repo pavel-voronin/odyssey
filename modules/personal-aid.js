@@ -1,3 +1,4 @@
+import {branchPactsOn,assessPactAid,rememberPactChoice,performedPactAid} from './branch-pact-state.js';
 import {publishAidNews} from './witness-news.js';
 import {confirmWord} from './word-custom.js';
 import {areaScale} from '../geometry.js';
@@ -57,6 +58,7 @@ export function finishAidRequest(s,p,t,ctx){
  if(!on(s)||!p.alive||!wounded(p))return false;
  if(!h||!selfDrivenActor(s,h)||!body||Math.abs(body.x-p.x)*areaScale(s.areas[p.area])>AID_POLICY.hearing){const text=body?'Прежний помощник сейчас не может взяться за лечение.':'По прежнему адресу помощника не оказалось. Новое местоположение неизвестно.';if(!body)missContact(s,p,t.person);note(s,p,text);const own=rootWorld(s).actorStates?.[p.id];if(own)ctx.log(actorView(s,own),text,'npc',p.area);else if(s.hero.area===p.area&&!s.hero.transit)ctx.log(s,text,'npc',p.area);return false;}
  const id=p.id+'/aid/'+s.tick;p.aidRequest={id,to:h.lineage,helperName:h.name,area:p.area,x:p.x,asked:s.tick,until:s.tick+AID_POLICY.requestTicks,status:'pending',health:p.health,maximum:p.maxHealth||100};
+ if(branchPactsOn(s)&&h.branchPact&&(p.home||p.agenda.home)===p.area)p.aidRequest.residence={area:p.area,faction:s.areas[p.area].faction};
  if(!h.memory.people.includes(p.id))h.memory.people.push(p.id);
  if(enabled(s,'relationships'))h.relations[p.id] ||= {trust:0,met:s.tick,lastSeen:s.tick,helped:0};
  tell(s,h,p,`${p.name} просит помочь: ему совсем плохо, а доступного лечения сейчас не нашлось.`,'talk',ctx);return true;
@@ -69,12 +71,12 @@ export function aidAssessment(s,h,p){
  const trust=h.relations[p.id]?.trust||0,urgency=(1-p.health/(p.maxHealth||100))*40+h.personality.generosity*20+Math.max(-10,Math.min(15,trust*.3));
  const order=Object.values(s.workOrders||{}).find(c=>c.helper===h.lineage&&c.status==='active'),pressure=order?4+Math.max(0,30-(order.deadline-s.tick)/5):0;
  const promise=h.quests.some(q=>q.status==='active')?10:0,personal=h.commitments.personal?.status==='active'?12:0,cost=18+(1-h.personality.generosity)*25+pressure+promise+personal;
- return {help:urgency>=cost,method,urgency,cost,reason:urgency>=cost?'Раны человека важнее небольшой задержки.':pressure>10?'Срок оплаченного дела слишком близок. Он не берётся за помощь.':promise||personal?'Собственное обязательство сейчас перевешивает просьбу.':'Не хочет тратить свои припасы на чужие заботы.',request:request.id};
+ return assessPactAid(s,h,p,{help:urgency>=cost,method,urgency,cost,reason:urgency>=cost?'Раны человека важнее небольшой задержки.':pressure>10?'Срок оплаченного дела слишком близок. Он не берётся за помощь.':promise||personal?'Собственное обязательство сейчас перевешивает просьбу.':'Не хочет тратить свои припасы на чужие заботы.',request:request.id});
 }
 export function respondAid(s,ctx){
  const h=s.hero;if(!on(s)||h.combat||h.transit||h.goal?.kind==='aidPerson')return false;
  const pending=Object.values(s.people).filter(p=>p.aidRequest?.to===h.lineage&&p.aidRequest.status==='pending'&&p.aidRequest.until>=s.tick&&npcController(s,p)==='personal'&&localContact(s,p.id,h.area)&&Math.abs((localContact(s,p.id,h.area)?.x??Infinity)-h.x)*areaScale(s.areas[h.area])<=AID_POLICY.hearing).sort((a,b)=>a.health/(a.maxHealth||100)-b.health/(b.maxHealth||100)||a.id.localeCompare(b.id))[0];
- if(!pending)return false;const assessment=aidAssessment(s,h,pending),r=pending.aidRequest;
+ if(!pending)return false;const assessment=aidAssessment(s,h,pending),r=pending.aidRequest;rememberPactChoice(s,h,pending,assessment);
  if(!assessment.help){r.status='declined';r.answered=s.tick;r.reason=assessment.reason;h.lastAction='talk';h.speech='Сейчас не смогу.';tell(s,h,pending,`${h.name} отвечает на просьбу ${pending.name}: ${assessment.reason}`,'choice',ctx);return true;}
  const word=confirmWord(s,pending,h,r,{urgent:true});
  if(word.mode==='urgent'&&pending.wordCustom?.form==='witness')tell(s,h,pending,pending.name+': «Не до свидетелей. Сейчас нужна помощь».','talk',ctx);
@@ -91,7 +93,7 @@ export function performAid(s,ctx){
  const r=p.aidRequest,method=aidMethod(s,h),maximum=p.maxHealth||100;
  if(!method||p.health>=maximum*.85){r.status=method?'unneeded':'unable';h.goal=null;h.lastAction='talk';tell(s,h,p,method?'Состояние просившего уже улучшилось. Дополнительные припасы не понадобились.':`${h.name} не смог помочь: подходящего лекарства больше не осталось.`,'choice',ctx);return false;}
  h.inventory[method.resource]--;h.energy=Math.max(0,h.energy-AID_POLICY.energy);const before=p.health;p.health=Math.min(maximum,p.health+Math.max(1,Math.round(maximum*method.fraction)));
- r.status='helped';r.finished=s.tick;r.resource=method.resource;r.recovered=p.health-before;r.knowledge=method.knowledge?.id||null;publishAidNews(s,p);h.goal=null;h.lastAction='heal';h.speech='Прижми повязку.';moral(s,2);ctx.gainXp(s,3);
+ r.status='helped';r.finished=s.tick;r.resource=method.resource;r.recovered=p.health-before;r.knowledge=method.knowledge?.id||null;performedPactAid(s,h,p);publishAidNews(s,p);h.goal=null;h.lastAction='heal';h.speech='Прижми повязку.';moral(s,2);ctx.gainXp(s,3);
  if(skillBranchesEnabled(s))recordPracticalAid(s,Object.assign(r,{tick:s.tick,actor:h.lineage,patient:p.id,before,after:p.health,spent:1}));
  (p.agenda.bonds ||= {})[h.lineage]=Math.min(100,(p.agenda.bonds[h.lineage]||0)+4);
  if(enabled(s,'relationships')){const relation=h.relations[p.id] ||= {trust:0,met:s.tick,lastSeen:s.tick,helped:0};relation.trust=Math.min(100,relation.trust+4);relation.helped++;relation.lastSeen=s.tick;}

@@ -1,3 +1,4 @@
+import {pactTalkPlan,pactTalkAction} from './modules/branch-pacts.js';
 import {feastTick} from './modules/feasts.js';
 import {feastPlan,feastAction} from './modules/feast-actions.js';
 import {buildingRuinsTick} from './modules/building-ruins.js';
@@ -375,6 +376,7 @@ function plan(s) {
   if(!q&&verdictReviewPlan(s,context(s,'verdict-review')))return;
   if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
   if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
+  if(!q&&pactTalkPlan(s,context(s,'branch-pacts')))return;
   if(!q&&feastPlan(s,context(s,'local-feasts')))return;
   if(!q&&literacyPlan(s,context(s,'literacy')))return;
   if(!q&&textPlan(s,context(s,'texts')))return;
@@ -897,6 +899,7 @@ function actObserved(s) {
   else if (g.kind === 'govern') governTick(s,context(s,'politics'));
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
   else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
+  else if(g.kind==='pactTalk')pactTalkAction(s,context(s,'branch-pacts'));
   else if(g.kind==='feastJoin')feastAction(s,context(s,'local-feasts'));
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));
   else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))textAction(s,context(s,'texts'));

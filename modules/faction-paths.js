@@ -1,3 +1,5 @@
+import {bindBranchPact} from './branch-pacts.js';
+import {pactBlocked} from './branch-pact-state.js';
 import {weatherAt} from './weather.js';
 import {goodsEnabled,takeGoods,goodsWorkReceipt,completeGoodsWork} from './goods.js';
 import {FACTIONS,SPELLS} from '../content.js';
@@ -37,7 +39,7 @@ export function factionPathPlan(s,ctx){
     const b=ranked[0].b;p=c.paths[id]={branch:b.id,branchName:b.name,rank:1,office:null,privileges:[...b.privileges],service:b.service,profession:b.profession,ethic:b.ethic,suspended:false,joined:s.tick,duties:0};
     ctx.log(s,`${h.name} принят в ${FACTIONS.find(f=>f.id===id).name}: ветвь «${b.name}». Иная служба в это время будет второстепенной.`,'career');
   }
-  if(p.suspended){c.after=s.tick+180;return false;}
+  if(p.suspended||pactBlocked(s,h,id)){c.after=s.tick+180;return false;}
   if(c.primary!==id){
     if(c.primary&&(h.reputation[c.primary]||0)>rep+15){c.after=s.tick+120;return false;}
     const previous=c.primary;c.primary=id;c.changes.push({tick:s.tick,from:previous,to:id});
@@ -49,7 +51,8 @@ export function factionPathPlan(s,ctx){
 }
 export function factionDuty(s,ctx){
   const h=s.hero,g=h.goal,a=s.areas[h.area],p=h.affiliation.paths[g.faction];
-  if(!enabled(s,'faction-paths')||!p||p.suspended||h.affiliation.primary!==g.faction){h.goal=null;return;}
+  if(!enabled(s,'faction-paths')||!p||p.suspended||pactBlocked(s,h,g.faction)||h.affiliation.primary!==g.faction){h.goal=null;return;}
+  bindBranchPact(s,ctx);
   if(goodsEnabled(s)&&['grow','craft'].includes(p.service))goodsWorkReceipt(s,s.people[h.lineage],g,4);
   h.energy=Math.max(0,h.energy-2);h.lastAction='work';if(--g.remaining>0)return;
   const c=a.civic;if(!c){h.goal=null;return;}
