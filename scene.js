@@ -1,3 +1,4 @@
+import {paintHomeBuilding} from './home-building-view.js';
 import {paintQuadruped} from './quadruped-view.js';import {petCargoModel} from './pet-cargo-view.js';
 import {drawDescent} from './navigation-tool-view.js';
 import {selfDrivenActor,actorPartyLeader} from './actor-projection.js';
@@ -504,7 +505,7 @@ export class Scene {
     c.fillStyle=profile.roofColor||roof;paintRoof(c,profile,width,height,roofHeight);c.strokeStyle='#586b59';c.lineWidth=1;c.stroke();
     if(profile.chimney){c.fillStyle='#59665b';c.fillRect(half*.5,-height-24,8,26);c.fillStyle='#788374';c.fillRect(half*.5-1,-height-26,10,4);
       if(profile.smoke&&occupied){c.fillStyle='#b8beb0';c.globalAlpha=.17;for(let i=0;i<3;i++){c.beginPath();c.ellipse(half*.5+4+Math.sin(this.state.tick*.08+i)*3,-height-31-i*10,4+i*2,5+i*2,0,0,7);c.fill();}c.globalAlpha=1;}}
-    if(layout){this.facade(profile,layout,night,occupied);if(workshop)this.workshopSign(half,height);if(tavern){if(this.state.rules?.['world-signs']!==false)this.tavernSign(half,height);else{c.fillStyle='#403d30';c.fillRect(half-2,-height+8,31,15);c.fillStyle='#dac995';c.font='8px monospace';c.fillText('ТРАКТИР',half,-height+18);}}c.restore();return;}
+    if(layout){this.facade(profile,layout,night,occupied);if(tavern)paintHomeBuilding(c,this.state.areas[tavern.room]?.extension,half,height);if(workshop)this.workshopSign(half,height);if(tavern){if(this.state.rules?.['world-signs']!==false)this.tavernSign(half,height);else{c.fillStyle='#403d30';c.fillRect(half-2,-height+8,31,15);c.fillStyle='#dac995';c.font='8px monospace';c.fillText('ТРАКТИР',half,-height+18);}}c.restore();return;}
     const doorX=(profile.door||0)*half*.55;const windows=profile.windows||2;
     for(let floor=0;floor<(profile.floors||1);floor++)for(let i=0;i<windows;i++){
       const wx=windows===1?(doorX>=0?-half+10:half-10):-half+10+(width-20)*i/(windows-1),wy=-floor*44-36;if(!floor&&Math.abs(wx-doorX)<12)continue;
@@ -513,7 +514,7 @@ export class Scene {
     }
     c.fillStyle=profile.doorColor||'#3c4e42';c.fillRect(doorX-6,-29,12,29);c.fillStyle='#b0ad7a';c.fillRect(doorX+3,-13,2,2);
     if(profile.porch){c.fillStyle=profile.roofColor||roof;c.fillRect(doorX-11,-31,22,4);c.fillStyle='#64745f';c.fillRect(doorX-10,-27,2,27);c.fillRect(doorX+8,-27,2,27);}
-    c.fillStyle='#687463';c.fillRect(-half,-3,width,3);if(workshop)this.workshopSign(half,height);if(tavern&&this.state.rules?.['world-signs']!==false)this.tavernSign(half,height);c.restore();
+    c.fillStyle='#687463';c.fillRect(-half,-3,width,3);if(tavern)paintHomeBuilding(c,this.state.areas[tavern.room]?.extension,half,height);if(workshop)this.workshopSign(half,height);if(tavern&&this.state.rules?.['world-signs']!==false)this.tavernSign(half,height);c.restore();
   }
   tavernSign(half,height){const c=this.ctx;c.strokeStyle='#a79773';c.lineWidth=2;c.beginPath();c.moveTo(half-3,-height+9);c.lineTo(half+17,-height+9);c.lineTo(half+17,-height+15);c.stroke();paintSymbolPlaque(c,'mug',half+17,-height+25,25,22);}
   workshopSign(half,height){const c=this.ctx;c.strokeStyle='#a79773';c.lineWidth=2;c.beginPath();c.moveTo(half-3,-height+9);c.lineTo(half+17,-height+9);c.lineTo(half+17,-height+15);c.stroke();if(this.state.rules?.['world-signs']!==false)paintSymbolPlaque(c,'workshop',half+17,-height+25,25,22);else{c.fillStyle='#403d30';c.fillRect(half-2,-height+8,45,15);c.fillStyle='#dac995';c.font='8px monospace';c.fillText('МАСТЕР',half,-height+18);}}

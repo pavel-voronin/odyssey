@@ -1,3 +1,4 @@
+import {homeBuildingOn,homeBuildingNPCTask,homeBuildingNPCAction} from './home-building.js';
 import {verdictReviewNPCAction,verdictReviewOn} from './verdict-review.js';
 import {boardingPetCare,petBoardingNPCAction} from './pet-boarding-actors.js';
 import {npcPetCare} from './pet-transfer-actors.js';
@@ -90,6 +91,7 @@ function plan(s,p,ctx){
     if(a.civic?.medicine>=2){begin(p,'recover',p.area,68);return;}
   }
   if(planAidRequest(s,p,ctx))return;
+  if(homeBuildingNPCTask(s,p))return;
   const credit=npcCreditTask(s,p);if(credit){m.task=credit;return;}
   const moneyCache=npcMoneyCachePlan(s,p);if(moneyCache){m.task=moneyCache;return;}
   const routeMap=npcRouteMapPlan(s,p);if(routeMap){m.task=routeMap;return;}
@@ -260,6 +262,7 @@ export function peopleTick(s,ctx){
     if(!materialTrip)npcDeedsTick(s,p,ctx);
     if(p.caseReports?.length)announceCaseWitness(s,p);
     if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
+    if(['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(p.agenda.task?.kind)&&!homeBuildingOn(s))continue;
     if(p.agenda.task?.kind==='caseRecordStudy'&&!enabled(s,'verdict-knowledge'))continue;
     if(p.agenda.task?.kind==='mentorLesson'&&(!mentorEnabled(s)||s.tick>p.personalJourney?.abandonAfter)){mentorLessonAction(s,p,ctx);continue;}
     if(p.agenda.task?.kind==='itemSalvage'&&!enabled(s,'item-originals'))p.agenda.task=null;
@@ -280,6 +283,7 @@ export function peopleTick(s,ctx){
     bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(homeBuildingNPCAction(s,p))continue;
     if(verdictReviewNPCAction(s,p))continue;
     if(petBoardingNPCAction(s,p,ctx))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task.kind)){fieldCraftAction(s,p,p.agenda.task,ctx);continue;}

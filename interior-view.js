@@ -29,7 +29,7 @@ export function paintInterior(c,a,width,height,ground,world){
  else{const doorX=24+.08*(width-48);c.fillStyle=dark;c.fillRect(doorX-12,ground-60,25,60);c.strokeStyle='#998566';c.strokeRect(doorX-12,ground-60,25,60);c.fillStyle='#b5a679';c.fillRect(doorX+5,ground-29,3,3);c.fillStyle='#b2a68a';c.font='10px monospace';c.fillText(room.kind==='room'?'В ЗАЛ':'ВЫХОД',Math.max(2,doorX-16),ground-66);}
  if(room.kind==='workshop')paintWorkshop(c,a,width,ground,shop);
  else if(room.kind==='room'){
-  for(const fraction of [.35,.67]){const x=width*fraction,bedWidth=Math.min(82,width*.24);c.fillStyle='#463a2d';c.fillRect(x-bedWidth/2-4,ground-48,6,48);c.fillRect(x+bedWidth/2-2,ground-24,5,24);c.fillStyle='#9b8768';c.fillRect(x-bedWidth/2,ground-29,bedWidth,8);c.fillStyle='#7b8d84';c.fillRect(x-bedWidth/2+1,ground-34,bedWidth-2,10);c.fillStyle='#c3b99c';c.fillRect(x-bedWidth/2+2,ground-38,17,8);c.fillStyle='#514333';c.fillRect(x-bedWidth/2,ground-21,4,21);}
+  for(const fraction of a.extension?.status==='done'?[.26,.51,.76]:[.35,.67]){const x=width*fraction,bedWidth=Math.min(82,width*.24);c.fillStyle='#463a2d';c.fillRect(x-bedWidth/2-4,ground-48,6,48);c.fillRect(x+bedWidth/2-2,ground-24,5,24);c.fillStyle='#9b8768';c.fillRect(x-bedWidth/2,ground-29,bedWidth,8);c.fillStyle='#7b8d84';c.fillRect(x-bedWidth/2+1,ground-34,bedWidth-2,10);c.fillStyle='#c3b99c';c.fillRect(x-bedWidth/2+2,ground-38,17,8);c.fillStyle='#514333';c.fillRect(x-bedWidth/2,ground-21,4,21);}
   c.fillStyle='#393e39';c.fillRect(width*.72,34,39,35);c.fillStyle='#899e9b';c.fillRect(width*.72+4,38,31,27);c.strokeStyle=wood;c.beginPath();c.moveTo(width*.72+19,36);c.lineTo(width*.72+19,68);c.stroke();
  paintHome(c,a,width,ground);
  }else{

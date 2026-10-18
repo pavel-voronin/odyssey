@@ -1,3 +1,4 @@
+import {noteRoomDemand,homeBuildingOn} from './home-building.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
 import {setActorMoney} from '../actor-projection.js';
@@ -42,6 +43,7 @@ export function lodgingPlan(s,ctx){
  const occupants=partyRoomConsent(s);if(!occupants)return false;
  const door=localDoor(s,h.area),room=s.areas[door?.room],paid=activeBooking(s,room,h.lineage);
  if(paid&&roomAdmission(s,room,h.lineage)&&occupants.every(id=>paid.occupants.includes(id))){revealArea(s,room.id);ctx.goal(s,'rest',room.id,68,'Отдохнуть в оплаченной комнате',`Бронь: ещё ${elapsedLabel(paid.until-s.tick)} · места ${paid.occupants.length}/${room.lodging.capacity}`,{lodging:room.id});return true;}
+ if(homeBuildingOn(s)&&door&&room&&occupants.length===room.lodging.capacity+1&&tavernAvailable(s,door)){revealArea(s,door.hall);ctx.goal(s,'roomBook',door.hall,76,'Спросить о месте для спутников','В известной гостевой меньше мест, чем нужно группе. Хозяин должен услышать действительный запрос.',{building:door.id,occupants});return true;}
  const q=quote(s,door,h.lineage,occupants);if(!q)return false;
  revealArea(s,door.hall);ctx.goal(s,'roomBook',door.hall,76,'Узнать о ночлеге',`Есть гостевая на ${q.room.lodging.capacity} места. Нужна встреча с хозяином; цена ◈${q.price}.`,{building:door.id,occupants});return true;
 }
@@ -64,7 +66,7 @@ function book(s,door,person,occupants){
 export function bookRoom(s,ctx){
  const h=s.hero,door=localDoor(s,h.area);if(h.goal?.kind!=='roomBook'||h.goal.building!==door?.id||h.goal.area!==h.area)return;
  const occupants=partyRoomConsent(s),result=book(s,door,h.lineage,occupants),r=result?.booking;
- h.lastAction='talk';if(!r){h.goal=null;h.lodgingAfter=s.tick+240;ctx.log(s,'Ночлег не удалось согласовать. Он ищет другой доступный отдых.','rest');return;}
+ h.lastAction='talk';if(!r){noteRoomDemand(s,door,occupants);h.goal=null;h.lodgingAfter=s.tick+240;ctx.log(s,'Ночлег не удалось согласовать. Он ищет другой доступный отдых.','rest');return;}
  const room=s.areas[door.room];revealArea(s,room.id);if(result.charged)h.counters.roomsRented=(h.counters.roomsRented||0)+1;
  ctx.goal(s,'rest',room.id,68,'Отдохнуть в гостевой комнате',`Бронь: ещё ${elapsedLabel(r.until-s.tick)} · места ${r.occupants.length}/${room.lodging.capacity}`,{lodging:room.id});if(result.charged)ctx.log(s,`${h.name} снимает гостевую на ${elapsedLabel(ROOM_POLICY.duration)} за ◈${r.price}. Места: ${r.occupants.length}/${room.lodging.capacity}.`,'rest');
 }
