@@ -1,3 +1,4 @@
+import {homeWorkbenchSite,homeAdmission} from './home-place.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
 import {profile,hasHabit} from './common.js';
@@ -125,6 +126,7 @@ export function buyProperty(s,ctx){
 }
 // A lease is one paid work session, separate from the permanent title.
 export function workspaceAccess(s,ctx){
+  const home=homeWorkbenchSite(s,s.hero.area);if(home)return homeAdmission(s,home.room,s.hero.lineage)?'ready':'denied';
   if(!enabled(s,'property'))return 'ready';
   const h=s.hero,g=h.goal,physical=s.areas[h.area],site=workshopSite(s,physical),a=site?.inside?site.area:physical,o=workshopAt(s,physical);initializeProperty(h);observeProperty(s,physical,ctx);
   if(!o||o.state!=='intact'||enabled(s,'work-loss')&&g.workplace&&g.workplace.id!==o.id){

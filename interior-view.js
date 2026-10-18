@@ -1,3 +1,4 @@
+import {paintHome} from './home-view.js';
 import {interiorDoorSigns,paintSymbolPlaque} from './world-signs.js';
 import {workshopSite} from './modules/workshop-place.js';
 function paintWorkshop(c,a,width,ground,object){
@@ -30,6 +31,7 @@ export function paintInterior(c,a,width,height,ground,world){
  else if(room.kind==='room'){
   for(const fraction of [.35,.67]){const x=width*fraction,bedWidth=Math.min(82,width*.24);c.fillStyle='#463a2d';c.fillRect(x-bedWidth/2-4,ground-48,6,48);c.fillRect(x+bedWidth/2-2,ground-24,5,24);c.fillStyle='#9b8768';c.fillRect(x-bedWidth/2,ground-29,bedWidth,8);c.fillStyle='#7b8d84';c.fillRect(x-bedWidth/2+1,ground-34,bedWidth-2,10);c.fillStyle='#c3b99c';c.fillRect(x-bedWidth/2+2,ground-38,17,8);c.fillStyle='#514333';c.fillRect(x-bedWidth/2,ground-21,4,21);}
   c.fillStyle='#393e39';c.fillRect(width*.72,34,39,35);c.fillStyle='#899e9b';c.fillRect(width*.72+4,38,31,27);c.strokeStyle=wood;c.beginPath();c.moveTo(width*.72+19,36);c.lineTo(width*.72+19,68);c.stroke();
+ paintHome(c,a,width,ground);
  }else{
  for(const fraction of [.35,.57]){const x=width*fraction;c.fillStyle='#4e4134';c.fillRect(x-20,ground-22,5,20);c.fillRect(x+15,ground-22,5,20);c.fillStyle='#998364';c.fillRect(x-26,ground-28,52,8);c.fillStyle='#c1b18b';c.fillRect(x-8,ground-35,5,7);c.fillStyle='#8f734f';c.fillRect(x+7,ground-33,8,5);}
  c.fillStyle='#514333';c.fillRect(width*.73,ground-43,width*.12,43);c.fillStyle='#a08a66';c.fillRect(width*.71,ground-47,width*.15,8);

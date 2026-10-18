@@ -1,3 +1,4 @@
+import {homeCookingAllows} from './home-place.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {LOCAL_FOODS} from './food-stores.js';
@@ -7,10 +8,11 @@ export function culinary(p){return p.foodCooking ||= {recipes:{},study:[],pendin
 export function knowsBroth(s,p){return cookingEnabled(s)&&Boolean(p?.foodCooking?.recipes[BROTH_RECIPE]);}
 export function actualHearth(s,area){
  const a=typeof area==='string'?s.areas[area]:area;
+ if(a?.home?.version===1&&a.home.state==='ready'&&a.home.configuration==='hearth')return a.objects.find(o=>o.id===a.home.device&&o.kind==='homeHearth'&&o.state==='intact')||null;
  if(!a||a.interior||a.type!=='camp')return null;
  return a.objects.find(o=>o.kind==='rest'&&!o.destroyed&&o.state!=='burned')||null;
 }
-export function safeCooking(s,h){return Boolean(h?.alive&&!h.combat&&!h.transit&&h.hp>=h.maxHp*.8&&h.energy>=40&&h.hunger<75&&!h.conditions.some(c=>c.id==='poison'&&c.until>s.tick)&&!s.areas[h.area].objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&physicalDistance(s.areas[h.area],h.x,o.x)<=28));}
+export function safeCooking(s,h){return Boolean(h?.alive&&homeCookingAllows(s,s.areas[h.area],h.lineage)&&!h.combat&&!h.transit&&h.hp>=h.maxHp*.8&&h.energy>=40&&h.hunger<75&&!h.conditions.some(c=>c.id==='poison'&&c.until>s.tick)&&!s.areas[h.area].objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&physicalDistance(s.areas[h.area],h.x,o.x)<=28));}
 export function brothIngredient(s,h){
  const p=s.people[h.lineage],q=p?.localFood;
  if(!q||q.owner!==p.id||!(h.inventory.herbs>0))return null;
@@ -21,7 +23,7 @@ export function brothIngredient(s,h){
 }
 export function kitchenBatch(s,area){return s.areas[area]?.hearthKitchen?.current||null;}
 export function edibleBroth(s,h){
- if(!cookingEnabled(s)||!h?.alive||h.transit||h.combat)return null;
+ if(!cookingEnabled(s)||!h?.alive||h.transit||h.combat||!homeCookingAllows(s,s.areas[h.area],h.lineage))return null;
  const a=s.areas[h.area],hearth=actualHearth(s,a),b=kitchenBatch(s,h.area);
  return hearth&&b?.status==='ready'&&b.owner===h.lineage&&b.hearth===hearth.id&&b.remaining>0&&b.expires>s.tick?b:null;
 }
@@ -34,10 +36,10 @@ export function finishKitchen(s,a,status){
 }
 export function batchWorkMatches(s,h,b){
  const a=s.areas[b?.area],fire=a&&actualHearth(s,a),goal=h?.goal;
- return Boolean(h?.alive&&b&&h.lineage===b.owner&&h.area===b.area&&!h.transit&&!h.combat&&fire&&goal?.area===b.area&&physicalDistance(a,goal.x,fire.x)<=1&&(b.mode==='camp'?goal.kind==='rest':goal.kind==='brothCook'));
+ return Boolean(h?.alive&&homeCookingAllows(s,s.areas[h.area],h.lineage)&&b&&h.lineage===b.owner&&h.area===b.area&&!h.transit&&!h.combat&&fire&&goal?.area===b.area&&physicalDistance(a,goal.x,fire.x)<=1&&(b.mode==='camp'?goal.kind==='rest':goal.kind==='brothCook'));
 }
 export function kitchenTick(s,a,ctx=null){
- if(!cookingEnabled(s))return;const b=kitchenBatch(s,a.id);if(!b)return;
+ if(!cookingEnabled(s)||a.home&&!enabled(s,'homes'))return;const b=kitchenBatch(s,a.id);if(!b)return;
  if(!actualHearth(s,a)||!s.people[b.owner]?.alive){finishKitchen(s,a,'abandoned');return;}
  const cook=s.actorStates?.[b.owner]||(s.hero.lineage===b.owner?s.hero:null);
  if(b.status==='preparing'&&(s.people[b.owner].status==='captive'||!batchWorkMatches(s,cook,b))){if(finishKitchen(s,a,'ruined')&&s.hero.area===a.id&&!s.hero.transit)ctx?.log(s,'Готовку пришлось прервать. Травы и добыча испорчены.','food');return;}

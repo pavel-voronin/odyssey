@@ -1,3 +1,4 @@
+import {homePlan,homeAction} from './modules/homes.js';
 import {verdictReviewPlan,verdictReviewAction} from './modules/verdict-review.js';
 import {shipRecoveryAction} from './modules/ship-recovery.js';
 import {petRouteDeferred,knownPetRoute,petPassageEntered} from './modules/pet-passage-state.js';import {petPassagePlan,petRetrievalPlan,petPassagePath,petBoardingAction,petBoardingTarget} from './modules/pet-boarding.js';import {petBoardingWorldTick} from './modules/pet-boarding-actors.js';
@@ -364,6 +365,7 @@ function plan(s) {
   if(!q&&verdictReviewPlan(s,context(s,'verdict-review')))return;
   if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
   if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
+  if(!q&&homePlan(s,context(s,'homes')))return;
   if(!q&&forgePlan(s,context(s,'forging')))return;
   if(!q&&refitPlan(s,context(s,'knife-refit')))return;
   if(!q&&landmarkPlan(s,context(s,'landmarks')))return;
@@ -878,6 +880,7 @@ function actObserved(s) {
   else if (g.kind === 'govern') governTick(s,context(s,'politics'));
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
   else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
+  else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))homeAction(s,context(s,'homes'));
   else if (g.kind === 'storyAction') storyAction(s,g.story,context(s,'stories'));
   else if (g.kind === 'moneyCache') moneyCacheAction(s,context(s,'finances'));
   else if (g.kind === 'routeMap') routeMapAction(s,context(s,'route-maps'));

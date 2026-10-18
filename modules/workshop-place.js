@@ -1,3 +1,4 @@
+import {homeWorkbenchSite} from './home-place.js';
 import {enabled} from '../rules.js';
 
 // The exterior object remains the sole property/tool/history authority. A pocket
@@ -5,6 +6,7 @@ import {enabled} from '../rules.js';
 export const workshopInteriorsOn=s=>enabled(s,'workshop-interiors')&&enabled(s,'interiors')&&enabled(s,'property');
 export function workshopSite(s,area,id=null){
  const a=typeof area==='string'?s.areas[area]:area;if(!a)return null;
+ const home=homeWorkbenchSite(s,a,id);if(home)return home;
  const inside=a.interior?.kind==='workshop',exterior=inside?s.areas[a.interior.parent]:a;
  const object=exterior?.objects.find(o=>o.kind==='workshop'&&(!id||o.id===id)&&(!inside||o.id===a.interior.building));
  if(!object)return null;
@@ -12,7 +14,7 @@ export function workshopSite(s,area,id=null){
  return {area:exterior,object,room,inside};
 }
 export function workshopPosition(s,area,object){
- const site=workshopSite(s,area,object?.id);
+ const site=workshopSite(s,area,object?.id);if(site?.home)return {area:site.room.id,x:site.object.x};
  return workshopInteriorsOn(s)&&site?.room?{area:site.room.id,x:site.room.interior.station??68}:{area:site?.area.id??(typeof area==='string'?area:area.id),x:object?.x??42};
 }
 export function ownedWorkshopSite(s,area,person){

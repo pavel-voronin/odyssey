@@ -1,3 +1,4 @@
+import {homeWorkbenchSite,homeAdmission} from './home-place.js';
 import {fitsAcquisition,fitsPack} from './container-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -32,8 +33,8 @@ const knife=(s,p)=>collectionItems(s,p.id).find(i=>i.toolKind==='knife'&&itemWor
 function announce(s,p,ctx,text){if(s.hero.lineage===p.id||s.hero.area===p.area)ctx.log(s,text,'craft');}
 function rest(s,p,delay=240){ensure(p).after=s.tick+delay;const h=body(s,p);if(h)h.goal=null;else{p.agenda.task=null;p.agenda.due=s.tick+48;}}
 function know(s,p,origin,teacher=null){ensure(p).recipes[KNIFE_RECIPE.id] ||= {learnedAt:s.tick,origin,teacher};}
-function readySite(s,p,id,area){const site=workshopSite(s,area,id);return site&&site.object.state==='intact'&&!site.object.closed&&s.people[site.object.owner]?.alive&&workToolReady(s,site.object)?site:null;}
-function accessible(s,p,site){if(site.object.owner===p.id)return true;const lease=body(s,p)?.goal?.workspace;return lease?.id===site.object.id&&lease.kind==='lease'&&lease.owner===site.object.owner&&lease.until>=s.tick;}
+function readySite(s,p,id,area){const site=workshopSite(s,area,id);return site&&(!site.home||homeAdmission(s,site.room,p.id))&&site.object.state==='intact'&&!site.object.closed&&(site.home||s.people[site.object.owner]?.alive)&&workToolReady(s,site.object)?site:null;}
+function accessible(s,p,site){if(site.home)return homeAdmission(s,site.room,p.id);if(site.object.owner===p.id)return true;const lease=body(s,p)?.goal?.workspace;return lease?.id===site.object.id&&lease.kind==='lease'&&lease.owner===site.object.owner&&lease.until>=s.tick;}
 
 // A real held fang or dismantled lift part can replace the blade blank. The handle still comes from
 // the finite warehouse; neither route creates another raw stock.
@@ -97,9 +98,12 @@ export function buyKnife(s,p,seller,ctx){
 }
 export function forgePlan(s,ctx){
  const h=s.hero,p=s.people[h.lineage];if(!forgingEnabled(s)||h.goal||h.combat||h.transit||!healthy(s,p)||state(p)?.after>s.tick)return false;
- const q=state(p),o=current(p);if(o){const site=readySite(s,p,o.workshop,o.area),route=site&&(ctx.knownRoute||ctx.route)(s,h.area,site.area.id);if(!site||!route?.length){rest(s,p);return false;}ctx.goal(s,'forgeWork',site.area.id,site.object.x,'Изготовить рабочий нож','Материалы уже принадлежат этому заказу. Осталось поработать у верстака.',{property:o.workshop});return true;}
+ const q=state(p),o=current(p);if(o){const site=readySite(s,p,o.workshop,o.area),route=site&&(ctx.knownRoute||ctx.route)(s,h.area,site.area.id);if(!site||!route?.length){rest(s,p);return false;}const pos=workshopPosition(s,site.area,site.object);ctx.goal(s,'forgeWork',pos.area,pos.x,'Изготовить рабочий нож','Материалы уже принадлежат этому заказу. Осталось поработать у верстака.',{property:o.workshop});return true;}
  if(knife(s,p))return false;
- const a=s.areas[h.area];if(!a.civic||a.interior||h.quests?.some(x=>x.status==='active')||h.career?.path!=='peaceful'&&h.personality.curiosity<.7)return false;
+ const a=s.areas[h.area];
+ const home=Object.values(s.areas).map(r=>homeWorkbenchSite(s,r)).find(site=>site&&homeAdmission(s,site.room,p.id)&&[site.area.id,site.room.id,site.room.interior.parent].includes(h.area));
+ if(home&&(q?.recipes[KNIFE_RECIPE.id]||prepared(s,p))&&h.gold>=KNIFE_RECIPE.price&&!h.quests.some(q=>q.status==='active')){ctx.goal(s,'forgeSupply',home.area.id,42,'Приобрести материалы для домашнего ножа','Стол поставлен с согласия хозяина, но заготовку и рукоять нужно действительно приобрести на местном складе.',{property:home.object.id});return true;}
+ if(!a.civic||a.interior||h.quests?.some(x=>x.status==='active')||h.career?.path!=='peaceful'&&h.personality.curiosity<.7)return false;
  const seller=Object.values(s.people).find(t=>t.alive&&t.area===h.area&&state(t)?.offer&&purse(s,p)>=state(t).offer.price);
  if(seller){ctx.goal(s,'forgeBuy',h.area,seller.x,'Купить рабочий нож','Местный мастер предлагает уже изготовленную вещь.',{person:seller.id});return true;}
  if(!q?.recipes[KNIFE_RECIPE.id]&&!prepared(s,p)){const t=teacher(s,p);if(!t||q?.study&&q.study.teacher!==t.id||!q?.study&&h.gold<2)return false;ctx.goal(s,'forgeLearn',h.area,t.x,'Узнать рецепт ножа','Любопытство и свободный мастер: можно освоить способ за три занятия.',{person:t.id});return true;}
@@ -109,7 +113,7 @@ export function forgePlan(s,ctx){
 export function forgeAction(s,ctx){
  const p=s.people[s.hero.lineage],g=s.hero.goal;if(!g)return false;
  if(!forgingEnabled(s)){s.hero.goal=null;return false;}
- if(g.kind==='forgeSupply'){const site=workshopSite(s,g.area,g.property);const o=startKnife(s,p,site,ctx);if(o)Object.assign(g,{kind:'forgeWork',x:site.object.x});else rest(s,p);return Boolean(o);}
+ if(g.kind==='forgeSupply'){const site=workshopSite(s,g.area,g.property);const o=startKnife(s,p,site,ctx);if(o){const pos=workshopPosition(s,site.area,site.object);Object.assign(g,{kind:'forgeWork',area:pos.area,x:pos.x});}else rest(s,p);return Boolean(o);}
  if(g.kind==='forgeWork'){const access=ctx.workspaceAccess(s);if(access!=='ready')return false;const done=workKnife(s,p,ctx);if(!done)rest(s,p);return done;}
  if(g.kind==='forgeLearn'){const t=s.people[g.person];if(t?.area===s.hero.area)g.x=t.x;if(learnKnife(s,p,t,ctx))return true;rest(s,p);return false;}
  if(g.kind==='forgeBuy'){if(buyKnife(s,p,s.people[g.person],ctx))return true;rest(s,p);return false;}
