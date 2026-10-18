@@ -1,3 +1,4 @@
+import {paintQuadruped} from './quadruped-view.js';import {petCargoModel} from './pet-cargo-view.js';
 import {drawDescent} from './navigation-tool-view.js';
 import {selfDrivenActor,actorPartyLeader} from './actor-projection.js';
 import {paintDistantTowers,paintLocalTower} from './landmark-view.js';
@@ -271,7 +272,7 @@ export class Scene {
       }
       if (o.kind === 'encounter' && !o.resolved) {
         if (o.icon === 'human') this.person(x, ground, '#aa9c78', false, -1, 0);
-        else if (o.icon === 'pet') this.creature(x, ground, 'pet', s.tick);
+        else if(o.icon==='pet'&&o.existingPet?.id==='dog'&&o.existingPet.packCargo)this.companionPet(o.existingPet,x,ground,null,phase);else if (o.icon === 'pet') this.creature(x, ground, 'pet', s.tick);
         else if (o.icon === 'chest') this.creature(x, ground, 'chest', s.tick);
         else if (o.icon === 'shrine') { c.fillStyle='#a6aa8a';c.fillRect(x-8,ground-32,16,32);c.fillRect(x-12,ground-36,24,5);c.fillStyle='#5e795b';c.fillRect(x-3,ground-29,6,12); }
         else if (o.icon === 'grave') { c.fillStyle='#9a9b80';c.fillRect(x-7,ground-22,14,22); }
@@ -279,7 +280,7 @@ export class Scene {
         c.fillStyle='#e0d2a1';c.font='11px monospace';c.textAlign='center';c.fillText('?',x,ground-50);c.textAlign='left';
       }
     }
-    if(s.rules?.companions!==false&&!h.transit)for(const p of Object.values(s.people))for(const pet of p.pets||[]){const body=pet.packCargo?.body||pet.petCustody?.body;if(pet.hp<=0||body?.area!==a.id)continue;const track=this.beastTracks.tracks.get(companionKey(pet));if(s.rules?.['creature-motion']!==false)this.quadruped(screenX(body.x)+(body.area===p.area&&Math.abs(body.x-p.x)<3?14:0),ground,quadrupedPose(track,phase,Math.abs((track?.to??body.x)-(track?.from??body.x))*(w-48)/100),'dog');else this.creature(screenX(body.x),ground,'pet',s.tick);}
+    if(s.rules?.companions!==false&&!h.transit)for(const p of Object.values(s.people))for(const pet of p.pets||[]){const body=pet.packCargo?.body||pet.petCustody?.body;if(pet.hp<=0||body?.area!==a.id)continue;const track=this.beastTracks.tracks.get(companionKey(pet));this.companionPet(pet,screenX(body.x)+(body.area===p.area&&Math.abs(body.x-p.x)<3?14:0),ground,track,phase);}
     let freightDrawn=0;
     if(!h.transit)for(const convoy of s.logistics?.convoys||[]){const p=s.people[convoy.person];if(!p?.alive||p.status!=='caravan'||p.area!==a.id||convoy.movement!=='physical'&&s.rules?.['npc-logistics']===false)continue;
       freightDrawn++;
@@ -303,7 +304,7 @@ export class Scene {
         const companion=other.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(companion.person===h.lineage||body&&body.area!==a.id)continue;const cx=body?screenX(body.x):px-direction*petPartyOffset(other.companions,i),petTrack=this.beastTracks.tracks.get(companionKey(companion));
         if(companion.role==='person'){const p=s.people[companion.person],look=p?looks(p,p.appearance):null;this.person(cx,ground,look?.cloak||'#ad9872',false,direction,0,Boolean(petTrack?.attack)&&phase<.8,other.lastAction==='rest',look,s.rules?.lineage===false?null:race(companion.race),{kind:other.lastAction==='rest'?'rest':walking?'walk':'idle',progress:phase,walking,distance:Math.abs(to-from)*(w-48)/100});}
         else if(petShape(companion)){const pose=petMotion(companion.id,petTrack,phase,{pixelsPerUnit:(w-48)/100,animate:animate&&s.rules?.['creature-motion']!==false,facing:companion.facing||other.facing,rest:other.lastAction==='rest'});this.pet(cx,ground,companion.id,pose.direction,pose.rest,pose.hurt,pose);}
-        else if(companion.id==='dog'&&s.rules?.['creature-motion']!==false)this.quadruped(cx,ground,quadrupedPose(petTrack,phase,Math.abs(to-from)*(w-48)/100),'dog');
+        else if(companion.id==='dog'&&(s.rules?.['creature-motion']!==false||companion.packCargo))this.companionPet(companion,cx,ground,petTrack,phase);
         else if(companionShape(companion)&&s.rules?.['creature-motion']!==false){const shape=companionShape(companion);this.formedCreature(cx,ground,shape,creatureActionPose(shape,petTrack,phase,Math.abs(to-from)));}
         else this.creature(cx,ground,companion.id==='mushroom'?'fungus':companion.id==='moth'?'ghost':'pet',s.tick);
       }
@@ -325,7 +326,7 @@ export class Scene {
         const cx=body?screenX(body.x):stance.campRest?restPoint+restSide*petPartyOffset(h.companions,i):hx-h.facing*petPartyOffset(h.companions,i);
         if(companion.role==='person'){const person=s.people[companion.person]||{id:companion.id},look=looks(person,person.appearance);this.person(cx,ground,look?.cloak||'#ad9872',false,stance.campRest?-1:h.facing,0,false,stance.campRest,look,s.rules?.lineage===false?null:race(companion.race),{kind:stance.campRest?'rest':'idle',progress:phase});}
         else if(petShape(companion)){const track=this.beastTracks.tracks.get(companionKey(companion)),pose=petMotion(companion.id,track,phase,{pixelsPerUnit:(w-48)/100,animate:animate&&s.rules?.['creature-motion']!==false,facing:companion.facing||h.facing,rest:h.lastAction==='rest'});this.pet(cx,ground,companion.id,pose.direction,pose.rest,pose.hurt,pose);}
-        else if(companion.id==='dog'&&s.rules?.['creature-motion']!==false){const track=this.beastTracks.tracks.get(companionKey(companion));this.quadruped(cx,ground,quadrupedPose(track,phase,Math.abs((track?.to??h.x)-(track?.from??h.x))*(w-48)/100),'dog');}
+        else if(companion.id==='dog'&&(s.rules?.['creature-motion']!==false||companion.packCargo)){const track=this.beastTracks.tracks.get(companionKey(companion));this.companionPet(companion,cx,ground,track,phase);}
         else if(companionShape(companion)&&s.rules?.['creature-motion']!==false){const shape=companionShape(companion),track=this.beastTracks.tracks.get(companionKey(companion));this.formedCreature(cx,ground,shape,creatureActionPose(shape,track,phase,Math.abs((track?.to??h.x)-(track?.from??h.x))));}
         else this.creature(cx,ground,companion.id==='mushroom'?'fungus':companion.id==='moth'?'ghost':'pet',s.tick);
       }
@@ -635,28 +636,11 @@ export class Scene {
     }
     c.restore();
   }
-  quadruped(x,y,pose,kind){
+  companionPet(pet,x,y,track,phase){const cargo=petCargoModel(this.state,pet),motion=this.state.rules?.['creature-motion']!==false;if(!motion&&!cargo)return this.creature(x,y,'pet',this.state.tick);const distance=motion?Math.abs((track?.to??0)-(track?.from??0))*(this.canvas.clientWidth-48)/100:0;this.quadruped(x,y,quadrupedPose(track,motion?phase:1,distance),'dog',cargo);}
+  quadruped(x,y,pose,kind,cargo=null){
     const c=this.ctx,dog=kind==='dog',scale=dog?.7:1;
-    this.castShadow(x,y,32*scale,(pose.dead?12:24)*scale);
-    c.save();c.translate(x,y);c.scale(pose.direction*scale,scale*(1-(pose.death||0)*.35));
-    const body=pose.hurt?'#d1aaa0':dog?'#b3a284':'#9aa99a',dark=dog?'#7e705b':'#687f74';
-    c.lineWidth=3;c.lineCap='round';
-    // Knees join the body to planted/swinging feet; feet never pass below their support.
-    for(let i=0;i<4;i++){
-      const foot=pose.feet[i],hip=i<2?-9:8,hipY=-11+pose.bodyY;
-      c.strokeStyle=i===0||i===2?dark:body;c.beginPath();c.moveTo(hip,hipY);
-      c.lineTo((hip+foot.x)/2-2,(hipY+foot.y)/2);c.lineTo(foot.x,foot.y);c.lineTo(foot.x+2,foot.y);c.stroke();
-    }
-    c.translate(pose.reach,pose.bodyY);c.fillStyle=body;
-    c.beginPath();c.ellipse(-1,-14,15,7,0,0,Math.PI*2);c.fill();
-    c.strokeStyle=body;c.lineWidth=4;c.beginPath();c.moveTo(-13,-15);c.lineTo(-21,-21+(pose.resting?7:0));c.stroke();
-    c.beginPath();c.moveTo(7,-15);c.lineTo(9,-27);c.lineTo(14,-21);c.lineTo(20,-19);c.lineTo(24,-15);c.lineTo(15,-12);c.closePath();c.fill();
-    if(dog){c.fillStyle=dark;c.beginPath();c.moveTo(10,-24);c.lineTo(7,-15);c.lineTo(15,-20);c.fill();c.strokeStyle='#7b7770';c.lineWidth=2;c.beginPath();c.moveTo(8,-14);c.lineTo(12,-18);c.stroke();}
-    c.fillStyle='#293c32';c.fillRect(21,-16,3,2);
-    if(pose.resting||pose.dead){c.strokeStyle='#293c32';c.lineWidth=1;c.beginPath();c.moveTo(14,-20);c.lineTo(17,-20);c.stroke();}
-    else{c.fillStyle=dog?'#293c32':'#e2c694';c.fillRect(15,-21,2,2);}
-    if(pose.jaw){c.strokeStyle='#3d453d';c.lineWidth=2;c.beginPath();c.moveTo(15,-13);c.lineTo(22,-13+pose.jaw);c.stroke();}
-    c.restore();
+    if(cargo&&this.state?.rules?.lighting&&this.state.rules?.['contour-shadows']!==false){const key=JSON.stringify([kind,pose,cargo]),cache=this.quadrupedCache||(this.quadrupedCache=new Map());let body=cache.get(key);if(!body){body=recordSilhouette(recorder=>paintQuadruped(recorder,pose,kind,cargo));if(cache.size>=64)cache.delete(cache.keys().next().value);cache.set(key,body);}const m=cameraLocalMatrix(c.getTransform?.(),this.camera,this.pixelRatio)||{a:1,b:0,c:0,d:1,e:0,f:0},matrix={...m,e:m.a*x+m.c*y+m.e,f:m.b*x+m.d*y+m.f},contours=this.contours||(this.contours=new ContourCache());this.castContourShadow(contours.world(body.polygons,matrix),{x:matrix.e,y:matrix.f});c.save();c.translate(x,y);body.replay(c);c.restore();return;}
+    this.castShadow(x,y,32*scale,(pose.dead?12:24)*scale);c.save();c.translate(x,y);paintQuadruped(c,pose,kind,cargo);c.restore();
   }
   wolf(x, y, tick, combat) {
     this.castShadow(x,y,32,24);

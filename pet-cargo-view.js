@@ -1,0 +1,4 @@
+import {packPetsOn,petPack,petLoad} from './modules/pack-pet-state.js';
+export function petCargoModel(s,c){if(!packPetsOn(s)||c?.id!=='dog'||c.hp<=0||!petPack(c))return null;const units=petLoad(c);return {units,capacity:c.packCargo.capacity,tier:units===0?0:units<=3?1:2};}
+// Coordinates belong to the quadruped torso after its gait/reach transform.
+export function paintPetCargo(c,model){if(!model)return;c.fillStyle='#765c3e';c.fillRect(-10,-22,3,13);c.fillRect(2,-22,3,13);c.fillStyle='#c7ae75';c.fillRect(-11,-22,17,2);if(!model.tier){c.fillStyle='#8d7654';c.fillRect(-8,-23,11,3);return;}const sack=(x,w)=>{c.fillStyle='#443e32';c.fillRect(x-1,-25,w+2,16);c.fillStyle='#957552';c.fillRect(x,-24,w,13);c.fillStyle='#b29a68';c.fillRect(x,-24,w,4);c.fillStyle='#d9c38c';c.fillRect(x+Math.floor(w/2),-20,2,4);};sack(-13,model.tier===1?10:9);if(model.tier===2)sack(-2,9);}
