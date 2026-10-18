@@ -7,6 +7,8 @@ import {combatOptions} from './combat-judgment.js';
 import {questReady} from './quests.js';
 import {partyDemand} from './party-needs.js';
 import {deliverSafetyAdvice,DANGER_CONTACT_TICKS} from './danger-contact.js';
+import {innerAssistance,innerAssistanceAwake,rememberInnerAssistance} from './inner-assistance.js';
+import {localContact} from './npc-contacts.js';
 export const INTENTION_POLICY={sight:30,hearing:9,history:12,window:48};
 const distance=(s,a,b)=>Math.abs(a-b)*areaScale(s.areas[s.hero.area]);
 const contactId=(p,c)=>`${p.id}/${c.enemy}/${c.area}/${c.since}`;
@@ -28,8 +30,9 @@ export function visibleAssaults(s){
  const h=s.hero;if(h.transit)return [];
  return Object.values(s.people).filter(p=>p.id!==h.lineage&&p.alive&&localPerson(s,p)).flatMap(p=>{
   const c=p.dangerContact;if(!c||c.area!==h.area||s.tick-c.tick>DANGER_CONTACT_TICKS||s.tick<c.tick)return [];
+  if(innerAssistanceAwake(s)&&(!h.memory.people.includes(p.id)||c.tick!==s.tick||!localContact(s,p.id,h.area)))return [];
   const enemy=s.areas[h.area].objects.find(e=>e.kind==='enemy'&&e.id===c.enemy&&e.alive&&!e.resolved);
-  if(!enemy||distance(s,enemy.x,h.x)>INTENTION_POLICY.sight||distance(s,enemy.x,p.x)>16)return [];
+  if(!enemy||enemy.hidden||distance(s,enemy.x,h.x)>INTENTION_POLICY.sight||distance(s,enemy.x,p.x)>16)return [];
   const wound=p.health<(p.maxHealth||100)*.35?'critical':p.health<(p.maxHealth||100)*.8?'wounded':'holding';
   // A guard just recruited by this hero is already responding to the same
   // danger. Do not immediately interrupt that agreement with another warning.
@@ -45,6 +48,8 @@ function availableGuards(s,victim){
 export function assessAssistance(s,event){
  const h=s.hero,p=s.people[event.person],enemy=s.areas[h.area].objects.find(e=>e.id===event.enemy),affairs=knownAffairs(s),trust=h.relations[p.id]?.trust||0;
  const care=h.personality.generosity+Math.max(-.3,Math.min(.3,trust/100))+(h.alignment>30?.1:h.alignment< -30?-.2:0);
+ const selfNeed=affairs.some(a=>a.domain==='need'&&a.urgency>=100),urgent=affairs.some(a=>a.domain==='quest'&&a.urgency>=78)&&event.wound!=='critical',patient=affairs.some(a=>a.domain==='aid'&&a.urgency>=98)&&event.wound!=='critical';
+ const inner=innerAssistance(s,event,{care,guards:availableGuards(s,p.id).filter(p=>h.memory.people.includes(p.id)),windup:enabled(s,'tactics')&&enemy.battle?.intent==='strike',blocked:selfNeed?'Собственное состояние не позволяет вмешаться.':urgent?'У собственного обещания почти не осталось времени.':patient?'Рядом уже ждёт помощи тяжелораненый человек.':null});if(inner)return inner;
  if(care<.3)return {method:'leave',reason:'Не готов вмешиваться в чужой бой. У него остаются собственные дела.'};
  const selfCare=affairs.some(a=>a.domain==='need'&&a.urgency>=100);
  const warning=enabled(s,'orders')&&s.society.orders.some(o=>o.person===p.id&&o.enemy===enemy.id&&o.stage==='fighting');
@@ -91,7 +96,8 @@ function resume(s,ctx){
 }
 function start(s,event,assessment,ctx){
  const h=s.hero,state=ensure(h),p=s.people[event.person];
- const episode={...event,method:assessment.method,guard:assessment.guard||null,started:s.tick,status:'active',reason:assessment.reason};
+ rememberInnerAssistance(s,assessment);
+ const episode={...event,method:assessment.method,guard:assessment.guard||null,started:s.tick,status:'active',reason:assessment.reason,...(assessment.inner?{inner:true}:{} )};
  if(assessment.method==='leave'){episode.status='declined';episode.ended=s.tick;remember(h,episode);ctx.log(s,`${h.name} замечает опасность рядом с ${p.name}. ${assessment.reason}`,'choice');return;}
  if(!state.suspended&&h.goal)state.suspended={action:h.goal,intent:h.intent,reason:h.reason};
  state.current=episode;
@@ -128,8 +134,9 @@ export function assistanceAction(s,ctx){
  if(e.method==='warn'){
   const sent=deliverSafetyAdvice(s,person,enemy,h.lineage);ctx.log(s,sent?`${h.name}: «${person.name}, отойди от опасности!» Он предупреждает; решение и следующий шаг остаются за самим человеком.`:`${person.name} уже услышал предупреждение. Повтор не даёт ему второго действия.`,'talk');stop(s,'warning-delivered','Предупреждение передано, исход ещё не известен.');return true;
  }
- const eligible=availableGuards(s,e.person).some(p=>p.id===person.id),attack=guardAttack(person),duty=person.agenda?.duty??.5,burden=Math.ceil(enemy.hp/Math.max(1,attack))*(enemy.attack+2);
- if(!eligible||burden>person.health*(.7+duty)&&duty<.85){ctx.log(s,`${person.name} не берётся за бой: ${!eligible?'уже занят или не готов.':'считает риск чрезмерным.'}`,'talk');stop(s,'guard-declined','Страж не согласился.');return true;}
+ const eligible=availableGuards(s,e.person).some(p=>p.id===person.id),attack=guardAttack(person),duty=person.agenda?.duty??.5;
+ const refused=e.inner?(person.health<(person.maxHealth||100)*.8||(person.needs?.energy??100)<45||enabled(s,'tactics')&&enemy.battle?.intent==='strike'&&duty<.85):Math.ceil(enemy.hp/Math.max(1,attack))*(enemy.attack+2)>person.health*(.7+duty)&&duty<.85;
+ if(!eligible||refused){ctx.log(s,`${person.name} не берётся за бой: ${!eligible?'уже занят или не готов.':'считает риск чрезмерным.'}`,'talk');stop(s,'guard-declined','Страж не согласился.');return true;}
  person.attack=attack;person.status='guarding';
  // The interaction assigns an existing person; preserve its current actionControl.
  // If it already acted, orders cannot claim another action until the next tick.
