@@ -1,3 +1,4 @@
+import {freightKeeperTurn,releaseDeadFreightCustody} from './freight-custody.js';
 import {merchantEnabled} from './merchant-policy.js';
 import {areaScale,areaStep} from '../geometry.js';
 import {npcMoneyCachePlan,takeBuriedMoney} from './money-caches.js';
@@ -214,7 +215,7 @@ function finish(s,p,ctx){
 export function peopleTick(s,ctx){
   if(!enabled(s,'people')||s.tick%8!==0)return;
   for(const p of Object.values(s.people)){
-    releaseLooseItems(s,p);
+    releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
@@ -233,6 +234,7 @@ export function peopleTick(s,ctx){
     observeMentors(s,p);
     observeFreightActor(s,p,p.area,true);
     if(personNeeds(s,p,ctx))continue;
+    if(freightKeeperTurn(s,p))continue;
     if(npcInteriorStay(s,p))continue;
     if(brothTeacherTurn(s,p))continue;
     if(toolTeacherTurn(s,p))continue;
