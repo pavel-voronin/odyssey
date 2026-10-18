@@ -1,10 +1,11 @@
+import {prepareActiveWatch} from './fixtures/active-watch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createWorld,step,serialize,restore} from '../engine.js';
 import {ActorTracks,markActorDeath,visibleRemains,REMAINS_TICKS,companionKey} from '../actor-facts.js';
 import {quadrupedPose,creatureActionPose} from '../motion.js';
 import {partyHurt} from '../modules/social.js';
-import {sendGuards} from '../modules/orders.js';
+
 import {setModule} from '../rules.js';
 function battle(shape='wolf',magic=false){const s=createWorld(12),h=s.hero,a=s.areas[h.area];
  for(const id of ['stories','tactics','body','enemies','elements','enchantments','mutations'])setModule(s,id,false);
@@ -38,7 +39,7 @@ test('a companion death attaches its one final form to the already existing memo
 test('a real guard kill records the same enemy death without granting the hero a kill',()=>{
  const s=createWorld(4),a=s.areas.a1,e=s.areas.a2.objects.find(o=>o.kind==='enemy');e.shape='wolf';e.hp=1;
  setModule(s,'tactics',false);setModule(s,'elements',false);setModule(s,'mutations',false);
- assert.ok(sendGuards(s,a,{enemy:e.id,area:'a2'},{route:()=>['a1','a2'],log:()=>{}}));
+ assert.ok(prepareActiveWatch(s,a,{enemy:e.id,area:'a2'},{route:()=>['a1','a2'],log:()=>{}}));
  const kills=s.hero.kills;for(let i=0;i<20&&e.alive;i++)step(s);
  assert.equal(e.alive,false);assert.equal(e.deathView.shape,'wolf');assert.equal(s.hero.kills,kills);assert.equal(e.defeatedBy,s.society.orders[0].person);
 });

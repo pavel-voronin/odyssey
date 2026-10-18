@@ -1,3 +1,4 @@
+import {prepareActiveWatch} from './fixtures/active-watch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -10,7 +11,7 @@ import {partyHurt} from '../modules/social.js';
 import {deathFixture} from '../scripts/death-record-scenarios.mjs';
 import {meaningFixture} from '../scripts/event-meaning-scenarios.mjs';
 import {partyCare} from '../modules/party-needs.js';
-import {sendGuards,ordersTick} from '../modules/orders.js';
+import {ordersTick} from '../modules/orders.js';
 import {receiveItem,recoverHeirloom} from '../modules/inventory.js';
 import {recordSilhouette} from '../silhouette.js';
 import {paintPet} from '../pet-shapes.js';
@@ -126,7 +127,7 @@ test('each supported pet corpse keeps its horizontal silhouette on the floor ins
 test('a guard killed by a real reply leaves his own body at his actual coordinate without a hero death or reward',()=>{
   const {s,enemy}=meaningFixture();setModule(s,'orders',true);setModule(s,'remains',true);
   const source=s.areas.a1,target=s.areas[s.hero.area],ctx={route:()=>[source.id,target.id],log:()=>{}};
-  assert.equal(sendGuards(s,source,{enemy:enemy.id,area:target.id},ctx),true);
+  assert.equal(prepareActiveWatch(s,source,{enemy:enemy.id,area:target.id},ctx),true);
   const order=s.society.orders.at(-1),p=s.people[order.person];order.stage='fighting';p.area=target.id;p.x=37;p.status='guarding';p.health=1;
   enemy.hp=enemy.maxHp=10000;enemy.attack=1000;const gold=s.hero.gold,kills=s.hero.kills;
   ordersTick(s,ctx);assert.equal(p.alive,false);const b=bodyRemains(s,p);

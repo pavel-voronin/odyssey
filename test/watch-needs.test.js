@@ -1,10 +1,11 @@
+import {prepareActiveWatch} from './fixtures/active-watch.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createWorld,step,serialize,restore,route} from '../engine.js';import {setModule} from '../rules.js';
-import {sendGuards,ordersTick} from '../modules/orders.js';import {watchNeeds,provisionWatch} from '../modules/watch-needs.js';
+import {ordersTick} from '../modules/orders.js';import {watchNeeds,provisionWatch} from '../modules/watch-needs.js';
 import {personNeeds} from '../modules/needs.js';import {knownWorldEvent,civicObservation} from '../modules/background-towns.js';import {localContact} from '../modules/npc-contacts.js';
 const logs=[];const ctx={route,log:(s,text)=>logs.push({tick:s.tick,text}),npcVictory:(s,a,e,p)=>{e.alive=false;e.hp=0;e.defeatedBy=p.id;}};
 function setup(){let s=createWorld(4);for(const id of ['elements','tactics','mutations','enemies'])setModule(s,id,false);s.areas.a1.civic.food=80;s.areas.a1.civic.medicine=50;s.hero.area='a0';s.hero.transit=null;s.hero.combat=null;s.society.nextEvent=100000;s.logistics.nextDispatch=100000;logs.length=0;
- const enemy=s.areas.a2.objects.find(o=>o.kind==='enemy');enemy.hp=enemy.maxHp=100;enemy.attack=3;assert.ok(sendGuards(s,s.areas.a1,{enemy:enemy.id,area:'a2'},ctx));
+ const enemy=s.areas.a2.objects.find(o=>o.kind==='enemy');enemy.hp=enemy.maxHp=100;enemy.attack=3;assert.ok(prepareActiveWatch(s,s.areas.a1,{enemy:enemy.id,area:'a2'},ctx));
  const order=s.society.orders[0];return{s,order,p:s.people[order.person],enemy,source:s.areas.a1};}
 function tick(s){s.tick++;ordersTick(s,ctx);}
 function arrive(s,order){while(order.stage==='marching'&&s.tick<100)tick(s);assert.equal(order.stage,'fighting');}

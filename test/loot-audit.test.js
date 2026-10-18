@@ -1,8 +1,9 @@
+import {prepareActiveWatch} from './fixtures/active-watch.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {step,restore,serialize,route,log} from '../engine.js';
 import {lootVictoryFixture,lootPickupFixture,lootFloorFixture} from '../scripts/loot-scenarios.mjs';
 import {LootRecorder} from '../scripts/loot-model.mjs';
-import {sendGuards} from '../modules/orders.js';
+
 import {setModule} from '../rules.js';
 import {syncActiveActor} from '../actor-projection.js';
 function advance(s,r){const b=r.before(s);step(s);r.after(s,b);return r.finish(s);}
@@ -34,7 +35,7 @@ test('a cleared floor gives its finite item but its own completion messages repl
 });
 test('an actual engine-driven guard victory is counted separately and never becomes a hero item or kill',()=>{
  const {s,h,enemy}=lootVictoryFixture(),source=s.areas.a1;h.area=source.id;h.x=68;h.combat=null;h.goal={kind:'routeWait',area:source.id,x:68,until:100000};setModule(s,'orders',true);syncActiveActor(s);
- assert.equal(sendGuards(s,source,{enemy:enemy.id,area:'a2'},{route,log}),true);const id=s.society.orders[0].person,r=new LootRecorder(s),next=h.nextItem;
+ assert.equal(prepareActiveWatch(s,source,{enemy:enemy.id,area:'a2'},{route,log}),true);const id=s.society.orders[0].person,r=new LootRecorder(s),next=h.nextItem;
  for(let i=0;i<30;i++){const b=r.before(s);step(s);r.after(s,b);}const out=r.finish(s);
  assert.equal(enemy.alive,false);assert.equal(enemy.defeatedBy,id);assert.deepEqual(out.npcDefeats,[enemy.id]);assert.equal(out.summary.heroVictories,0);assert.equal(out.summary.receipts,0);assert.equal(h.nextItem,next);
 });

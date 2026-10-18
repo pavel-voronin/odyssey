@@ -1,3 +1,4 @@
+import {prepareActiveWatch} from './fixtures/active-watch.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {areaScale,physicalDistance,areaOffset,areaStep} from '../geometry.js';
 import {createWorld,step,serialize,restore,route} from '../engine.js';
@@ -10,7 +11,7 @@ import {observeFreightActor} from '../modules/freight-memory.js';
 import {launchConvoy} from '../modules/supply.js';
 import {advanceFreight} from '../modules/freight.js';
 import {startPublicJourney,publicDestinations,advancePublicJourney} from '../modules/public-journeys.js';
-import {sendGuards,ordersTick} from '../modules/orders.js';
+import {ordersTick} from '../modules/orders.js';
 import {createClock,catchUp} from '../clock.js';
 const ctx={route,log(){},gainXp(){}};
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
@@ -81,7 +82,7 @@ test('an offline batch and a save in the middle execute the same long-road prefi
 test('the legacy guard travel abstraction charges the same weighted length on its outward and return budgets',()=>{
   const rows=[];for(const length of [100,260]){
     const s=createWorld(1),source=s.areas.a1,target=s.areas.a2,enemy=target.objects.find(o=>o.kind==='enemy');target.length=length;enemy.alive=false;setModule(s,'npc-watch-needs',false);
-    assert.equal(sendGuards(s,source,{area:target.id,enemy:enemy.id},ctx),true);const order=s.society.orders.at(-1);const out=order.remaining;
+    assert.equal(prepareActiveWatch(s,source,{area:target.id,enemy:enemy.id},ctx),true);const order=s.society.orders.at(-1);const out=order.remaining;
     while(order.stage==='marching'){s.tick++;ordersTick(s,ctx);}assert.equal(order.stage,'returning');const back=order.remaining;
     while(s.society.orders.includes(order)&&s.tick<200){s.tick++;ordersTick(s,ctx);}assert.equal(s.people[order.person].area,source.id);rows.push({out,back});
   }

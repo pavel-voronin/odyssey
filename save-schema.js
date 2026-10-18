@@ -1,3 +1,4 @@
+import {validateCommissions} from './modules/commission-schema.js';
 import {validateBranchPacts} from './modules/branch-pact-schema.js';
 import {validateFeasts} from './modules/feast-schema.js';
 import {validateMigrationKnowledge} from './modules/migration-knowledge-schema.js';
@@ -146,6 +147,7 @@ export function validateSave(s){
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
+ validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);
  validateMigrationKnowledge(s,fail);

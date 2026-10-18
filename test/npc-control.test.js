@@ -1,10 +1,11 @@
+import {prepareActiveWatch} from './fixtures/active-watch.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createWorld,route,restore,serialize} from '../engine.js';
 import {npcController,npcAction,canStartNPCActivity} from '../modules/npc-control.js';
 import {peopleTick,peopleArea} from '../modules/people.js';
 import {civicArea,societyTick} from '../modules/society.js';
 import {launchConvoy,supplyTick} from '../modules/supply.js';
-import {sendGuards,ordersTick} from '../modules/orders.js';
+import {ordersTick} from '../modules/orders.js';
 import {socialTick,recruitPerson} from '../modules/social.js';
 import {partyTick} from '../modules/party.js';
 import {observeFreightActor} from '../modules/freight-memory.js';
@@ -44,7 +45,7 @@ test('a legacy carrier arriving before the personal hook cannot also earn wages 
  s.tick=16;peopleTick(s,ctx);assert.equal(p.actionControl.owner,'personal');assert.ok(p.needs.energy<100);
 });
 test('a guard and a cargo cannot advance the same person, and completion does not grant the lower role a second turn',()=>{
- const {s,a,to}=setup(),enemy=s.areas.a2.objects.find(e=>e.kind==='enemy');sendGuards(s,a,{enemy:enemy.id,area:'a2'},ctx);const order=s.society.orders[0],p=s.people[order.person],c=legacyCargo(s,a,to);c.person=p.id;
+ const {s,a,to}=setup(),enemy=s.areas.a2.objects.find(e=>e.kind==='enemy');prepareActiveWatch(s,a,{enemy:enemy.id,area:'a2'},ctx);const order=s.society.orders[0],p=s.people[order.person],c=legacyCargo(s,a,to);c.person=p.id;
  s.tick=1;const remaining=c.remaining;supplyTick(s,ctx);assert.equal(c.remaining,remaining);const march=order.remaining;ordersTick(s,ctx);assert.equal(order.remaining,march-1);ordersTick(s,ctx);assert.equal(order.remaining,march-1);assert.equal(p.actionControl.owner,'orders');
  order.stage='returning';order.remaining=1;s.tick=2;ordersTick(s,ctx);assert.equal(s.society.orders.length,0);supplyTick(s,ctx);assert.equal(c.remaining,remaining);assert.equal(s.logistics.convoys.length,1);
  s.tick=3;supplyTick(s,ctx);assert.equal(c.remaining,remaining-1);assert.equal(p.status,'caravan');assert.equal(a.population.includes(p.id),false);

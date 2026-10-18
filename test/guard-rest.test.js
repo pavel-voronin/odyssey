@@ -1,8 +1,9 @@
+import {prepareActiveWatch} from './fixtures/active-watch.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createWorld,serialize,restore,route} from '../engine.js';
 import {MODULES,setModule} from '../rules.js';
-import {sendGuards,ordersTick} from '../modules/orders.js';
+import {ordersTick} from '../modules/orders.js';
 import {npcAction,canStartNPCActivity} from '../modules/npc-control.js';
 import {peopleTick} from '../modules/people.js';
 
@@ -10,7 +11,7 @@ const ctx={route,log:()=>{},npcVictory:(_s,_a,e)=>{e.alive=false;e.resolved=true
 function fixture({relief=false}={}){
  const s=createWorld(4);for(const m of MODULES)setModule(s,m.id,['orders','people','npc-watch-needs','npc-needs','npc-control','supply'].includes(m.id));
  const source=s.areas.a1,e=s.areas.a2.objects.find(o=>o.kind==='enemy');e.hp=e.maxHp=500;e.attack=1;e.x=45;
- sendGuards(s,source,{enemy:e.id,area:'a2'},ctx);const o=s.society.orders[0],p=s.people[o.person];
+ prepareActiveWatch(s,source,{enemy:e.id,area:'a2'},ctx);const o=s.society.orders[0],p=s.people[o.person];
  o.stage='fighting';p.area=o.to;p.x=40;p.status='guarding';p.health=p.maxHealth=100;p.needs.energy=100;p.needs.hunger=10;p.needs.sleeping=false;p.agenda.duty=.5;
  const q=Object.values(s.people).find(q=>q.id!==p.id&&q.agenda?.job==='guard'&&q.status==='resident');assert.ok(q);
  if(relief){q.area=p.area;q.x=42;q.health=q.maxHealth||100;q.needs.energy=100;q.needs.hunger=10;q.needs.sleeping=false;q.agenda.task=null;q.agenda.duty=.8;p.agenda.bonds[q.id]=1;}
