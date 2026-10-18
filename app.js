@@ -86,7 +86,7 @@ import {formatDurations} from './text.js';
 import {semanticEvent,semanticCause,lootBrief} from './event-text.js';
 import {lootNotice,lootNoticeText,lootEventKey} from './loot-notice.js';
 import {deathSheet} from './death-sheet.js';
-import {runLifeBatch,lifeFinished,advanceLife} from './playback.js';
+import {createYearRun,runWorldBatch,lifeFinished,advanceLife} from './playback.js';
 import {beginGesture,moveGesture,isTap} from './gestures.js';
 import {bindFreshAction,bindFreshChoice} from './fresh-action.js';
 import {rememberObservers,observerChoices,observerRequest,commitObserverRequest} from './observer-choice.js';
@@ -362,8 +362,8 @@ function render(automatic=false,batching=false) {
   if(automatic&&$('sheet').open){const care=$('detail-panel').querySelector('.pet-passage-live');if(care)care.outerHTML=petPassageHTML(state,escape);const keeper=$('detail-panel').querySelector('.pet-keeper-live');if(keeper)keeper.outerHTML=petKeeperHTML(state,state.people[h.lineage],escape);}
   if(automatic&&$('sheet').open&&tab==='bag'){const petPack=$('detail-panel').querySelector('.pack-pet-live');if(petPack)petPack.outerHTML=packPetHTML(state,escape);const clothes=$('detail-panel').querySelector('.clothing-live');if(clothes)clothes.outerHTML=clothingHTML(state,escape);const memory=$('detail-panel').querySelector('.navigation-memory-live');if(memory)memory.outerHTML=navigationMemoryHTML(state,escape);const rope=$('detail-panel').querySelector('.navigation-tool-live');if(rope)rope.outerHTML=navigationToolHTML(state,escape);const wardrobe=$('detail-panel').querySelector('.spare-outfit-live');if(wardrobe)wardrobe.outerHTML=spareOutfitHTML(state,escape);const pack=$('detail-panel').querySelector('.pack-live');if(pack)pack.outerHTML=containerHTML(state);const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
   $('scene').setAttribute('aria-label', `${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
-  $('run-life').textContent=fastRun?'Остановить прогон':lifeFinished(state)?'Итоги этой жизни':'Прожить жизнь до конца';
-  document.querySelector('.tap-hint').textContent=fastRun?'Прогон · клик — стоп':lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с';
+  $('run-life').textContent=fastRun?'Остановить прогон':'Прожить год';
+  document.querySelector('.tap-hint').textContent=fastRun?`Год: ${state.tick-fastRun.startTick} / 19 200 · клик — стоп`:lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с';
 }
 function persist() {
   try { localStorage.setItem(SAVE_KEY, serialize(state)); localStorage.setItem(SAVE_KEY+'-clock',JSON.stringify(clockRecord(state,clock))); saveProblem = ''; }
@@ -496,12 +496,13 @@ function stopFast(){fastRun=null;resetClock();persist();render();}
 function fastLifeFrame(run=fastRun){
   if(!run||run!==fastRun)return;
   if($('sheet').open||$('settings-dialog').open||$('reset-dialog').open||$('observer-dialog').open){setTimeout(()=>fastLifeFrame(run),100);return;}
-  const started=performance.now(),result=runLifeBatch(state,250,()=>performance.now()-started>=20);fastRun.steps+=result.ticks;clock.anchor=Date.now();persist();render();
-  if(result.finished){showLifeSummary();return;}setTimeout(()=>fastLifeFrame(run),0);
+  const result=runWorldBatch(state,run);clock.anchor=Date.now();
+  if(result.finished||result.interrupted){fastRun=null;persist();render();if(lifeFinished(state)&&state.observation.lastSummary!==summaryKey())showLifeSummary();return;}
+  persist();render();setTimeout(()=>fastLifeFrame(run),0);
 }
 $('run-life').addEventListener('click',()=>{
-  $('settings-dialog').close();if(fastRun){stopFast();return;}if(!state.hero.alive||state.hero.life.ended){showLifeSummary();return;}
-  lifeReview=false;resetClock();fastRun={steps:0};render();fastLifeFrame();
+  $('settings-dialog').close();if(fastRun){stopFast();return;}
+  $('life-summary').close();lifeReview=false;resetClock();fastRun=createYearRun(state);render();fastLifeFrame();
 });
 $('sound').addEventListener('click', () => { soundEnabled = !soundEnabled; $('sound').classList.toggle('enabled', soundEnabled); $('sound').textContent = soundEnabled ? 'Звук: вкл.' : 'Звук: выкл.'; $('sound').setAttribute('aria-label', soundEnabled ? 'Выключить звук' : 'Включить звук'); $('sound').setAttribute('aria-pressed', String(soundEnabled)); chime(); });
 $('reset').addEventListener('click', () => { $('settings-dialog').close(); $('reset-dialog').showModal(); });
