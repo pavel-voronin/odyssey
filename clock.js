@@ -1,12 +1,12 @@
 // Wall time is an input adapter. The simulation itself remains one deterministic step.
 import {runTickBatch} from './tick-batch.js';
-export function createClock(anchor = Date.now(), idleUntil = 0,stopped=false) {
-  return { anchor: Number.isFinite(anchor) ? anchor : Date.now(), idleUntil:Number.isFinite(idleUntil)?idleUntil:0,stopped:Boolean(stopped) };
+export function createClock(anchor = Date.now(), idleUntil = 0,stopped=false,yearRun) {
+  return { anchor: Number.isFinite(anchor) ? anchor : Date.now(), idleUntil:Number.isFinite(idleUntil)?idleUntil:0,stopped:Boolean(stopped),...(yearRun?{yearRun:{...yearRun}}:{}) };
 }
 export function resumeClock(clock){clock.stopped=false;}
 export function registerInput(clock,now){if(clock.stopped)return false;clock.anchor=now;clock.idleUntil=now+5000;return true;}
 export function stopClock(clock,now){clock.stopped=true;clock.anchor=now;clock.idleUntil=0;}
-export function restartClock(clock,now){clock.stopped=false;registerInput(clock,now);}
+export function restartClock(clock,now){clock.stopped=false;delete clock.yearRun;registerInput(clock,now);}
 export function hasDue(clock,now){return !clock.stopped&&now>=(clock.idleUntil||clock.anchor+1000);}
 export function catchUp(clock, now, advance, limit = 250, shouldYield=()=>false,finished=()=>false) {
   if(clock.stopped)return 0;

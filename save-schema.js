@@ -31,8 +31,9 @@ import {RACES,ENEMY_SPECIES} from './content.js';
 export const SAVE_VERSION=2;
 export const SAVE_SCHEMA='click-odyssey/144';
 export const SAVE_KEY='click-odyssey-144';
-export function clockRecord(state,clock){return {schema:SAVE_SCHEMA,seed:state.seed,anchor:clock.anchor,idleUntil:clock.idleUntil,stopped:clock.stopped};}
-export function currentClock(record,state){return object(record)&&record.schema===SAVE_SCHEMA&&record.seed===state.seed&&Number.isFinite(record.anchor)&&Number.isFinite(record.idleUntil)&&record.idleUntil>=0&&record.stopped===false?record:null;}
+export function clockRecord(state,clock){return {schema:SAVE_SCHEMA,seed:state.seed,anchor:clock.anchor,idleUntil:clock.idleUntil,stopped:clock.stopped,...(clock.yearRun?{yearRun:{...clock.yearRun}}:{})};}
+function validYearClock(r,s){return object(r)&&Boolean(s.people[r.person])&&Number.isSafeInteger(r.sequence)&&r.sequence>=0&&['startTick','endTick','atTick','committed','remaining'].every(k=>Number.isSafeInteger(r[k])&&r[k]>=0)&&r.endTick-r.startTick===19200&&r.atTick===r.startTick+r.committed&&r.atTick<=s.tick&&r.remaining===19200-r.committed&&['paused','cancelled','done'].includes(r.status)&&(r.status!=='done'||r.remaining===0);}
+export function currentClock(record,state){return object(record)&&record.schema===SAVE_SCHEMA&&record.seed===state.seed&&Number.isFinite(record.anchor)&&Number.isFinite(record.idleUntil)&&record.idleUntil>=0&&record.stopped===false&&(record.yearRun===undefined||validYearClock(record.yearRun,state))?record:null;}
 export function currentTutorial(t){return object(t)&&Number.isInteger(t.stage)&&t.stage>=0&&t.stage<=4&&Number.isFinite(t.until)&&typeof t.done==='boolean'?t:null;}
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const own=(v,k)=>Object.hasOwn(v,k);

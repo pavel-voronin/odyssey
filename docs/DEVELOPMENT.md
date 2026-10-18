@@ -2446,3 +2446,16 @@ PARTIAL7/7 exit0,626мс, artifacts/checks/8b00c62350b01035.log; revisione3bf8fb
 Pages212: Actions39169577174 success, HTML HTTP200/build0acef62; commit07eab1a3ad8f45018349d298533ad505889cc3ed.
 
 Опубликовано https://odyssey.kolpaque.dev:e3bf8fb350e113c7;430 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.
+
+<a id="stage-214"></a>
+## Этап214 · U-04.2 · отмена и единственные часы
+
+Один run-ID/объект мира/observation person+sequence/lastTick владеет ускорением. Committed обновляется после целого engine.step; отмена/чужой prefix/старый callback не применяются снова. Остаток только от подтверждённого run.lastTick. Тап/пробел для отмены не даёт ручного тика; пока run активен, обычный drain/auto/hold не двигают мир. Смена наблюдения/импорт/reset сначала закрывают run.
+
+Время вычисления сдвигает anchor/idleUntil на свой elapsed; прежний офлайн-долг и остаток ручной паузы сохраняются. При записи clock.yearRun содержит строгий actual prefix/committed/remaining/status, но не исполняемый run. Загрузка показывает остаток и продолжает обычные часы, не ускорение. Повтор кнопки начинает новый полный19200-тик интервал. Текущая schema144 и отсутствующие текущие формы сохранены, без миграций.
+
+Код playback/year-clock/clock/save-schema/app; test/year-controls; дополнен существующий scripts/render-year-playback --controls; CONTRACT U-04.2. PARTIAL6/6 exit0,632мс, artifacts/checks/959ffeecb101ca8e.log, revisionacff01d58a25be01.5малых групп: техническая отмена до/в атомарном stub/на19200, реальный8step death prefix и4старые офлайн-секунды/replay/load, сохранённая ручная пауза/строгий currentClock/идемпотентное закрытие, runtime-ID/sequence/чужой tick+world/новый полный интервал, явная смена настоящего NPC без тика. Предыдущие6именованных year-playback случаев passed после изменения run/clock. Браузер:13настоящих шагов всего, Space cancel без ручного тика, stale callbacks,4старые секунды, настоящий reload без auto-resume, double-click запуска/отмены следующего полного года, настоящий File import и undo; overflow0, изображение осмотрено. Одна выбранная desktop Edge проба с реальными часами локального сервера (HTTP overhead включён): принятие synthetic UI1.62мс, подтверждение после принятия4.34мс, отдельный serialize1.86мс/79459символов сохранения. Это не p95/телефон/гарантия самого дорогого будущего шага: single-thread принимает событие после синхронного пакета, неделимый шаг не прерывается. Профиль ordinary/periodic движка213 переиспользован, игровая симуляция не менялась. Build/короткий smoke пройдены; full/SOAK/длинные жизни/полная комбинаторика не запускались.
+
+Pages213: Actions39170204973 success, HTML HTTP200/builde3bf8fb; commitddaee873dd18bcec2748a81b06e189f20dd2ef06.
+
+Опубликовано https://odyssey.kolpaque.dev:acff01d58a25be01;431 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.

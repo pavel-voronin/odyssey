@@ -86,7 +86,8 @@ import {formatDurations} from './text.js';
 import {semanticEvent,semanticCause,lootBrief} from './event-text.js';
 import {lootNotice,lootNoticeText,lootEventKey} from './loot-notice.js';
 import {deathSheet} from './death-sheet.js';
-import {createYearRun,runWorldBatch,lifeFinished,advanceLife} from './playback.js';
+import {runWorldBatch,requestYearCancel,lifeFinished,advanceLife} from './playback.js';
+import {beginYearRun,updateYearClock,endYearRun} from './year-clock.js';
 import {beginGesture,moveGesture,isTap} from './gestures.js';
 import {bindFreshAction,bindFreshChoice} from './fresh-action.js';
 import {rememberObservers,observerChoices,observerRequest,commitObserverRequest} from './observer-choice.js';
@@ -106,10 +107,10 @@ try { const saved = localStorage.getItem(SAVE_KEY);firstVisit=!saved; state = sa
 catch { state = createWorld();firstVisit=true;saveProblem = 'Сохранение повреждено или имеет другой формат. Открыт новый мир.'; }
 let savedClock;
 try { if(!firstVisit)savedClock=currentClock(JSON.parse(localStorage.getItem(SAVE_KEY+'-clock')),state); } catch {}
-const clock = createClock(savedClock?.anchor,savedClock?.idleUntil,savedClock?.stopped);
+const clock = createClock(savedClock?.anchor,savedClock?.idleUntil,savedClock?.stopped,savedClock?.yearRun);
 if(!savedClock)restartClock(clock,Date.now());
 const pendingInputs=[];
-let fastRun=null,lifeReview=false,logLife=null,pendingNextStory=null;
+let fastRun=null,fastNotice=clock.yearRun&&clock.yearRun.person===state.observation.person?(clock.yearRun.remaining?`Прогон остановлен · осталось ${clock.yearRun.remaining.toLocaleString('ru-RU')} тиков`:'Год прожит'):'',lifeReview=false,logLife=null,pendingNextStory=null;
 const speechMemory=createSpeech();
 let effectIdentity='';
 function renderEffects(){
@@ -363,9 +364,10 @@ function render(automatic=false,batching=false) {
   if(automatic&&$('sheet').open&&tab==='bag'){const petPack=$('detail-panel').querySelector('.pack-pet-live');if(petPack)petPack.outerHTML=packPetHTML(state,escape);const clothes=$('detail-panel').querySelector('.clothing-live');if(clothes)clothes.outerHTML=clothingHTML(state,escape);const memory=$('detail-panel').querySelector('.navigation-memory-live');if(memory)memory.outerHTML=navigationMemoryHTML(state,escape);const rope=$('detail-panel').querySelector('.navigation-tool-live');if(rope)rope.outerHTML=navigationToolHTML(state,escape);const wardrobe=$('detail-panel').querySelector('.spare-outfit-live');if(wardrobe)wardrobe.outerHTML=spareOutfitHTML(state,escape);const pack=$('detail-panel').querySelector('.pack-live');if(pack)pack.outerHTML=containerHTML(state);const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
   $('scene').setAttribute('aria-label', `${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
   $('run-life').textContent=fastRun?'Остановить прогон':'Прожить год';
-  document.querySelector('.tap-hint').textContent=fastRun?`Год: ${state.tick-fastRun.startTick} / 19 200 · клик — стоп`:lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с';
+  document.querySelector('.tap-hint').textContent=fastRun?`Год: ${fastRun.committed} / 19 200 · клик — стоп`:fastNotice||(lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с');
 }
 function persist() {
+  if(fastRun)updateYearClock(clock,fastRun,Date.now());
   try { localStorage.setItem(SAVE_KEY, serialize(state)); localStorage.setItem(SAVE_KEY+'-clock',JSON.stringify(clockRecord(state,clock))); saveProblem = ''; }
   catch { saveProblem = 'Не удалось сохранить в браузере. Скачай полное сохранение через меню перед закрытием.'; }
 }
@@ -380,7 +382,7 @@ function chime() {
     oscillator.connect(gain).connect(audioContext.destination); oscillator.start(t); oscillator.stop(t + .16);
   } catch { soundEnabled = false; $('sound').classList.remove('enabled'); }
 }
-function advance() { if(pendingNextStory)return;if ($('sheet').open || $('settings-dialog').open || $('reset-dialog').open||$('life-summary').open||$('observer-dialog').open) return;if(fastRun)stopFast();teach();pendingInputs.push(Date.now());drainTime(); }
+function advance() { if(pendingNextStory)return;if ($('sheet').open || $('settings-dialog').open || $('reset-dialog').open||$('life-summary').open||$('observer-dialog').open) return;if(fastRun){stopFast();return;}fastNotice='';teach();pendingInputs.push(Date.now());drainTime(); }
 function releaseHold(){clearInterval(holding);clearTimeout(holdStart);holding=null;gesture=null;}
 const frameResize=new ResizeObserver(()=>{releaseHold();cancelSuccession();fitGold();fitCaptions();renderEffects();});frameResize.observe($('game-shell'));
 window.visualViewport?.addEventListener('resize',()=>{releaseHold();cancelSuccession();});
@@ -426,13 +428,13 @@ $('load-file').addEventListener('change',async e=>{
   try{
     if(file.size>20*1024*1024)throw new Error('Сохранение слишком большое');
     const next=restore(await file.text());
-    localStorage.setItem(SAVE_KEY+'-before-import',serialize(state));fastRun=null;lifeReview=false;state=next;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=false;
+    localStorage.setItem(SAVE_KEY+'-before-import',serialize(state));releaseFast();fastNotice='';lifeReview=false;state=next;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=false;
     $('save-status').textContent=state.hero.actorMode==='npc'?`Загружен житель мира: ${state.hero.name}. Мир ${state.seed}. Предыдущее сохранение можно вернуть.`:`Загружена жизнь ${state.generation}, тик жизни ${lifeTick(state)}. Мир ${state.seed}. Предыдущее сохранение можно вернуть.`;
   }catch(error){$('save-status').textContent='Загрузить не удалось: '+error.message;$('save-status').classList.add('error');}
   e.target.value='';
 });
 $('undo-import').addEventListener('click',()=>{
-  try{const previous=localStorage.getItem(SAVE_KEY+'-before-import');if(!previous)return;const restored=restore(previous);fastRun=null;lifeReview=false;state=restored;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=true;$('save-status').textContent='Предыдущее сохранение восстановлено.';}
+  try{const previous=localStorage.getItem(SAVE_KEY+'-before-import');if(!previous)return;const restored=restore(previous);releaseFast();fastNotice='';lifeReview=false;state=restored;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=true;$('save-status').textContent='Предыдущее сохранение восстановлено.';}
   catch(error){$('save-status').textContent='Восстановить не удалось: '+error.message;}
 });
 $('mechanics').addEventListener('click', () => {
@@ -448,7 +450,7 @@ $('detail-panel').addEventListener('click', e => {
   const id = button.dataset.module; setModule(state, id, !enabled(state,id)); persist(); detail(); enrichSheet();
 });
 function showLifeSummary(){
-  releaseHold();fastRun=null;pendingInputs.length=0;lifeReview=true;
+  releaseHold();releaseFast();pendingInputs.length=0;lifeReview=true;
   state.observation.lastSummary=summaryKey();
   const h=state.hero,l=currentLife(state),cause=l?.cause||h.life.motive||'История завершилась.';
   $('life-summary-title').textContent=`${h.name}: ${h.alive?'конец странствий':'конец жизни'}`;
@@ -469,7 +471,7 @@ function nextStory(){
 function requestObserver(kind,person){
  if(pendingNextStory)return;
  const request=observerRequest(state,kind,person,Date.now());if(!request){openObservers('Этот человек сейчас недоступен. Выберите другого.');return;}
- releaseHold();pendingInputs.length=0;fastRun=null;lifeReview=false;
+ releaseHold();pendingInputs.length=0;releaseFast();fastNotice='';lifeReview=false;
  cancelObserverChoice();
  for(const id of ['life-summary','sheet','settings-dialog','observer-dialog'])if($(id).open)$(id).close();
  pendingNextStory=request;drainTime();
@@ -492,22 +494,23 @@ bindFreshAction($('observer-new'),()=>!pendingNextStory,()=>requestObserver('new
 for(const id of ['summary-next-story','next-story'])bindFreshAction($(id),()=>lifeFinished(state)&&!pendingNextStory,nextStory,document,window,e=>pointInGame($('game-shell').getBoundingClientRect(),e));
 cancelSuccession=bindFreshAction($('continue-story'),()=>lifeFinished(state)&&!pendingNextStory,nextStory,document,window,e=>pointInGame($('game-shell').getBoundingClientRect(),e));
 $('life-journal').addEventListener('click',()=>{$('life-summary').close();logLife=currentLife(state)?archiveKey(currentLife(state)):null;tab='log';for(const b of document.querySelectorAll('[data-tab]'))b.setAttribute('aria-selected',String(b.dataset.tab==='log'));detail();enrichSheet();$('sheet').showModal();});
-function stopFast(){fastRun=null;resetClock();persist();render();}
+function releaseFast(){if(!fastRun)return null;const result=endYearRun(clock,fastRun,Date.now());fastRun=null;releaseHold();return result;}
+function stopFast(){if(fastRun){requestYearCancel(fastRun);fastNotice='Отмена запрошена';}const result=releaseFast();if(result)fastNotice=`Остановлено · осталось ${result.remaining.toLocaleString('ru-RU')} тиков`;persist();render();}
 function fastLifeFrame(run=fastRun){
   if(!run||run!==fastRun)return;
   if($('sheet').open||$('settings-dialog').open||$('reset-dialog').open||$('observer-dialog').open){setTimeout(()=>fastLifeFrame(run),100);return;}
-  const result=runWorldBatch(state,run);clock.anchor=Date.now();
-  if(result.finished||result.interrupted){fastRun=null;persist();render();if(lifeFinished(state)&&state.observation.lastSummary!==summaryKey())showLifeSummary();return;}
+  const result=runWorldBatch(state,run);updateYearClock(clock,run,Date.now());
+  if(result.finished||result.interrupted){releaseFast();fastNotice=result.finished?'Год прожит':`Прогон остановлен · осталось ${result.remaining.toLocaleString('ru-RU')} тиков`;persist();render();if(lifeFinished(state)&&state.observation.lastSummary!==summaryKey())showLifeSummary();return;}
   persist();render();setTimeout(()=>fastLifeFrame(run),0);
 }
 $('run-life').addEventListener('click',()=>{
-  $('settings-dialog').close();if(fastRun){stopFast();return;}
-  $('life-summary').close();lifeReview=false;resetClock();fastRun=createYearRun(state);render();fastLifeFrame();
+  $('settings-dialog').close();if(fastRun){stopFast();return;}if(pendingNextStory)return;
+  $('life-summary').close();lifeReview=false;releaseHold();pendingInputs.length=0;fastNotice='';fastRun=beginYearRun(state,clock,Date.now());render();fastLifeFrame();
 });
 $('sound').addEventListener('click', () => { soundEnabled = !soundEnabled; $('sound').classList.toggle('enabled', soundEnabled); $('sound').textContent = soundEnabled ? 'Звук: вкл.' : 'Звук: выкл.'; $('sound').setAttribute('aria-label', soundEnabled ? 'Выключить звук' : 'Включить звук'); $('sound').setAttribute('aria-pressed', String(soundEnabled)); chime(); });
 $('reset').addEventListener('click', () => { $('settings-dialog').close(); $('reset-dialog').showModal(); });
 $('cancel-reset').addEventListener('click', () => $('reset-dialog').close());
-$('confirm-reset').addEventListener('click', () => { fastRun=null;lifeReview=false;state = createWorld(); clearSpeech(speechMemory); resetClock(); persist(); render(); $('reset-dialog').close(); });
+$('confirm-reset').addEventListener('click', () => { releaseFast();fastNotice='';lifeReview=false;state = createWorld(); clearSpeech(speechMemory); resetClock(); persist(); render(); $('reset-dialog').close(); });
 $('export').addEventListener('click', () => {
   const lines = ['CLICK ODYSSEY', `${lifeName()} · тик жизни ${lifeTick(state)} · мир ${state.seed}, тик мира ${state.tick}`, '', ...(state.hero.timeline||state.journal.slice().reverse()).map(e => `[${lifeTick(state,e.tick)}] ${e.text}`), '', 'ПОСЛЕДСТВИЯ', ...state.changes.filter(e=>knownWorldEvent(state,e)).map(c => `[${c.tick}] ${c.text}`)];
   const url = URL.createObjectURL(new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/plain;charset=utf-8' }));
@@ -516,6 +519,7 @@ $('export').addEventListener('click', () => {
 const startupProblem=saveProblem;persist();if(startupProblem)saveProblem=startupProblem;render();
 if(lifeFinished(state)&&state.observation.lastSummary!==summaryKey())showLifeSummary();
 function drainTime(){
+ if(fastRun)return 0;
  const before=state.hero.alive,target=pendingNextStory?.target??pendingInputs[0]??Date.now(),started=performance.now();
  const ticks=catchUp(clock,target,()=>advanceLife(state),250,()=>performance.now()-started>=20);
  let manual=false,switched=false;
@@ -530,7 +534,7 @@ function drainTime(){
  return ticks;
 }
 function pumpTime() {
-  if(fastRun){if(!clock.stopped)clock.anchor=Date.now();setTimeout(pumpTime,200);return;}
+  if(fastRun){updateYearClock(clock,fastRun,Date.now());setTimeout(pumpTime,200);return;}
   const ticks=drainTime(),stage=tutorialState.stage;tutorialTick(tutorialState,Date.now(),ticks>0&&!pendingInputs.length&&!clock.idleUntil);if(stage!==tutorialState.stage)saveTutorial();showTutorial();
   if(!ticks&&speechMemory.loot.notice?.batch&&performance.now()>=speechMemory.loot.notice.untilMs)render(true);
   setTimeout(pumpTime,hasDue(clock,pendingNextStory?.target??pendingInputs[0]??Date.now())||pendingInputs.length||pendingNextStory?0:200);
