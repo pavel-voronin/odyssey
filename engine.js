@@ -1,3 +1,4 @@
+import {observeNavigationBlockers,navigationHoldKnownBlocker,navigationReturnTarget,finishNavigationReturn} from './modules/navigation-memory.js';
 import {initializeDescent,navigationToolPlan,navigationGate,navigationAction} from './modules/navigation-tools.js';
 import {changeSpareOutfit,spareNeedsMoney} from './modules/spare-outfit.js';
 import {containersOn,packView,stackRoom} from './modules/container-state.js';
@@ -711,6 +712,7 @@ function actObserved(s) {
   if(transitTick(s,context(s,'travel')))return s;
   observeTowers(s,context(s,'landmarks'));
   observeScentPlants(s);
+  observeNavigationBlockers(s,context(s,'navigation-memory'));
   observeBestiaryTraces(s,s.people[h.lineage],context(s,'bestiary'));
   observeMaterials(s);
   if(!enabled(s,'work-materials')&&h.goal?.kind==='serviceSupply')h.goal=null;
@@ -729,7 +731,7 @@ function actObserved(s) {
   if(!holdPoisonRest(s)&&pairCampCare(s,context(s,'party-relations')))return s;
   const groupNeed=partyDemand(s);
   intentionTick(s,context(s,'intentions'));
-  if(enabled(s,'repertoire')&&h.goal?.repertoire?.line==='craft'&&repertoireInterrupt(s,{...context(s,'repertoire'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))},currentQuest(h,s)))return s;
+  if(enabled(s,'repertoire')&&['craft','navigation'].includes(h.goal?.repertoire?.line)&&repertoireInterrupt(s,{...context(s,'repertoire'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))},currentQuest(h,s)))return s;
   if(balanceIntentions(s,{...context(s,'intention-balance'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))}))return s;
   if(!h.goal?.intention&&respondAid(s,context(s,'personal-aid')))return s;
   if(h.goal?.kind==='leisure'&&h.goal.signals!==undefined&&h.goal.signals!==quietSignals(s))h.goal=null;
@@ -743,6 +745,8 @@ function actObserved(s) {
     const former=h.goal;explorePlan(s,true);
     log(s,`Путь к «${s.areas[former.area]?.name||'прежнему делу'}» проходит через место недавнего отступления. ${h.intent}.`,'plan');
   }
+  if(!navigationReturnTarget(s,context(s,'navigation-memory')))return s;
+  if(navigationHoldKnownBlocker(s,context(s,'navigation-memory')))return s;
   if(!rescueTarget(s,{log,failQuest})||!intentionTarget(s)||!lodgingTarget(s)||!aidTarget(s)||!serviceTarget(s,context(s,'work-orders'))||!propertyAidTarget(s,context(s,'property-aid'))||!propertyGiftTarget(s,context(s,'property-gifts'))||!propertyContractTarget(s,context(s,'property-contracts'))||!propertyTarget(s,context(s,'property')))return s;
   if(!itemRepairTarget(s,context(s,'item-wear'))||!refitTarget(s)||!workshopWorkTarget(s,{...context(s,'workshop-interiors'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
@@ -819,6 +823,7 @@ function actObserved(s) {
   else if(g.kind==='propertyContract')propertyContractAction(s,context(s,'property-contracts'));
   else if(g.kind==='propertyRepair')repairProperty(s,context(s,'property'));
   else if(g.kind==='craftStudy')craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))});
+  else if(g.kind==='navReturn')finishNavigationReturn(s,context(s,'navigation-memory'));
   else if(g.kind.startsWith('rope'))navigationAction(s,context(s,'navigation-tools'));
   else if(['forgeSupply','forgeWork','forgeLearn','forgeBuy'].includes(g.kind))forgeAction(s,{...context(s,'forging'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))});
   else if(['refitMeet','refitMaterial','refitWork'].includes(g.kind))refitAction(s,context(s,'knife-refit'));

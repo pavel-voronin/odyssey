@@ -1,3 +1,4 @@
+import {navigationReturnChoices,startNavigationReturn,pauseNavigationReturn} from './navigation-memory.js';
 import {enabled} from '../rules.js';
 import {knownArea} from '../actor-atlas.js';
 import {JOBS} from '../content.js';
@@ -33,11 +34,12 @@ export function repertoireChoices(s,ctx,q=null){
  const quiet=(h.life.residence?.since!==undefined||hasHabit(h,'homebody'))&&h.personality.curiosity<.6;
  const frontier=!quiet&&Object.values(s.areas).find(a=>!a.interior&&!a.temporaryCamp&&knownArea(s,a)&&!areaAvoided(s,a.id)&&(!h.memory.places.includes(a.id)||!a.expanded&&a.type!=='village')&&route(s,ctx,a.id).length);
  if(frontier)choices.push({line:'explore',id:frontier.id,area:frontier.id,score:12+h.personality.curiosity*65+(h.career.path==='adventure'?6:0),reason:'Любопытство зовёт на знакомую дорогу к ещё не исследованному месту.'});
+ choices.push(...navigationReturnChoices(s,ctx));
  const last=h.repertoire?.choices?.at(-1);for(const c of choices)if(last?.line===c.line&&s.tick-last.tick<240)c.score-=12*(1-(s.tick-last.tick)/240);
  return choices.sort((a,b)=>b.score-a.score||a.line.localeCompare(b.line));
 }
 function remember(s,choice,options){
- const h=s.hero,r=state(h),id=choice.line==='family'?h.goal.quest:choice.line==='craft'?h.goal.job:h.goal.area,record={tick:s.tick,line:choice.line,id,area:h.goal.area,reason:choice.reason,alternatives:options.map(o=>({line:o.line,score:Math.round(o.score)}))};
+ const h=s.hero,r=state(h),id=choice.line==='family'?h.goal.quest:choice.line==='craft'?h.goal.job:choice.line==='navigation'?choice.id:h.goal.area,record={tick:s.tick,line:choice.line,id,area:h.goal.area,reason:choice.reason,alternatives:options.map(o=>({line:o.line,score:Math.round(o.score)}))};
  r.choices.push(record);if(r.choices.length>24)r.choices.shift();h.goal.repertoire={line:choice.line,since:s.tick,id};
  h.reason=choice.reason;
 }
@@ -49,7 +51,8 @@ export function repertoirePlan(s,ctx,q=null){
  }
  const options=repertoireChoices(s,ctx,q);
  for(const c of options){
-  if(c.line==='family')ctx.planQuest(s,q);
+  if(c.line==='navigation'){if(!startNavigationReturn(s,c,ctx))continue;}
+  else if(c.line==='family')ctx.planQuest(s,q);
   else if(c.line==='craft'){
    if(paused&&paused.goal.job===c.id&&route(s,ctx,paused.goal.area).length){h.goal=paused.goal;h.intent=paused.intent;c.reason='Он возвращается к прерванной работе. Сделанная часть сохранилась.';h.repertoire.paused=null;}
    else if(!ctx.work(s))continue;
@@ -60,8 +63,9 @@ export function repertoirePlan(s,ctx,q=null){
 }
 export function repertoireInterrupt(s,ctx,q){
  const h=s.hero;
- if(!enabled(s,'repertoire')||!readyBody(s)||h.repertoire&&h.repertoire.version!==1||h.goal?.repertoire?.line!=='craft'||h.repertoire?.paused||!q||!questChoiceAvailable(s,q))return false;
+ if(!enabled(s,'repertoire')||!readyBody(s)||h.repertoire&&h.repertoire.version!==1||!['craft','navigation'].includes(h.goal?.repertoire?.line)||h.repertoire?.paused&&h.goal?.repertoire?.line==='craft'||!q||!questChoiceAvailable(s,q))return false;
  const meaning=questMeaning(s,q,questReady(s,q));if(meaning.urgency<60||!route(s,ctx,meaning.ready?q.source:q.target).length)return false;
+ if(h.goal.repertoire.line==='navigation'){pauseNavigationReturn(s,h.goal.navReturn||h.goal.navigationReturn);h.goal=null;ctx.planQuest(s,q);h.lastAction='idle';h.action='РЕШЕНИЕ';ctx.log(s,'Срочное обещание важнее возвращения к спуску. Возможность сохранена.','choice');return true;}
  const r=state(h);r.paused={goal:h.goal,intent:h.intent,reason:h.reason};h.goal=null;ctx.planQuest(s,q);h.lastAction='idle';h.action='РЕШЕНИЕ';
  ctx.log(s,`${h.name} откладывает работу: срок обещания уже близко. Сделанную часть он сможет закончить позже.`,'choice');return true;
 }

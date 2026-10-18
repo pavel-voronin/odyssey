@@ -1,3 +1,4 @@
+import {rememberNavigationBlocker,navigationPassageUsed} from './navigation-memory.js';
 import {enabled} from '../rules.js';import {areaStep,physicalDistance} from '../geometry.js';
 import {navigationToolsOn,isRopeItem,ownedRope,ropeKnots,descentObjects,attachedRope,usableAnchor,visibleDescent,ropeBusy} from './navigation-tool-state.js';
 import {itemLocation,actorItemLocation,presentItem} from './item-originals.js';import {fitsPack,itemUnits,PACK_CAPACITY} from './container-state.js';import {localContact} from './npc-contacts.js';
@@ -8,7 +9,7 @@ const canAct=s=>active(s)&&!s.areas[s.hero.area]?.objects.some(e=>e.kind==='enem
 const near=(s,x)=>physicalDistance(s.areas[s.hero.area],s.hero.x,x)<=1;
 export function initializeDescent(s,a){
  if(a.objects.some(o=>o.kind==='descent')||!active(s)||a.interior||a.temporaryCamp||!(a.type==='mountain'||a.type==='road'&&(a.depth===0||a.depth>=2&&a.depth%3===2)))return;
- a.objects.push({id:a.id+'/descent',kind:'descent',name:'Размытый спуск',x:72,items:[],descent:{version:1,bottom:80,detour:42,anchor:{id:a.id+'/stump',kind:'stump',intact:true},bypass:true,created:s.tick}});
+ a.objects.push({id:a.id+'/descent',kind:'descent',name:'Размытый спуск',x:72,items:[],descent:{version:1,bottom:80,detour:42,anchor:{id:a.id+'/stump',kind:'stump',intact:true},bypass:a.type!=='mountain'||(s.seed+Number(a.id.slice(1)))%3!==0,created:s.tick}});
 }
 export function buyNavigationRope(s,ctx){
  const h=s.hero,m=s.merchant,a=s.areas[h.area];if(!canAct(s)||ownedRope(s)||m.area!==h.area||!near(s,58)||h.gold<6||!fitsPack(s,h.lineage,{items:[...h.bag,{slot:'tool'}]})||ctx?.maySpend&&!ctx.maySpend(s,'tool',6,ctx))return false;
@@ -34,7 +35,7 @@ export function retrieveRope(s,o,ctx){
  o.items.splice(o.items.indexOf(item),1);delete item.rope.attached;h.bag.push(item);actorItemLocation(s,item);h.energy--;stamp(s);event(s,'retrieved',item,{anchor:o.id});ctx?.log?.(s,'Герой отвязывает тот же экземпляр верёвки и убирает в рюкзак.','equipment');return true;
 }
 export function navigationToolPlan(s,ctx){
- const h=s.hero,existing=h.goal;if(!canAct(s)||existing&&!['explore','travel','collect'].includes(existing.kind)||existing?.quest||existing?.intention||h.hunger>70||h.energy<25)return false;
+ const h=s.hero,existing=h.goal;if(!canAct(s)||existing&&!['explore','travel','collect','navReturn'].includes(existing.kind)||existing?.quest||existing?.intention||h.hunger>70||h.energy<25)return false;
  for(const o of descentObjects(s,h.area)){if(!visibleDescent(s,o))continue;const p=Object.values(s.people).find(p=>p.alive&&p.ropeStranded?.anchor===o.id&&p.area===h.area&&p.ropeStranded.cause.damage>0&&localContact(s,p.id,h.area)&&physicalDistance(s.areas[h.area],h.x,p.x)<=30);
   if(p&&ropeKnots(s)&&h.personality.generosity>=.5&&(ownedRope(s)||attachedRope(o))){ctx.goal(s,'ropePull',h.area,o.x,'Вытянуть путника','После настоящего срыва человек остался ниже опоры.',{object:o.id,person:p.id,rope:(attachedRope(o)||ownedRope(s)).id});return true;}}
  if(existing)return false;
@@ -47,7 +48,7 @@ export function navigationGate(s,target,ctx){
  const d=descentObjects(s,h.area).find(o=>target>h.x?h.x<o.descent.bottom&&target>o.x:h.x>o.x&&target<o.descent.bottom);if(!d)return false;
  const entry=target>h.x?d.x:d.descent.bottom;if(physicalDistance(a,h.x,entry)>6)return false;
  const rope=attachedRope(d)||ownedRope(s),skilled=ropeKnots(s),use=rope&&skilled&&usableAnchor(d)&&rope.rope.length>=physicalDistance(a,d.x,d.descent.bottom)&&(target>h.x||attachedRope(d)?.rope.attached.progress>=2)&&(h.personality.courage>=.45||h.personality.curiosity>=.65),end=target>h.x?Math.min(target,d.descent.bottom):Math.max(target,d.x);
- if(!use&&!d.descent.bypass){h.goal=null;ctx?.log?.(s,'У спуска нет доступной опоры или безопасного обхода. Он останавливается.','plan');return true;}
+ if(!use&&!d.descent.bypass){rememberNavigationBlocker(s,d,g,target,ctx);h.goal=null;ctx?.log?.(s,'У спуска нет доступной опоры или безопасного обхода. Он останавливается.','plan');return true;}
  h.goal={kind:'ropeCross',area:h.area,x:entry,object:d.id,rope:use?rope.id:null,mode:use?'rope':'bypass',end,resume:g,remaining:Math.max(1,Math.ceil(d.descent.detour/6)),started:s.tick};h.intent=use?'Закрепить верёвку и спуститься':'Обойти размытый спуск';h.reason=use?'Есть свой инструмент, умение и видимая опора.':'Без безопасного узла он выбирает более долгий пологий обход.';return true;
 }
 export function navigationAction(s,ctx){
@@ -59,8 +60,8 @@ export function navigationAction(s,ctx){
  if(!active(s)){h.goal=g.resume||null;return true;}
  if(g.kind==='ropePull')return pull(s,o,g,ctx);
  if(g.kind==='ropeCross'){
-  if(g.mode==='rope'){if(!ropeKnots(s)){h.goal=g.resume;return true;}const item=attachedRope(o);if(!usableAnchor(o)||!item&&ownedRope(s)?.id!==g.rope){h.goal=g.resume;return true;}if(!item||item.rope.attached.progress<2){if(!near(s,o.x)){h.goal=null;return true;}tie(s,o,ctx);return true;}if(item.id!==g.rope||!usableAnchor(o)||ropeBusy(s,item.id)){h.goal=null;return true;}const before=h.x;h.facing=Math.sign(g.end-h.x)||h.facing;h.x+=areaStep(s.areas[h.area],h.x,g.end,6);h.distance+=physicalDistance(s.areas[h.area],before,h.x);h.energy=Math.max(0,h.energy-2);stamp(s);h.lastAction='walk';g.x=h.x;if(near(s,g.end)){event(s,'descended',item,{anchor:o.id});item.rope.uses.push({tick:s.tick,kind:'descent',area:h.area,anchor:o.id,actor:h.lineage});if(item.rope.uses.length>8)item.rope.uses.shift();h.goal=g.resume;}}
-  else {h.facing=Math.sign(g.end-h.x)||h.facing;h.x+=areaStep(s.areas[h.area],h.x,g.end,Math.max(.1,physicalDistance(s.areas[h.area],h.x,g.end)/Math.max(1,g.remaining)));h.distance+=o.descent.detour/Math.ceil(o.descent.detour/6);h.energy=Math.max(0,h.energy-1);stamp(s);h.lastAction='walk';g.x=h.x;if(--g.remaining<=0)h.goal=g.resume;}
+  if(g.mode==='rope'){if(!ropeKnots(s)){h.goal=g.resume;return true;}const item=attachedRope(o);if(!usableAnchor(o)||!item&&ownedRope(s)?.id!==g.rope){h.goal=g.resume;return true;}if(!item||item.rope.attached.progress<2){if(!near(s,o.x)){h.goal=null;return true;}tie(s,o,ctx);return true;}if(item.id!==g.rope||!usableAnchor(o)||ropeBusy(s,item.id)){h.goal=null;return true;}const before=h.x;h.facing=Math.sign(g.end-h.x)||h.facing;h.x+=areaStep(s.areas[h.area],h.x,g.end,6);h.distance+=physicalDistance(s.areas[h.area],before,h.x);h.energy=Math.max(0,h.energy-2);stamp(s);h.lastAction='walk';g.x=h.x;if(near(s,g.end)){navigationPassageUsed(s,o,g.resume);event(s,'descended',item,{anchor:o.id});item.rope.uses.push({tick:s.tick,kind:'descent',area:h.area,anchor:o.id,actor:h.lineage});if(item.rope.uses.length>8)item.rope.uses.shift();h.goal=g.resume;}}
+  else {h.facing=Math.sign(g.end-h.x)||h.facing;h.x+=areaStep(s.areas[h.area],h.x,g.end,Math.max(.1,physicalDistance(s.areas[h.area],h.x,g.end)/Math.max(1,g.remaining)));h.distance+=o.descent.detour/Math.ceil(o.descent.detour/6);h.energy=Math.max(0,h.energy-1);stamp(s);h.lastAction='walk';g.x=h.x;if(--g.remaining<=0){navigationPassageUsed(s,o,g.resume);h.goal=g.resume;}}
   return true;
  }return false;
 }

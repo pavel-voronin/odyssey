@@ -1,3 +1,4 @@
+import {navigationAvailable} from './navigation-memory.js';
 import {enabled} from '../rules.js';
 import {areaScale} from '../geometry.js';
 import {knownArea} from '../actor-atlas.js';
@@ -24,6 +25,7 @@ export function knownAffairs(s){
  if(enabled(s,'body')&&h.hunger>45)affairs.push({domain:'need',id:'food',title:'Найти еду',urgency:h.hunger>=75?100:20});
  if(partyDemand(s))affairs.push({domain:'need',id:'party',title:'Позаботиться о спутниках',urgency:100});
  if(enabled(s,'personal-aid'))for(const p of Object.values(s.people)){const r=p.aidRequest;if(localPerson(s,p)&&r?.to===h.lineage&&['pending','agreed'].includes(r.status)&&r.until>=s.tick)affairs.push({domain:'aid',id:r.id,title:'Помочь: '+p.name,urgency:p.health<(p.maxHealth||100)*.35?98:45});}
+ for(const r of h.navigationMemory?.blockers||[])if(navigationAvailable(s,r))affairs.push({domain:'navigation',id:r.id,title:'Вернуться к знакомому спуску',urgency:0});
  return affairs.sort((a,b)=>b.urgency-a.urgency||a.domain.localeCompare(b.domain)||String(a.id).localeCompare(String(b.id)));
 }
 export function visibleAssaults(s){
