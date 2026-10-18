@@ -1,5 +1,8 @@
+import {woundCareTurn} from './modules/wound-care.js';
+import {woundCombatChoice} from './modules/wound-combat.js';
+import {holdWoundRest} from './modules/wound-care-state.js';
 import {woundsTick} from './modules/wound-world.js';
-import {woundActivity} from './modules/wound-state.js';
+import {woundActivity,woundActor} from './modules/wound-state.js';
 import {recordPersonRemains} from './modules/remains.js';
 import {positionPlan,positionAction,observePositions,finishPositionTurn} from './modules/position-actions.js';
 import {syncCoverPosition} from './modules/position-state.js';
@@ -540,7 +543,7 @@ function fight(s, enemy) {
   if(storyCombatChoice(s,enemy,context(s,'stories'))){cancelWeapon(s,'Выбрано другое действие.');observeRejected(s,s.areas[h.area]);return;}
   rememberWeaponRole(s);
   h.action = 'БОЙ'; h.intent = `Сражаться: ${enemy.name}`; h.reason = 'Опасность уже рядом. Он оценивает раны после каждого удара.';
-  let choice=chooseCombatAction(s,enemy);rememberCombatChoice(s,enemy,choice,context(s,'combat'));
+  let choice=woundCombatChoice(s,enemy,chooseCombatAction(s,enemy));rememberCombatChoice(s,enemy,choice,context(s,'combat'));
   const warned=enabled(s,'tactics')&&enemy.tactic==='charged'&&enemy.battle?.intent==='strike'&&Math.max(1,expectedStrike(s,enemy)-legacyArmorDefense(h)-itemBonus(h,'defense'))>h.hp*(.65+h.personality.courage*.4);
   if (choice?choice.action==='flee':h.hp < h.maxHp * (.18 + (1 - h.personality.courage) * .2) || h.energy < 9||warned) {
     const escaped=random(s)<.82;resolveCombatChoice(s,'flee-attempt',{retreatAttempted:true,retreated:escaped});
@@ -635,7 +638,7 @@ function npcVictory(s,a,enemy,p){
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
-  woundsTick(s,{bleed(p,h,amount){
+  woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p);if(h)log(actorView(s,h),kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount){
    if(h){const view=actorView(s,h);h.hp=Math.max(0,h.hp-amount);if(h.hp===0)die(view,{kind:'condition',name:'Кровопотеря из незакрывшейся раны'});syncActiveActor(view);return;}
    const leader=detailedActors(s).find(h=>h.alive&&h.companions.some(c=>c.person===p.id)),c=leader?.companions.find(c=>c.person===p.id);
    p.health=Math.max(0,p.health-amount);
@@ -783,6 +786,7 @@ function actObserved(s) {
     h.memory.shopAfter = s.tick + 240; h.goal = null;
     log(s, 'Поиски Савы затянулись. Герой откладывает покупку и возвращается к исследованию.', 'talk');
   }
+  if(woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   noticeCaravan(s,context(s,'caravans'));
@@ -791,11 +795,11 @@ function actObserved(s) {
     h.inventory.herbs--; h.hp = Math.min(h.maxHp, h.hp + 9); h.lastAction = 'heal'; log(s, 'Герой прикладывает лунную траву к ране. Знание леса помогает выжить.', 'heal'); return s;
   }
   if(materialOfferTurn(s,s.people[h.lineage],context(s,'material-delivery')))return s;
-  if(!holdPoisonRest(s)&&pairCampCare(s,context(s,'party-relations')))return s;
+  if(!holdPoisonRest(s)&&!holdWoundRest(s)&&pairCampCare(s,context(s,'party-relations')))return s;
   const groupNeed=partyDemand(s);
   intentionTick(s,context(s,'intentions'));
   if(enabled(s,'repertoire')&&['craft','navigation','returnship'].includes(h.goal?.repertoire?.line)&&repertoireInterrupt(s,{...context(s,'repertoire'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))},currentQuest(h,s)))return s;
-  if(balanceIntentions(s,{...context(s,'intention-balance'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))}))return s;
+  if(!holdWoundRest(s)&&balanceIntentions(s,{...context(s,'intention-balance'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))}))return s;
   if(!h.goal?.intention&&respondAid(s,context(s,'personal-aid')))return s;
   if(h.goal?.kind==='leisure'&&h.goal.signals!==undefined&&h.goal.signals!==quietSignals(s))h.goal=null;
   const urgent = groupNeed==='rest'||h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23;
@@ -868,14 +872,14 @@ function actObserved(s) {
   if(g.kind==='routeWait'){h.lastAction='idle';if(s.tick>=g.until)h.goal=null;return s;}
   if (g.kind === 'rest') {
     restoreCampRestView(s);
-    if(lodgingRest(s,context(s,'lodging'),holdPoisonRest(s)))return s;
-    if(!holdPoisonRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
+    if(lodgingRest(s,context(s,'lodging'),holdPoisonRest(s)||holdWoundRest(s)))return s;
+    if(!holdPoisonRest(s)&&!holdWoundRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
     const amount = restAmount(s,a);
     h.hp = Math.min(h.maxHp, h.hp + amount); h.energy = Math.min(100, h.energy + smokeRestEnergy(s,12)); h.lastAction = 'rest';
     traitsRest(s, context(s, 'body'));
     magicRest(s);
     partyRest(s);
-    if (!holdPoisonRest(s)&&partyRestReady(s)&&h.hp === h.maxHp && h.energy >= 95&&(!enabled(s,'magic')||h.magic.mana>=(g.preparation?.mana||0))) { log(s, 'Силы восстановлены. Можно снова вернуться к своим планам.', 'rest'); h.goal = null;leaveCamp(s,context(s,'fieldcamp')); }
+    if (!holdPoisonRest(s)&&!holdWoundRest(s)&&partyRestReady(s)&&h.hp === h.maxHp && h.energy >= 95&&(!enabled(s,'magic')||h.magic.mana>=(g.preparation?.mana||0))) { log(s, 'Силы восстановлены. Можно снова вернуться к своим планам.', 'rest'); h.goal = null;leaveCamp(s,context(s,'fieldcamp')); }
     else h.speech = isTown(a) ? actualService(s,a,'clinic').available?'Лекарь помогает путникам. Здесь можно перевести дух.':'Здесь можно отдохнуть самому; лекарь сейчас не принимает.' : 'Огонь согревает. Обещания подождут до утра.';
   } else if (g.kind === 'campPitch') pitchCamp(s,context(s,'fieldcamp'));
   else if(g.kind==='campContinue')campContinue(s,context(s,'fieldcamp'));

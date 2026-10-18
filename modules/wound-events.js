@@ -20,7 +20,7 @@ export function recordLocalWound(s,p,enemy,{before,after,maximum,area,controller
  if(state.hitTick!==s.tick){state.hitTick=s.tick;state.hits=[];}state.hits.push(id);
  let w=state.active.find(w=>w.part===part&&w.kind===kind);
  const cause={id,tick:s.tick,enemy:enemy.id,area,controller,before,after,maximum};
- if(w){w.effectBefore=w.lastHit===s.tick?w.effectBefore:w.severity/3*(1-w.function/100);w.severity=Math.min(3,w.severity+severity);w.closure=cut?0:100;w.function=Math.min(w.function,25);w.lastHit=s.tick;w.lastCause=cause;w.bleed=cut?8:0;}
+ if(w){w.effectBefore=w.lastHit===s.tick?w.effectBefore:w.severity/3*(1-w.function/100);w.severity=Math.min(3,w.severity+severity);w.closure=cut?0:100;w.function=Math.min(w.function,25);w.lastHit=s.tick;w.lastCause=cause;w.bleed=cut?8:0;if(w.dressing)w.dressing.remaining=0;}
  else {w={id:++state.serial,part,label,role,kind,severity,closure:cut?0:100,function:0,bleed:cut?8:0,lastHit:s.tick,effectBefore:0,firstCause:cause,lastCause:cause};state.active.push(w);}
  (s.woundClock ||= {version:1,active:[]}).active.includes(p.id)||s.woundClock.active.push(p.id);
  return w;

@@ -10,7 +10,7 @@ export function validateWounds(s,fail){
   const sites=new Set(),ids=new Set(),parts=woundParts(p);
   for(const w of t.active){
    const part=parts.find(([id])=>id===w.part),key=w.kind+'/'+w.part;
-   if(!part||part[1]!==w.label||part[2]!==w.role||!['cut','bruise'].includes(w.kind)||p.race==='automaton'&&w.kind==='cut'||!integer(w.id,1,t.serial)||ids.has(w.id)||sites.has(key)||!integer(w.severity,1,3)||!integer(w.closure,0,100)||!integer(w.function,0,100)||w.function>25&&w.closure!==100||w.kind==='bruise'&&w.closure!==100||!integer(w.bleed,0,8)||(w.closure===100?w.bleed!==0:w.bleed===0)||!tick(w.lastHit)||!Number.isFinite(w.effectBefore)||w.effectBefore<0||w.effectBefore>1)fail(p.id+'.wound');
+   if(!part||part[1]!==w.label||part[2]!==w.role||!['cut','bruise'].includes(w.kind)||p.race==='automaton'&&w.kind==='cut'||!integer(w.id,1,t.serial)||ids.has(w.id)||sites.has(key)||!integer(w.severity,1,3)||!integer(w.closure,0,100)||!integer(w.function,0,100)||w.function>50&&w.closure!==100||w.kind==='bruise'&&w.closure!==100||!integer(w.bleed,0,8)||(w.closure===100?w.bleed!==0:w.bleed===0&&!w.dressing)||!tick(w.lastHit)||!Number.isFinite(w.effectBefore)||w.effectBefore<0||w.effectBefore>1)fail(p.id+'.wound');
    ids.add(w.id);sites.add(key);
    for(const c of [w.firstCause,w.lastCause])if(!c||!tick(c.tick)||!s.areas[c.area]?.objects.some(e=>e.id===c.enemy&&e.kind==='enemy')||!['before','after','maximum'].every(k=>Number.isFinite(c[k]))||c.maximum<=0||c.before>c.maximum||c.after<0||c.after>=c.before||typeof c.controller!=='string'||c.id!==JSON.stringify([p.id,c.tick,c.enemy,c.controller]))fail(p.id+'.woundCause');
    if(w.firstCause.tick>w.lastCause.tick||w.lastCause.tick!==w.lastHit)fail(p.id+'.woundOrder');

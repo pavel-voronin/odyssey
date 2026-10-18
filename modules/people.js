@@ -1,3 +1,4 @@
+import {woundNPCTurn} from './wound-care.js';
 import {woundStride,woundForce,woundActivity} from './wound-state.js';
 import {observeShortcutPerson} from './shortcut-observation.js';
 import {isShortcut} from './shortcut-state.js';
@@ -262,6 +263,7 @@ export function peopleTick(s,ctx){
     observeMentors(s,p);
     observeFreightActor(s,p,p.area,true);
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
+    if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
     if(pactLeaderTurn(s,p,ctx))continue;
     if(feastNPCTurn(s,p,ctx))continue;

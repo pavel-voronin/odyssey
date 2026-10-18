@@ -15,4 +15,4 @@ export const woundStride=(s,p=s.people[s.hero.lineage])=>1-.55*woundImpairment(s
 export const woundForce=(s,p=s.people[s.hero.lineage])=>1-.6*woundImpairment(s,p,'arm');
 export const woundFocus=(s,p=s.people[s.hero.lineage])=>woundImpairment(s,p,'head')<.65;
 export function woundActivity(s,p,role,rest=false){const t=p?.localWounds;if(t&&enabled(s,'local-wounds'))t.activity={tick:s.tick,role,rest};}
-export function woundSummary(p){return (p?.localWounds?.active||[]).map(w=>`${w.kind==='cut'?'Порез':'Ушиб'}: ${w.label}, тяжесть ${w.severity}; ${w.closure<100?'закрытие '+w.closure+'%':'закрыт'}, функция ${w.function}%${w.bleed>0?' · кровоточит':''}`).join('; ');}
+export function woundSummary(p){return (p?.localWounds?.active||[]).map(w=>`${w.kind==='cut'?'Порез':'Ушиб'}: ${w.label}, тяжесть ${w.severity}; ${w.closure<100?'закрытие '+w.closure+'%':'закрыт'}, функция ${w.function}%${w.bleed>0?' · кровоточит':''}${w.dressing?' · '+(w.dressing.remaining>4?'повязка '+w.dressing.remaining+'/'+w.dressing.quality:'повязку нужно сменить'):''}`).join('; ');}
