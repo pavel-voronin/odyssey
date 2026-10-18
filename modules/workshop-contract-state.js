@@ -1,0 +1,6 @@
+// Thin shared contract predicates must not import finances, people or action controllers.
+export function workshopContract(s,o){return o?.contract?s.propertyContracts?.[o.contract]:null;}
+export function workshopService(s,o){return o?.service?s.workOrders?.[o.service]:null;}
+export function reservedWorkshop(s,o,actor=null){const c=workshopContract(s,o),service=s.workOrders?.[o?.service];return Boolean(service?.status==='active'||c&&['active','performed','credited'].includes(c.status)&&c.buyer!==actor||['offered','accepted'].includes(o?.gift?.status)&&o.gift.to!==actor||['requested','agreed'].includes(o?.aid?.status)&&o.aid.payer!==actor);}
+export function reservedRepair(s,o,actor){const c=workshopContract(s,o),service=s.workOrders?.[o?.service];return Boolean(service?.status==='active'&&service.helper!==actor||c?.status==='active'&&c.damageAt===o.damagedAt&&c.buyer!==actor);}
+export function needsWorkshop(s,p,area,price){return Boolean(p?.alive&&p.status==='resident'&&p.area===area&&p.role!=='ребёнок'&&p.agenda?.job==='artisan'&&p.agenda.work>=12&&p.agenda.tools>0&&p.agenda.duty>=.6&&p.agenda.curiosity<.65&&p.agenda.wealth<price&&!p.migration&&!['relocate','resettle'].includes(p.agenda.task?.kind)&&!Object.values(s.areas).some(a=>a.objects.some(o=>o.kind==='workshop'&&o.owner===p.id)));}

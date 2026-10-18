@@ -1,0 +1,302 @@
+import {MODULES} from './rules.js';
+import {MOTION_SHAPES,REMAINS_TICKS} from './actor-facts.js';
+
+export const SAVE_VERSION=2;
+export const SAVE_SCHEMA='click-odyssey/144';
+export const SAVE_KEY='click-odyssey-144';
+export function clockRecord(state,clock){return {schema:SAVE_SCHEMA,seed:state.seed,anchor:clock.anchor,idleUntil:clock.idleUntil,stopped:clock.stopped};}
+export function currentClock(record,state){return object(record)&&record.schema===SAVE_SCHEMA&&record.seed===state.seed&&Number.isFinite(record.anchor)&&Number.isFinite(record.idleUntil)&&record.idleUntil>=0&&record.stopped===false?record:null;}
+export function currentTutorial(t){return object(t)&&Number.isInteger(t.stage)&&t.stage>=0&&t.stage<=4&&Number.isFinite(t.until)&&typeof t.done==='boolean'?t:null;}
+const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+const own=(v,k)=>Object.hasOwn(v,k);
+const fail=path=>{throw new Error('Повреждённое сохранение: '+path);};
+function fields(v,names,path){if(!object(v))fail(path);for(const k of names)if(!own(v,k))fail(path+'.'+k);}
+function array(v,path){if(!Array.isArray(v))fail(path);}
+function finite(v,path){if(!Number.isFinite(v))fail(path);}
+function integer(v,path,min=0){if(!Number.isSafeInteger(v)||v<min)fail(path);}
+const obsolete=['contentVersion','geographyVersion','cultureVersion','enchantmentVersion','adversaryVersion','lineageAreaCount','civicAreaCount','supplyAreaCount','peopleAreaCount'];
+const actorDomains={
+ personality:['courage','curiosity','sociability','generosity'],stats:['might','wit','guile','luck','spirit'],destiny:['id','completed','progress'],
+ travel:['voyages','portals','epochs','storms'],mind:['type','stress','lastCoin','lastArea','settled'],magic:['mana','maxMana','spells','cooldowns','casts'],
+ weatherTaste:['likes','dislikes','sensitivity','lastMood','shelteredPeriod'],planning:['checked','last','preparations'],commitments:['memories','personal','decisions','nextPersonalAt'],
+ innerLife:['facets','spokeAt','history','lastAssessment'],money:['style','priority'],workMaterials:['known','cargo','revision'],social:['fame','home','lastCivilQuestWork','lostCompanions'],
+ civic:['authority','holdings','lastDecision'],affiliation:['primary','paths','after','changes'],campLife:['lastCamp','history'],sketchbook:['interest','paper','practice','pending','works'],
+ smoking:['habit','tobacco','uses','lastUse','affectedUntil'],storyRarity:['affinity','budget','started','nextEligible'],stories:['active','nextOffer','completed']
+};
+
+// This validates one present contract. It cannot construct a world, award an
+// item, infer a death date or interpret an older file as a partially new one.
+export function validateSave(s){
+ if(!object(s)||s.version!==SAVE_VERSION||s.schema!==SAVE_SCHEMA)throw new Error('Этот файл использует другой формат сохранения. Нужен актуальный экспорт игры.');
+ fields(s,['rng','seed','tick','generation','nextArea','areas','journal','graves','changes','merchant','hero','rules','randomStreams','continents','nextContinent','edges','chronology','people','nextPerson','migrations','nextMigration','society','diplomacy','propertyContracts','nextPropertyContract','propertyContractClock','workOrders','nextWorkOrder','lives','storyCases','nextStory','logistics','actorStates','observation','nextGeneration','spatial'],'world');
+ for(const k of obsolete)if(own(s,k))fail('world.'+k);
+ for(const k of ['rng','seed','tick','nextArea','nextPerson','nextMigration','nextStory','nextWorkOrder','nextPropertyContract'])integer(s[k],k);
+ if(!Number.isInteger(s.generation)||s.generation===0||s.generation<0&&s.hero?.actorMode!=='npc')fail('generation');integer(s.nextGeneration,'nextGeneration',1);
+ for(const k of ['areas','rules','randomStreams','continents','edges','people','migrations','propertyContracts','workOrders','actorStates'])fields(s[k],[],k);
+ for(const k of ['journal','graves','changes','lives','storyCases'])array(s[k],k);
+ for(const life of s.lives){fields(life,['generation','lineage','born','ended','outcome','cause','name','items','timeline'],'life');if(life.outcome!=='dead'||!s.people[life.lineage])fail('life.outcome');integer(life.born,'life.born');integer(life.ended,'life.ended');if(life.ended<life.born||life.ended>s.tick)fail('life.ended');}
+ fields(s.society,['events','journeys','orders','nextEvent','nextEnemy'],'society');
+ fields(s.logistics,['convoys','nextConvoy','nextDispatch','deliveries','losses','history'],'logistics');
+ array(s.society.journeys,'society.journeys');array(s.logistics.convoys,'logistics.convoys');
+ for(const j of s.society.journeys){fields(j,['version','movement','person','from','to','reason'],'journey');if(!['timed','physical'].includes(j.movement)||own(j,'journeyVersion')||!s.people[j.person]||!s.areas[j.from]||!s.areas[j.to])fail('journey.movement');if(j.movement==='timed')integer(j.arrival,'journey.arrival');else{fields(j,['path','index','started','lastTick','elapsed'],'journey.physical');array(j.path,'journey.path');}}
+ for(const c of s.logistics.convoys){fields(c,['version','movement','id','person','source','to','sourceName','targetName','path','index','food','medicine','sightings'],'convoy');if(!['timed','physical'].includes(c.movement)||own(c,'freightVersion')||!s.people[c.person])fail('convoy.movement');array(c.path,'convoy.path');fields(c.sightings,[],'convoy.sightings');if(c.movement==='timed')integer(c.remaining,'convoy.remaining');else fields(c,['elapsed','lastTick','manifest'],'convoy.physical');}
+ fields(s.chronology,['year','paradox','visits','echoes'],'chronology');
+ fields(s.diplomacy,['relations','changes'],'diplomacy');
+ fields(s.spatial,['version','scheme','revision','layers','initialized'],'spatial');
+ fields(s.merchant,['name','area','destination','arrival','nextMove','stock','serviceStock'],'merchant');fields(s.merchant.serviceStock,['version','gear','medicine'],'merchant.serviceStock');
+ for(const k of ['gear','medicine'])integer(s.merchant.serviceStock[k],'merchant.serviceStock.'+k);
+ if(s.remains){
+  fields(s.remains,['version','byId'],'remains');fields(s.remains.byId,[],'remains.byId');if(own(s.remains,'nextCompanion'))fail('remains.nextCompanion');
+  const position=(p,path)=>{fields(p,['kind'],path);if(p.kind==='area'){fields(p,['area','x'],path);if(!s.areas[p.area])fail(path+'.area');finite(p.x,path+'.x');}else if(p.kind==='transit')fields(p.journey,[],path+'.journey');else if(p.kind!=='unknown')fail(path+'.kind');};
+  for(const [key,b]of Object.entries(s.remains.byId)){
+   fields(b,['version','id','deathId','source','stage','carrier','position','facing','death','loot'],key);fields(b.source,['kind','id'],key+'.source');fields(b.death,['tick','source','name','family','race','species','shape','role','traveller','facing','fallSide','appearance','anatomy','position','cause'],key+'.death');
+   const d=b.death;integer(d.tick,key+'.death.tick');if(d.tick>s.tick||!['person','enemy','companion'].includes(b.source.kind)||typeof b.source.id!=='string'||b.id!==key||key!==`corpse:${b.source.kind}:${b.source.id}:${d.tick}`||b.deathId!==`death:${b.source.kind}:${b.source.id}:${d.tick}`||JSON.stringify(d.source)!==JSON.stringify(b.source))fail(key+'.identity');
+   if(b.material)validateBodyMaterial(s,b,key+'.material');
+   if(!['fresh','trace'].includes(b.stage)||![-1,1].includes(b.facing)||![null,-1,1].includes(d.facing)||![-1,1].includes(d.fallSide))fail(key+'.stage');
+   fields(d.anatomy,['form','stature','recorded'],key+'.anatomy');if(!(d.anatomy.stature>0))fail(key+'.anatomy.stature');position(b.position,key+'.position');position(d.position,key+'.death.position');array(b.loot,key+'.loot');
+   if(b.carrier!==null)fields(b.carrier,['kind','id'],key+'.carrier');for(const k of ['gold','items','inventory','equipment'])if(own(b,k))fail(key+'.'+k);
+  }
+ }
+ // Module settings are optional overrides with the enabled() default. Missing
+ // settings never trigger a load-time write or a new generation of readers.
+ for(const [id,value]of Object.entries(s.rules))if(typeof value!=='boolean'||!MODULES.some(m=>m.id===id))fail('rules.'+id);
+ for(const [id,value]of Object.entries(s.randomStreams))integer(value,'randomStreams.'+id);
+ for(const [id,a]of Object.entries(s.areas)){
+  fields(a,['id','type','name','paletteVersion','links','objects','continent','realm','era','culture','visited','discovered','visits','expanded','forage','spatial'],id);
+  if(a.id!==id||a.paletteVersion!==2||typeof a.name!=='string'||typeof a.type!=='string'||own(a,'contentVersion'))fail(id);
+  if(a.temporaryCamp){const t=a.temporaryCamp;fields(t,['parent','mode'],id+'.temporaryCamp');if(!s.areas[t.parent]||own(t,'legacy'))fail(id+'.temporaryCamp');if(t.mode==='personal')fields(t.returns,[],id+'.temporaryCamp.returns');else if(t.mode==='anchored')fields(t.site,['version','parent','parentX','localEntry','placedAt','source'],id+'.temporaryCamp.site');else fail(id+'.temporaryCamp.mode');}
+  array(a.links,id+'.links');array(a.objects,id+'.objects');
+  if(a.links.some(to=>!own(s.areas,to)))fail(id+'.links');
+  for(const o of a.objects){
+   fields(o,['id','kind','x'],id+'.object');finite(o.x,o.id+'.x');
+   if(o.deathView){const d=o.deathView;fields(d,['actor','tick','until','shape'],o.id+'.deathView');integer(d.tick,o.id+'.deathView.tick');if(d.tick>s.tick||d.until!==d.tick+REMAINS_TICKS||!MOTION_SHAPES.includes(d.shape)||typeof d.actor!=='string')fail(o.id+'.deathView');}
+  }
+ }
+ fields(s.observation,['version','person','sequence','started'],'observation');
+ if(!object(s.hero)||s.observation.person!==s.hero.lineage||own(s.actorStates,s.hero.lineage))fail('observation.person');
+ for(const [id,h]of Object.entries(s.actorStates))if(h?.lineage!==id)fail('actorStates.'+id);
+ const actors=[s.hero,...Object.values(s.actorStates)];
+ const companionIds=new Set();
+ if(s.hero.actorGeneration!==s.generation)fail('generation');
+ if(s.nextGeneration<Math.max(1,...actors.map(h=>h.actorGeneration)))fail('nextGeneration');
+ for(const h of actors){
+  const id=h?.lineage||'actor';fields(h,['name','lineage','actorGeneration','area','x','hp','maxHp','energy','hunger','gold','born','alive','profession','race','family','culture','appearance','inventory','memory','personality','stats','destiny','career','conditions','habits','companions','quests','bag','equipment','counters','reputation','travel','mind','magic','weatherTaste','planning','commitments','innerLife','money','workMaterials','relations','social','civic','affiliation','property','campLife','sketchbook','smoking','startAge','life','biography','timeline','timelineDropped','storyRarity','stories','atlas'],id);
+  if(!s.areas[h.area]||!s.people[id]||typeof h.alive!=='boolean')fail(id+'.body');
+  if(!Number.isSafeInteger(h.actorGeneration)||h.actorGeneration===0||(h.actorMode==='npc')!==(h.actorGeneration<0))fail(id+'.actorGeneration');
+  if(h!==s.hero)array(h.actorJournal,id+'.actorJournal');
+  fields(h.ruleFlags,[],id+'.ruleFlags');if(JSON.stringify(h.ruleFlags)!==JSON.stringify(s.rules))fail(id+'.ruleFlags');
+  for(const k of ['hp','maxHp','energy','hunger','gold','x','born'])finite(h[k],id+'.'+k);
+  integer(h.born,id+'.born');if(h.born>s.tick)fail(id+'.born');
+  for(const k of ['conditions','habits','companions','quests','bag','biography','timeline'])array(h[k],id+'.'+k);
+  for(const c of h.companions){fields(c,['uid','id','hp','maxHp'],id+'.companions');if(typeof c.uid!=='string'||!c.uid||companionIds.has(c.uid)||c.person&&(!s.people[c.person]||c.uid!==c.person)||!Number.isFinite(c.hp)||!(c.hp>0)||!Number.isFinite(c.maxHp)||c.hp>c.maxHp)fail(id+'.companions.uid');companionIds.add(c.uid);}
+  if(own(h,'partyCombat'))validatePartyCombatRound(s,id,h.partyCombat);
+  if(own(h,'pairDrill'))validatePairDrill(s,id,h.pairDrill);
+  if(own(h,'pairCombat'))validatePairPreparation(s,id,h.pairCombat);
+  for(const q of h.quests)if(q.kind==='supply'&&q.cargo){fields(q.foodCargo,['owner','quantity'],id+'.quest.foodCargo');if(!Number.isFinite(q.foodCargo.quantity)||q.foodCargo.quantity<0)fail(id+'.quest.foodCargo.quantity');}
+  fields(h.inventory,['herbs','potions','relics','rations'],id+'.inventory');
+  for(const k of ['herbs','potions','relics','rations'])finite(h.inventory[k],id+'.inventory.'+k);
+  fields(h.memory,['places','people','avoided','facts','threats','npcNotes'],id+'.memory');
+  fields(h.equipment,['weapon','armor','charm'],id+'.equipment');
+  fields(h.career,['xp','rank','path','records','history','lastChange'],id+'.career');
+  for(const k of ['personality','stats','destiny','counters','reputation','travel','mind','magic','weatherTaste','planning','commitments','innerLife','money','workMaterials','relations','social','civic','affiliation','property','campLife','sketchbook','smoking','storyRarity','stories'])fields(h[k],[],id+'.'+k);
+  for(const [domain,keys]of Object.entries(actorDomains))fields(h[domain],keys,id+'.'+domain);
+  for(const [domain,key]of [['magic','spells'],['commitments','memories'],['commitments','decisions'],['innerLife','facets'],['innerLife','history'],['workMaterials','cargo'],['civic','holdings'],['affiliation','changes'],['campLife','history'],['stories','completed']])array(h[domain][key],id+'.'+domain+'.'+key);
+  for(const [domain,key]of [['magic','cooldowns'],['workMaterials','known'],['affiliation','paths'],['sketchbook','works'],['storyRarity','affinity'],['memory','avoided'],['memory','threats'],['memory','npcNotes']])fields(h[domain][key],[],id+'.'+domain+'.'+key);
+  for(const key of ['places','people','facts'])array(h.memory[key],id+'.memory.'+key);
+  for(const [domain,keys]of Object.entries({personality:actorDomains.personality,stats:actorDomains.stats,magic:['mana','maxMana','casts'],mind:['stress','lastCoin','settled'],weatherTaste:['sensitivity'],planning:['preparations'],smoking:['tobacco','uses','affectedUntil'],sketchbook:['paper','practice'],storyRarity:['budget','started','nextEligible']}))for(const key of keys)finite(h[domain][key],id+'.'+domain+'.'+key);
+  if(h.magic.spells.some(spell=>typeof spell!=='string')||!(h.maxHp>0))fail(id+'.body');
+  fields(h.life,['phase','home','ended'],id+'.life');if(h.life.ended&&h.alive)fail(id+'.life.ended');
+  fields(h.property,['known','lost','memory','origin','nextAttempt'],id+'.property');fields(h.property.memory,['losses','lastCheck'],id+'.property.memory');fields(h.property.origin,['eligible','checked','granted'],id+'.property.origin');
+  if(h.delve){const d=h.delve;fields(d,['root','room','started','floors','cleared','attemptRoot','attemptTracking'],id+'.delve');if(!['recorded','untracked'].includes(d.attemptTracking))fail(id+'.delve.attemptTracking');if(d.attemptTracking==='recorded'&&h.delveMemory?.places[d.attemptRoot]?.id!==d.attemptId)fail(id+'.delve.attemptId');}
+  if(h.delveMemory){fields(h.delveMemory,['serial','places','starts','adoptions','resumes','contacts','actions','refusals'],id+'.delveMemory');if(own(h.delveMemory,'imports'))fail(id+'.delveMemory.imports');}
+  fields(h.atlas,['version','known','visited','roads','visits'],id+'.atlas');
+  for(const k of ['known','visited','roads'])array(h.atlas[k],id+'.atlas.'+k);
+  const p=s.people[id];fields(p.actorLink,['version','health','inventory','wallet','energy','hunger','area','x'],id+'.actorLink');
+  fields(p.agenda,['wealth','job','task'],id+'.agenda');
+  if(h.actorMode!=='npc'||h.startAge!==null){fields(p.ageOrigin,['at','years'],id+'.ageOrigin');finite(h.startAge,id+'.startAge');}
+  if(JSON.stringify(p.actorLink.inventory)!==JSON.stringify(h.inventory))fail(id+'.actorLink.inventory');
+  const camp=s.areas[h.area].temporaryCamp;if(camp?.mode==='personal'&&!h.transit&&h.actorMode!=='npc'&&!camp.returns[h.lineage])fail(h.area+'.temporaryCamp.returns');
+ }
+ if(own(s,'materialDeliveries'))validateMaterialDeliveries(s);
+ for(const [id,p]of Object.entries(s.people)){
+  fields(p,['id','name','parents','alive','health','status','race','culture','family'],id);if(p.id!==id||typeof p.alive!=='boolean')fail(id);array(p.parents,id+'.parents');finite(p.health,id+'.health');
+  if(p.alive){fields(p.needs,['hunger','energy','loneliness','meals','sleeps','conversations'],id+'.needs');fields(p.agenda,['job','task','wealth','knowledge','bonds'],id+'.agenda');fields(p.navigation,['places','roads'],id+'.navigation');}
+  const task=p.agenda?.task;if(task?.kind==='work'){if(!own(task,'workMode')||![null,'service','production'].includes(task.workMode)||own(task,'goodsLegacy'))fail(id+'.agenda.task.workMode');}
+  if(p.knifeRefit)validateRefitSave(s,id,p.knifeRefit);
+  if(p.familyNeeds||p.npcIntentions)validateNPCDeeds(s,id,p);
+  if(p.companionAffairs)validateCompanionAffairs(s,id,p.companionAffairs);
+  if(own(p,'materialMemory'))validateMaterialMemory(s,id,p.materialMemory);
+  if(own(p,'materialCargo'))validateMaterialCargo(s,id,p.materialCargo);
+  if(own(p,'partyCombat'))validatePartyCombatAction(s,id,p.partyCombat);
+  if(own(p,'pairPractice'))validatePairPractice(s,id,p.pairPractice);
+  if(p.itemRepair)validateItemRepairSave(s,id,p.itemRepair);
+  if(p.itemRepairCommission){const c=p.itemRepairCommission;fields(c,['version','client','order'],id+'.itemRepairCommission');if(s.people[c.client]?.itemRepair?.orders[c.order]?.master!==id)fail(id+'.itemRepairCommission.order');}
+  if(own(p,'itemRepairWorkTick'))integer(p.itemRepairWorkTick,id+'.itemRepairWorkTick');
+  if(p.bioMaterialKnowledge){fields(p.bioMaterialKnowledge,[],id+'.bioMaterialKnowledge');for(const [kind,k]of Object.entries(p.bioMaterialKnowledge)){fields(k,['source','recordedAt'],id+'.bioMaterialKnowledge');if(kind!=='wolf-fang'||typeof k.source!=='string')fail(id+'.bioMaterialKnowledge.source');integer(k.recordedAt,id+'.bioMaterialKnowledge.recordedAt');}}
+  if(p.itemRepairKnowledge){fields(p.itemRepairKnowledge,['version','bases'],id+'.itemRepairKnowledge');fields(p.itemRepairKnowledge.bases,[],id+'.itemRepairKnowledge.bases');for(const k of Object.values(p.itemRepairKnowledge.bases)){fields(k,['source','recordedAt'],id+'.itemRepairKnowledge.base');if(typeof k.source!=='string')fail(id+'.itemRepairKnowledge.source');integer(k.recordedAt,id+'.itemRepairKnowledge.recordedAt');}}
+  if(p.refitCommission){fields(p.refitCommission,['version','client','order'],id+'.refitCommission');const c=p.refitCommission,o=s.people[c.client]?.knifeRefit?.orders[c.order];if(!o||o.master!==id)fail(id+'.refitCommission.order');}
+  if(own(p,'refitWorkTick'))integer(p.refitWorkTick,id+'.refitWorkTick');
+  if(p.forging){const q=p.forging,key=id+'.forging';fields(q,['version','serial','recipes','orders','active','after'],key);integer(q.serial,key+'.serial');integer(q.after,key+'.after');fields(q.recipes,[],key+'.recipes');fields(q.orders,[],key+'.orders');
+   for(const [recipe,r]of Object.entries(q.recipes)){if(recipe!=='working-knife')fail(key+'.recipe');fields(r,['learnedAt','origin','teacher'],key+'.knowledge');integer(r.learnedAt,key+'.learnedAt');if(!['current-role','lesson'].includes(r.origin)||r.teacher!==null&&!s.people[r.teacher])fail(key+'.teacher');}
+   if(q.active!==null&&(!q.orders[q.active]||q.orders[q.active].status!=='working'))fail(key+'.active');
+   for(const [oid,o]of Object.entries(q.orders)){fields(o,['id','recipe','owner','master','area','workshop','started','progress','required','lastWorkTick','status','materials'],key+'.order');if(o.id!==oid||o.owner!==id||o.master!==id||o.recipe!=='working-knife'||!s.areas[o.area]||![4,6].includes(o.required)||!['working','completed'].includes(o.status))fail(key+'.order');for(const k of ['started','progress'])integer(o[k],key+'.'+k);integer(o.lastWorkTick,key+'.lastWorkTick',-1);if(o.progress>o.required||o.status==='working'&&q.active!==oid||o.status==='completed'&&(o.progress!==o.required||o.item!==oid+'/knife'||!Number.isSafeInteger(o.finished)))fail(key+'.progress');array(o.materials,key+'.materials');if(o.materials.length!==2)fail(key+'.materials');for(const [i,m]of o.materials.entries()){fields(m,['id','kind','owner','source','sourceOwner','acquiredAt','price','state'],key+'.material');if(m.id!==oid+'/material/'+i||m.owner!==id||!(m.kind===['blade-blank','handle'][i]||i===0&&m.kind==='wolf-fang')||m.state!==(o.status==='completed'?'consumed':'reserved')||m.price!==(m.kind==='wolf-fang'?0:3)||typeof m.source!=='string'||typeof m.sourceOwner!=='string')fail(key+'.material');integer(m.acquiredAt,key+'.acquiredAt');if(m.kind==='wolf-fang'){validateMaterialOrigin(s,m.provenance,key+'.material.provenance');if(m.provenance.item!==m.provenance.body+'/fang'||m.source!==m.provenance.body||m.sourceOwner!=='animal/'+m.provenance.animal||o.status==='working'&&(!m.original||m.original.id!==m.provenance.item||m.original.physical?.holder.kind!=='forge-order'||m.original.physical.holder.id!==oid)||o.status==='completed'&&m.original)fail(key+'.material.original');}}}
+   if(q.study){fields(q.study,['teacher','paid','started','progress','lastTick'],key+'.study');if(!s.people[q.study.teacher]||q.study.paid!==2)fail(key+'.study');integer(q.study.started,key+'.study.started');integer(q.study.lastTick,key+'.study.lastTick',-1);integer(q.study.progress,key+'.study.progress');if(q.study.progress>2)fail(key+'.study.progress');}
+   if(q.offer){fields(q.offer,['item','price','area','at'],key+'.offer');if(typeof q.offer.item!=='string'||!s.areas[q.offer.area])fail(key+'.offer');integer(q.offer.price,key+'.offer.price');integer(q.offer.at,key+'.offer.at');}
+  }
+  if(p.legacy){const h=actors.find(h=>h.lineage===id);if(!h)fail(id+'.legacy.actor');fields(p.legacy,['wealth','keepsakes','gifts'],id+'.legacy');const items=[...h.bag,...Object.values(h.equipment).filter(Boolean)];if(JSON.stringify(p.legacy.keepsakes)!==JSON.stringify(items))fail(id+'.legacy.keepsakes');}
+  const camp=s.areas[p.area]?.temporaryCamp;if(camp?.mode==='personal'&&!camp.returns[id])fail(p.area+'.temporaryCamp.returns');
+ }
+ // Versioned lazy records may be absent, but an existing record must use this
+ // schema's exact contract. There is no future/older-record preservation path.
+ const revisionRecords=new Set();
+ for(const [id,r]of Object.entries(s.workshopDisputes||{})){fields(r,['id','version','votes','people','status'],id);if(r.id!==id)fail(id+'.id');integer(r.version,id+'.version');revisionRecords.add(r);for(const vote of Object.values(r.votes)){integer(vote.version,id+'.vote.version');if(vote.version>r.version)fail(id+'.vote.version');revisionRecords.add(vote);}}
+ function inspect(v,path='world'){
+  if(v===null)return;
+  if(typeof v==='number'){finite(v,path);return;}
+  if(typeof v!=='object')return;
+  if(v!==s&&own(v,'version')&&!revisionRecords.has(v)&&v.version!==1)fail(path+'.version');
+  if(v.durability)validateItemCondition(s,v,path+'.durability');
+  if(v.kind==='bioMaterial'){if(v.base!=='wolf-fang'||v.id!==v.bioMaterial?.body+'/fang'||v.slot!=='material')fail(path+'.bioMaterial');validateMaterialOrigin(s,v.bioMaterial,path+'.bioMaterial');}
+  if(v.toolKind==='knife'&&v.refit){const r=v.refit;fields(r,['version','order','recipe','mode','master','finished','actions','limit','fee','material','before'],path+'.refit');if(!['edge','precision'].includes(r.mode)||r.recipe!=='knife-'+r.mode||!s.people[r.master]||![2,3].includes(r.limit)||![3,4].includes(r.actions)||r.fee!==12||v.base!=='blade'||v.power>r.limit)fail(path+'.refit');integer(r.finished,path+'.refit.finished');fields(r.material,['id','owner','source','sourceOwner','acquiredAt','price','state'],path+'.refit.material');if(r.material.state!=='consumed')fail(path+'.refit.material.state');fields(r.before,['name','power'],path+'.refit.before');finite(r.before.power,path+'.refit.before.power');}
+  for(const [k,value]of Object.entries(v))inspect(value,path+'.'+k);
+ }
+ inspect(s);return s;
+}
+
+function validateItemCondition(s,item,key){
+ const d=item.durability;fields(d,['version','born','max','initial','current','used','restored','repairs','lastTick','lastUse'],key);
+ if(!['weapon','armor'].includes(item.slot))fail(key+'.slot');for(const k of ['born','max','initial','current','used','restored','repairs'])integer(d[k],key+'.'+k);integer(d.lastTick,key+'.lastTick',-1);
+ if(d.max<1||d.initial!==d.max||d.current>d.max||d.initial+d.restored-d.used!==d.current||d.born>s.tick||d.lastTick>s.tick||d.lastTick>=0&&d.lastTick<d.born)fail(key+'.accounting');
+ if(d.used===0?(d.lastUse!==null||d.lastTick!==-1):!d.lastUse)fail(key+'.lastUse');
+ if(d.lastUse){fields(d.lastUse,['tick','actor','kind','source'],key+'.lastUse');if(d.lastUse.tick!==d.lastTick||!s.people[d.lastUse.actor]||!['attack','armor','spell','gather'].includes(d.lastUse.kind)||typeof d.lastUse.source!=='string')fail(key+'.lastUse');}
+ if(own(d,'brokenAt')){integer(d.brokenAt,key+'.brokenAt');if(d.brokenAt<d.born||d.brokenAt>s.tick)fail(key+'.brokenAt');}
+ if(d.repairs&&!d.lastRepair)fail(key+'.lastRepair');if(d.lastRepair){const r=d.lastRepair;fields(r,['tick','master','order','restored'],key+'.lastRepair');integer(r.tick,key+'.lastRepair.tick');integer(r.restored,key+'.lastRepair.restored',1);if(!s.people[r.master]||typeof r.order!=='string'||r.tick<d.born||r.tick>s.tick||r.restored>d.max||d.repairs<1)fail(key+'.lastRepair');}
+}
+function validateMaterialOrigin(s,p,key){
+ fields(p,['version','body','deathId','animal','animalName','species','extractor','extractorName','extractedAt'],key);integer(p.extractedAt,key+'.extractedAt');if(p.species!=='wolf'||typeof p.animalName!=='string'||typeof p.extractorName!=='string'||typeof p.body!=='string'||!p.body.startsWith('corpse:enemy:'+p.animal+':')||p.deathId!==p.body.replace(/^corpse:/,'death:')||!s.people[p.extractor]||p.extractedAt>s.tick)fail(key+'.source');
+ const b=s.remains?.byId[p.body];if(b&&(b.source.id!==p.animal||b.deathId!==p.deathId||b.death.species!=='wolf'))fail(key+'.body');
+}
+function validatePartyCombatRound(s,id,r){
+ const key=id+'.partyCombat';fields(r,['version','tick','enemy','people','guard','replied','absorbed'],key);integer(r.tick,key+'.tick');array(r.people,key+'.people');
+ if(r.version!==1||r.tick>s.tick||typeof r.enemy!=='string'||!r.enemy||typeof r.replied!=='boolean'||r.people.length>3||new Set(r.people).size!==r.people.length||r.people.some(p=>!s.people[p])||r.guard!==null&&!r.people.includes(r.guard)||own(r,'killer')&&!r.people.includes(r.killer))fail(key);
+ integer(r.absorbed,key+'.absorbed');
+ if(own(r,'protected')&&!r.people.includes(r.protected))fail(key+'.protected');
+}
+function validatePartyCombatAction(s,id,a){
+ const key=id+'.partyCombat';fields(a,['version','tick','enemy','leader','action','target','energy','medicine','healed','damage','intercepted','reason'],key);integer(a.tick,key+'.tick');
+ for(const k of ['energy','medicine','healed','damage','intercepted']){finite(a[k],key+'.'+k);if(a[k]<0)fail(key+'.'+k);}
+ if(a.version!==1||a.tick>s.tick||!s.people[a.leader]||typeof a.enemy!=='string'||!a.enemy||typeof a.target!=='string'||!a.target||typeof a.reason!=='string'||!['heal','cover','attack','prepare','paired-attack'].includes(a.action)||a.energy>100)fail(key);
+ if(a.action==='heal'&&(!s.people[a.target]||!(a.medicine>0)||a.damage||a.intercepted)||a.action!=='heal'&&(a.medicine||a.healed)||a.action==='cover'&&(a.target!==a.leader||a.damage)||['attack','prepare','paired-attack'].includes(a.action)&&(a.target!==a.enemy||a.intercepted)||a.action==='prepare'&&a.damage)fail(key+'.effect');
+ if(['prepare','paired-attack'].includes(a.action)&&!a.pair)fail(key+'.pair');
+ if(a.pair){const p=a.pair;fields(p,['started','partner','phase'],key+'.pair');integer(p.started,key+'.pair.started');if(!s.people[p.partner]||p.partner===id||!['preparation','release'].includes(p.phase)||p.started>a.tick||p.phase==='preparation'&&p.started!==a.tick||p.phase==='release'&&p.started+1!==a.tick||!['cover','prepare','paired-attack'].includes(a.action)||a.action==='prepare'&&p.phase!=='preparation'||a.action==='paired-attack'&&p.phase!=='release')fail(key+'.pair');}
+}
+function validatePairPractice(s,id,p){
+ const key=id+'.pairPractice';fields(p,['version','partners','lastActionTick'],key);integer(p.lastActionTick,key+'.lastActionTick',-1);fields(p.partners,[],key+'.partners');
+ if(p.version!==1||p.lastActionTick>s.tick||Object.keys(p.partners).length>8)fail(key);
+ for(const [other,r]of Object.entries(p.partners)){
+  fields(r,['partner','name','guard','striker','operations','total','last'],key+'.partner');array(r.operations,key+'.operations');integer(r.total,key+'.total',1);integer(r.last,key+'.last');
+  if(r.partner!==other||!s.people[other]||other===id||typeof r.name!=='string'||new Set([r.guard,r.striker]).size!==2||![r.guard,r.striker].includes(id)||![r.guard,r.striker].includes(other)||r.total>3||r.operations.length!==r.total||r.last>s.tick||r.last>p.lastActionTick)fail(key+'.partner');
+  const ids=new Set(),ticks=new Set();for(const o of r.operations){fields(o,['id','tick','area','camp','guard','striker','energy'],key+'.operation');integer(o.tick,key+'.operation.tick');if(typeof o.id!=='string'||!o.id||typeof o.camp!=='string'||!s.areas[o.area]||o.guard!==r.guard||o.striker!==r.striker||o.energy!==2||o.tick>r.last||ids.has(o.id)||ticks.has(o.tick))fail(key+'.operation');ids.add(o.id);ticks.add(o.tick);}
+  if(r.operations.at(-1).tick!==r.last||(r.total===3?(r.method!=='covered-windup'||r.learnedAt!==r.last):own(r,'method')||own(r,'learnedAt')))fail(key+'.method');
+ }
+}
+function validatePairDrill(s,id,r){
+ const key=id+'.pairDrill';fields(r,['version','id','number','area','guard','striker','started','lastTick','actions','status','reason'],key);
+ for(const k of ['number','started','actions'])integer(r[k],key+'.'+k);integer(r.lastTick,key+'.lastTick',-1);
+ if(r.version!==1||typeof r.id!=='string'||!s.areas[r.area]||!s.people[r.guard]||!s.people[r.striker]||r.guard===r.striker||!['active','paused','done'].includes(r.status)||r.started>s.tick||r.lastTick>s.tick||r.actions>3||r.reason!==null&&typeof r.reason!=='string')fail(key);
+ if(r.status==='done'){integer(r.completed,key+'.completed');if(r.completed!==r.lastTick||r.actions<1)fail(key+'.completed');}
+}
+function validatePairPreparation(s,id,r){
+ const key=id+'.pairCombat';fields(r,['version','status','enemy','area','guard','striker','started','strikerHealth','reason'],key);integer(r.started,key+'.started');finite(r.strikerHealth,key+'.strikerHealth');
+ if(r.version!==1||!['preparing','released','cancelled'].includes(r.status)||typeof r.enemy!=='string'||!r.enemy||!s.areas[r.area]||!s.people[r.guard]||!s.people[r.striker]||r.guard===r.striker||r.started>s.tick||r.strikerHealth<=0||typeof r.reason!=='string')fail(key);
+ if(r.status!=='preparing'){integer(r.ended,key+'.ended');if(r.ended<r.started||r.ended>s.tick||r.status==='released'&&r.ended!==r.started+1)fail(key+'.ended');}
+}
+function validateMaterialMemory(s,id,m){
+ const key=id+'.materialMemory';fields(m,['version','sources','stores','after','lastActionTick','history'],key);if(m.version!==1)fail(key+'.version');integer(m.after,key+'.after');integer(m.lastActionTick,key+'.lastActionTick',-1);if(m.after>s.tick+480||m.lastActionTick>s.tick)fail(key+'.clock');array(m.history,key+'.history');if(m.history.length>8)fail(key+'.history');
+ for(const map of ['sources','stores']){fields(m[map],[],key+'.'+map);if(Object.keys(m[map]).length>24)fail(key+'.'+map);for(const [area,k]of Object.entries(m[map])){fields(k,['area','name','quantity','seen'],key+'.'+map);integer(k.quantity,key+'.quantity');integer(k.seen,key+'.seen');if(k.area!==area||!s.areas[area]||typeof k.name!=='string'||k.seen>s.tick)fail(key+'.observation');if(map==='sources'&&k.x!==42)fail(key+'.source.x');}}
+ for(const e of m.history){fields(e,['tick','text'],key+'.history');integer(e.tick,key+'.history.tick');if(e.tick>s.tick||typeof e.text!=='string')fail(key+'.history');}
+}
+function validateMaterialCargo(s,id,c){
+ const key=id+'.materialCargo';fields(c,['id','order','kind','source','owner','holder','quantity','collected'],key);for(const k of ['quantity','collected'])integer(c[k],key+'.'+k);const o=s.materialDeliveries?.orders[c.order];if(!o||o.carrier!==id||o.client!==c.owner||o.cargo!==c.id||c.id!==o.id+'/cargo'||c.holder!==id||c.kind!=='workshop-raw'||c.source!==o.source||!c.quantity||c.quantity>o.quantity||c.collected>s.tick||o.receipt)fail(key+'.custody');
+}
+function validateMaterialDeliveries(s){
+ const r=s.materialDeliveries,key='materialDeliveries';fields(r,['version','serial','orders'],key);integer(r.serial,key+'.serial');if(r.version!==1)fail(key+'.version');fields(r.orders,[],key+'.orders');
+ const occupied=new Set();for(const [id,o]of Object.entries(r.orders)){
+  fields(o,['id','client','carrier','property','home','source','sourceName','returnArea','returnX','quantity','status','offered','quoteUntil','deadline','budget','fee','advance','escrow','paid','delivered','work','lastWorkTick','reason','paused'],id);
+  if(id!==o.id||!/^material-delivery\/[1-9]\d*$/.test(id)||Number(id.split('/')[1])>r.serial||!s.people[o.client]||!s.people[o.carrier]||o.client===o.carrier||!s.areas[o.home]||!s.areas[o.source]||!s.areas[o.returnArea]||typeof o.sourceName!=='string'||typeof o.property!=='string'||typeof o.reason!=='string')fail(id+'.reference');
+  for(const k of ['quantity','offered','quoteUntil','deadline','budget','fee','advance','escrow','paid','delivered','work'])integer(o[k],id+'.'+k);integer(o.lastWorkTick,id+'.lastWorkTick',-1);finite(o.returnX,id+'.returnX');
+  if(o.quantity<1||o.quantity>2||o.delivered>o.quantity||o.offered>s.tick||o.quoteUntil!==o.offered+48||o.deadline!==o.offered+960||o.budget<6||o.budget>8||![6,8].includes(o.fee)||o.fee>o.budget||![0,2].includes(o.advance)||o.paid<o.advance||o.work>3||o.lastWorkTick>s.tick||o.budget!==o.paid+o.escrow+(o.refunded||0))fail(id+'.balance');
+  integer(o.refunded||0,id+'.refunded');if(o.advanceDebt!==undefined)integer(o.advanceDebt,id+'.advanceDebt');
+  if(!['quoted','outward','collecting','returning','declined','completed','partial','failed','unresolved'].includes(o.status))fail(id+'.status');
+  if(['quoted','outward','collecting','returning'].includes(o.status)){for(const person of [o.client,o.carrier]){if(occupied.has(person))fail(id+'.controller');occupied.add(person);}}
+  if(o.status==='quoted'&&(o.advance!==0||o.paid!==0||o.paused!==null))fail(id+'.quote');
+  if(o.status!=='quoted'&&o.status!=='declined'&&o.advance!==2)fail(id+'.advance');
+  if(['outward','collecting','returning'].includes(o.status)&&o.accepted===undefined)fail(id+'.accepted');
+  if(['declined','completed','partial','failed','unresolved'].includes(o.status)&&(o.ended===undefined||o.escrow!==0))fail(id+'.ended');
+  if(o.status==='declined'&&(o.paid!==0||o.advance!==0))fail(id+'.declined');
+  if(o.status==='completed'&&(o.delivered!==o.quantity||!o.receipt)||o.status==='partial'&&(!(o.delivered>0&&o.delivered<o.quantity)||!o.receipt))fail(id+'.delivered');
+  if(!['completed','partial'].includes(o.status)&&o.delivered!==0)fail(id+'.delivered');
+  if(o.status==='returning'&&s.people[o.carrier]?.materialCargo?.order!==id)fail(id+'.cargo');
+  if(o.collected!==undefined){integer(o.collected,id+'.collected');if(o.collected>s.tick||o.work!==3||o.cargo!==id+'/cargo')fail(id+'.collected');}
+  if(o.paused){fields(o.paused,['kind'],id+'.paused');if(o.paused.kind==='actor'){if(!Object.hasOwn(o.paused,'goal'))fail(id+'.paused.goal');}else if(o.paused.kind==='personal'){if(!Object.hasOwn(o.paused,'task'))fail(id+'.paused.task');}else fail(id+'.paused.kind');}
+  fields(o.workplace,['area','x'],id+'.workplace');finite(o.workplace.x,id+'.workplace.x');if(!s.areas[o.workplace.area]||typeof o.checkedWorkplace!=='boolean')fail(id+'.workplace');
+  if(o.accepted!==undefined){integer(o.accepted,id+'.accepted');if(o.accepted<o.offered||o.accepted>s.tick)fail(id+'.accepted');}
+  if(o.ended!==undefined){integer(o.ended,id+'.ended');if(o.ended<o.offered||o.ended>s.tick||typeof o.outcome!=='string')fail(id+'.ended');}
+  if(o.receipt){const c=o.receipt;fields(c,['tick','from','to','cargo','source','quantity','store'],id+'.receipt');integer(c.tick,id+'.receipt.tick');integer(c.quantity,id+'.receipt.quantity');if(c.tick>s.tick||c.from!==o.carrier||c.to!==o.client||c.cargo!==o.id+'/cargo'||c.source!==o.source||c.quantity!==o.delivered||c.quantity<1||typeof c.store!=='string'||!['completed','partial'].includes(o.status))fail(id+'.receipt');}
+ }
+}
+function validateCompanionAffairs(s,id,n){
+ const key=id+'.companionAffairs',reference=(domain,value)=>typeof value==='string'&&(domain==='family'?value.startsWith(id+'/family/'):domain==='learning'&&value.startsWith('learning/'));
+ fields(n,['version','current','agreement','postponed','history','lastActionTick','lastBasis','reviewAfter'],key);if(n.version!==1)fail(key+'.version');integer(n.lastActionTick,key+'.lastActionTick',-1);integer(n.reviewAfter,key+'.reviewAfter');if(n.lastActionTick>s.tick||n.lastBasis!==null&&typeof n.lastBasis!=='string'||n.reviewAfter>s.tick+48)fail(key+'.clock');array(n.history,key+'.history');
+ if(n.current){const c=n.current;fields(c,['id','domain','since'],key+'.current');integer(c.since,key+'.current.since');if(!reference(c.domain,c.id)||c.since>s.tick)fail(key+'.current');}
+ if(n.agreement){const a=n.agreement;fields(a,['since','until','from','to','toName','path','selected','basis'],key+'.agreement');for(const k of ['since','until'])integer(a[k],key+'.agreement.'+k);array(a.path,key+'.agreement.path');if(a.since>s.tick||a.until<=a.since||a.until-a.since>48||typeof a.toName!=='string'||typeof a.selected!=='string'||typeof a.basis!=='string'||a.path.length<2||a.path.length>3||a.path[0]!==a.from||a.path.at(-1)!==a.to||a.path.some(v=>typeof v!=='string'||!s.areas[v])||new Set(a.path).size!==a.path.length)fail(key+'.agreement');}
+ if(n.postponed){const r=n.postponed;fields(r,['id','domain','family','revision','since','until','reason'],key+'.postponed');for(const k of ['revision','since','until'])integer(r[k],key+'.postponed.'+k);if(!reference(r.domain,r.id)||!reference('family',r.family)||r.since>s.tick||r.until<=r.since||r.until-r.since>48||typeof r.reason!=='string')fail(key+'.postponed');}
+ for(const e of n.history){fields(e,['tick','area','outcome','selected','reason'],key+'.history');integer(e.tick,key+'.history.tick');if(e.tick>s.tick||typeof e.area!=='string'||!['shared','parted','postponed'].includes(e.outcome)||e.selected!==null&&typeof e.selected!=='string'||typeof e.reason!=='string')fail(key+'.history');}
+}
+function validateNPCDeeds(s,id,p){
+ const q=p.familyNeeds,key=id+'.familyNeeds';
+ if(q){fields(q,['version','serial','cases','history'],key);integer(q.serial,key+'.serial');fields(q.cases,[],key+'.cases');array(q.history,key+'.history');
+  for(const [person,c]of Object.entries(q.cases)){
+   fields(c,['id','person','name','area','x','health','maximum','ailment','status','since','seen','source','revision','decision','purchases'],key+'.case');const serial=Number(c.id?.slice((id+'/family/').length));if(c.person!==person||!s.people[person]||c.id!==id+'/family/'+serial||!Number.isSafeInteger(serial)||serial<1||serial>q.serial||typeof c.name!=='string'||typeof c.area!=='string'||!['known','active','supplied','unneeded','missing'].includes(c.status))fail(key+'.identity');for(const k of ['x','health','maximum'])finite(c[k],key+'.'+k);for(const k of ['since','seen','revision'])integer(c[k],key+'.'+k);if(c.health<=0||c.maximum<=0||c.seen<c.since||c.seen>s.tick)fail(key+'.observation');fields(c.source,['kind','observer','tick'],key+'.source');if(c.source.kind!=='sight'||c.source.observer!==id||c.source.tick!==c.since)fail(key+'.source');array(c.purchases,key+'.purchases');for(const r of c.purchases){fields(r,['tick','area','quantity','price'],key+'.purchase');integer(r.tick,key+'.purchase.tick');if(![1,2].includes(r.quantity)||r.price!==r.quantity*4||typeof r.area!=='string'||r.tick>s.tick)fail(key+'.purchase');}
+   if(c.status==='supplied'){fields(c.receipt,['tick','from','to','medicine'],key+'.receipt');integer(c.receipt.tick,key+'.receipt.tick');if(c.receipt.from!==id||c.receipt.to!==person||![1,2].includes(c.receipt.medicine)||c.receipt.tick<c.since||c.receipt.tick>s.tick)fail(key+'.receipt');}
+   if(c.decision){fields(c.decision,['tick','signature','outcome','reason'],key+'.decision');integer(c.decision.tick,key+'.decision.tick');if(typeof c.decision.signature!=='string'||c.decision.outcome!=='deferred'||typeof c.decision.reason!=='string')fail(key+'.decision');}
+  }
+ }
+ const n=p.npcIntentions,nkey=id+'.npcIntentions';if(!n)return;fields(n,['version','current','paused','history','lastActionTick','lastDecisionTick'],nkey);for(const k of ['lastActionTick','lastDecisionTick']){integer(n[k],nkey+'.'+k,-1);if(n[k]>s.tick)fail(nkey+'.'+k);}fields(n.paused,[],nkey+'.paused');array(n.history,nkey+'.history');
+ const domain=d=>['family','manufacture','learning','journey','commission','occupation'].includes(d);
+ if(n.current){const c=n.current;fields(c,['domain','id','title','since','reason'],nkey+'.current');integer(c.since,nkey+'.current.since');if(!domain(c.domain)||typeof c.id!=='string'||typeof c.title!=='string'||typeof c.reason!=='string'||c.since>s.tick)fail(nkey+'.current');}
+ for(const [key,r]of Object.entries(n.paused)){fields(r,['domain','id','task','parked'],nkey+'.paused');integer(r.parked,nkey+'.paused.parked');fields(r.task,['kind','target','x','remaining'],nkey+'.paused.task');finite(r.task.x,nkey+'.paused.task.x');if(r.id!==key||!domain(r.domain)||r.domain==='family'||r.parked>s.tick||typeof r.task.kind!=='string'||typeof r.task.target!=='string')fail(nkey+'.paused');if(r.task.kind==='work'&&(!own(r.task,'workMode')||![null,'service','production'].includes(r.task.workMode)))fail(nkey+'.paused.workMode');}
+ for(const e of n.history){fields(e,['tick','kind','from','to','reason'],nkey+'.history');integer(e.tick,nkey+'.history.tick');if(e.tick>s.tick||!['selected','refused','resumed','outdated'].includes(e.kind)||typeof e.reason!=='string')fail(nkey+'.history');}
+}
+function validateBodyMaterial(s,b,key){
+ const m=b.material;fields(m,['version','id','kind','created','expires','initial','remaining','lost','state','extracted','work'],key);for(const k of ['created','expires','initial','remaining','lost'])integer(m[k],key+'.'+k);
+ if(b.source.kind!=='enemy'||b.death.species!=='wolf'||b.death.shape!=='wolf'||m.kind!=='wolf-fang'||m.id!==b.id+'/fang'||m.created!==b.death.tick||m.expires!==m.created+720||m.initial!==1||!['available','extracted','spoiled'].includes(m.state)||m.remaining>1||m.lost>1||m.remaining+m.lost+Number(Boolean(m.extracted))!==1||m.state==='available'&&(m.remaining!==1||m.extracted)||m.state==='spoiled'&&(m.lost!==1||m.extracted)||m.state==='extracted'&&(!m.extracted||m.remaining||m.lost))fail(key+'.accounting');
+ if(m.extracted){const e=m.extracted;fields(e,['item','person','tick','actions'],key+'.extracted');if(e.item!==m.id||!s.people[e.person]||e.actions!==3||e.tick<m.created||e.tick>m.expires||e.tick>s.tick)fail(key+'.extracted');}
+ if(m.work){const w=m.work;fields(w,['actor','steps','lastTick','started','tool'],key+'.work');integer(w.steps,key+'.work.steps',1);integer(w.started,key+'.work.started');integer(w.lastTick,key+'.work.lastTick');if(m.state!=='available'||!s.people[w.actor]||w.steps>=3||w.lastTick>s.tick||w.started>w.lastTick||typeof w.tool!=='string')fail(key+'.work');}
+}
+function validateItemRepairSave(s,id,q){
+ const key=id+'.itemRepair';fields(q,['version','serial','orders','active','after'],key);integer(q.serial,key+'.serial');integer(q.after,key+'.after');fields(q.orders,[],key+'.orders');
+ if(q.active!==null&&(!q.orders[q.active]||!['material','working'].includes(q.orders[q.active].status)))fail(key+'.active');
+ for(const [oid,o]of Object.entries(q.orders)){
+  fields(o,['id','owner','item','master','area','workshop','status','accepted','paidAt','deadline','fee','material','progress','required','lastWorkTick'],key+'.order');const serial=Number(oid.slice((id+'/item-repair/').length));
+  if(o.id!==oid||oid!==id+'/item-repair/'+serial||!Number.isSafeInteger(serial)||serial<1||serial>q.serial||o.owner!==id||!s.people[o.master]||!s.areas[o.area]||typeof o.item!=='string'||typeof o.workshop!=='string'||!['material','working','completed','lost-item','unavailable','expired'].includes(o.status)||o.fee!==6||![3,4].includes(o.required))fail(key+'.order');
+  for(const k of ['accepted','paidAt','deadline','progress'])integer(o[k],key+'.'+k);integer(o.lastWorkTick,key+'.lastWorkTick',-1);if(o.progress>o.required||o.accepted!==o.paidAt||o.deadline!==o.accepted+960||['material','working'].includes(o.status)&&q.active!==oid)fail(key+'.progress');
+  if(o.status==='material'&&o.material!==null||o.status==='working'&&!o.material)fail(key+'.material');
+  if(o.material){const m=o.material;fields(m,['id','owner','source','sourceOwner','acquiredAt','price','state'],key+'.material');if(m.id!==oid+'/material'||m.owner!==id||m.price!==3||m.state!==(o.status==='completed'?'consumed':'reserved')||typeof m.source!=='string'||typeof m.sourceOwner!=='string')fail(key+'.material');integer(m.acquiredAt,key+'.material.acquiredAt');}
+  if(o.status==='completed'){integer(o.finished,key+'.finished');integer(o.restored,key+'.restored',1);if(!o.material||o.progress!==o.required||o.finished!==o.lastWorkTick)fail(key+'.finished');}
+ }
+}
+
+function validateRefitSave(s,id,q){
+ const key=id+'.knifeRefit';fields(q,['version','serial','orders','active','after'],key);integer(q.serial,key+'.serial');integer(q.after,key+'.after');fields(q.orders,[],key+'.orders');
+ if(q.active!==null&&(!q.orders[q.active]||!['material','working'].includes(q.orders[q.active].status)))fail(key+'.active');
+ for(const [oid,o]of Object.entries(q.orders)){
+  fields(o,['id','owner','item','master','area','workshop','mode','status','accepted','fee','paidAt','material','progress','required','limit','lastWorkTick','before'],key+'.order');
+  const serial=Number(oid.slice((id+'/refit/').length));if(o.id!==oid||oid!==id+'/refit/'+serial||!Number.isSafeInteger(serial)||serial<1||serial>q.serial||o.owner!==id||!s.people[o.master]||!s.areas[o.area]||typeof o.item!=='string'||typeof o.workshop!=='string'||!['edge','precision'].includes(o.mode)||!['material','working','completed','lost-item'].includes(o.status)||o.fee!==12||![3,4].includes(o.required)||o.limit!==(o.required===3?3:2))fail(key+'.order');
+  for(const k of ['accepted','paidAt','progress'])integer(o[k],key+'.'+k);integer(o.lastWorkTick,key+'.lastWorkTick',-1);if(o.progress>o.required||o.accepted!==o.paidAt||['material','working'].includes(o.status)&&q.active!==oid)fail(key+'.progress');
+  fields(o.before,['name','power'],key+'.before');finite(o.before.power,key+'.before.power');if(typeof o.before.name!=='string')fail(key+'.before.name');
+  if(o.status==='material'&&o.material!==null||o.status==='working'&&!o.material)fail(key+'.material');
+  if(o.material){const m=o.material;fields(m,['id','owner','source','sourceOwner','acquiredAt','price','state'],key+'.material');if(m.id!==oid+'/material'||m.owner!==id||m.price!==3||m.state!==(o.status==='completed'?'consumed':'reserved')||typeof m.source!=='string'||typeof m.sourceOwner!=='string')fail(key+'.material');integer(m.acquiredAt,key+'.material.acquiredAt');}
+  if(o.status==='completed'){integer(o.finished,key+'.finished');if(!o.material||o.progress!==o.required||o.finished!==o.lastWorkTick)fail(key+'.finished');}
+ }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "click-odyssey",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node server.mjs", "test": "node scripts/check.mjs --full", "test:quick": "node scripts/check.mjs", "simulate": "node scripts/simulate.mjs", "build": "node scripts/build.mjs", "deploy": "node scripts/deploy.mjs" },
+  "engines": { "node": ">=20" }
+}

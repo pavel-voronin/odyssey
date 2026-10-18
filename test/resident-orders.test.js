@@ -1,0 +1,48 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createWorld,step,serialize,restore,log,route,knownRoute,createNextStory,observeDetailedActor} from '../engine.js';
+import {MODULES,setModule} from '../rules.js';import {settleLife} from '../modules/lifecycle.js';import {workshopAt,observeProperty,transferProperty} from '../modules/property.js';import {repairProperty} from '../modules/property-damage.js';import {reservedWorkshop,reservedRepair} from '../modules/workshop-contract-state.js';
+import {commissionRepair,quoteRepair,servicePlan,acceptService,serviceRepairAllowed,fundServiceRepair,finishServiceRepair,workOrdersTick} from '../modules/resident-orders.js';
+const ctx={log,route,knownRoute,gainXp(s,x){s.hero.xp+=x;},goal(s,kind,area,x,intent,reason,extra={}){s.hero.goal={kind,area,x,started:s.tick,...extra};},mayRepairProperty:serviceRepairAllowed,repairFunding:fundServiceRepair,workshopRepaired(s,a,o,proof){finishServiceRepair(s,a,o,proof,ctx);}};
+function fixture(){const s=createWorld(0);for(const m of MODULES)setModule(s,m.id,false);for(const id of ['lifecycle','identity','work','property','property-damage','work-orders','people','npc-control'])setModule(s,id,true);const h=s.hero,a=Object.values(s.areas).find(a=>a.district==='Мастерские');Object.assign(h,{area:a.id,x:42,profession:'clockmaker',gold:50,energy:100,hp:h.maxHp,goal:null});h.career.path='peaceful';h.career.rank=3;h.personality.generosity=.8;h.personality.curiosity=.1;h.habits=[];h.conditions=[];h.quests=[];h.companions=[];h.commitments.personal=null;s.storyCases=[];h.life.home=a.id;h.life.motive='Ремесло';settleLife(s,ctx);h.life.residence.nextOuting=Number.MAX_SAFE_INTEGER;const o=workshopAt(s,a),p=s.people[o.owner];p.area=a.id;p.x=42;p.status='resident';p.agenda.job='artisan';p.agenda.wealth=40;p.agenda.duty=.5;p.agenda.tools=1;p.agenda.due=0;p.agenda.task=null;p.needs.energy=100;p.needs.hunger=0;o.state='burned';o.damagedAt=0;o.offer=null;a.civic.tools=3;a.civic.treasury=60;observeProperty(s,a);for(const q of Object.values(s.people))if(q.id!==p.id&&q.id!==h.lineage)q.status='absent';return{s,h,a,o,p};}
+function quote(f){assert.ok(commissionRepair(f.s,f.p,f.o));const c=Object.values(f.s.workOrders).at(-1);quoteRepair(f.s,f.p,f.p.agenda.task,ctx);assert.equal(c.status,'quoted');assert.ok(servicePlan(f.s,ctx));return c;}
+function accept(f){const c=quote(f);assert.ok(acceptService(f.s,ctx));assert.ok(servicePlan(f.s,ctx));return c;}
+const total=f=>f.h.gold+f.p.agenda.wealth+f.a.civic.treasury+Object.values(f.s.workOrders).reduce((n,c)=>n+c.escrow,0);
+test('a physical meeting reserves real client money; one material and three actions pay the helper once without transferring title',()=>{
+ const f=fixture(),{s,h,a,o,p}=f,money=total(f),gold=h.gold,owner=o.owner,client=p.agenda.wealth,relations=structuredClone(h.relations);const c=accept(f);assert.equal(h.gold,gold);assert.equal(p.agenda.wealth,client-24);assert.equal(c.escrow,24);assert.equal(total(f),money);assert.equal(reservedWorkshop(s,o),true);assert.equal(reservedRepair(s,o,p.id),true);
+ repairProperty(s,ctx);assert.equal(c.escrow,6);assert.equal(o.repair.payer,p.id);assert.equal(a.civic.tools,2);assert.equal(a.civic.treasury,78);const energy=h.energy;for(let i=0;i<3;i++)repairProperty(s,ctx);
+ assert.equal(o.state,'intact');assert.equal(o.owner,owner);assert.equal(c.status,'done');assert.equal(c.paid,6);assert.equal(c.escrow,0);assert.equal(h.gold,gold+6);assert.equal(h.energy,energy-6);assert.equal(h.counters.customerWork,1);assert.equal(total(f),money);assert.equal(a.civic.tools,2);assert.equal(o.service,null);assert.equal(reservedWorkshop(s,o),false);assert.equal(p.agenda.bonds[h.lineage],2);assert.deepEqual(h.relations,relations);assert.ok(h.memory.people.includes(p.id));const save=serialize(s);repairProperty(s,ctx);assert.equal(serialize(s),save);
+});
+test('paid material and the remaining fee survive reload; completion is identical without another tool or deposit',()=>{
+ const f=fixture(),c=accept(f);repairProperty(f.s,ctx);repairProperty(f.s,ctx);const saved=serialize(f.s),loaded=restore(saved);assert.equal(serialize(loaded),saved);for(let i=0;i<2;i++){repairProperty(f.s,ctx);repairProperty(loaded,ctx);}assert.equal(serialize(loaded),serialize(f.s));assert.equal(c.status,'done');assert.equal(c.materialsPaid,18);assert.equal(f.a.civic.tools,2);
+});
+test('unavailable or independent clients and absent experts do not create remote orders or spend money',()=>{
+ for(const reason of ['poor','independent','absent','disabled']){const f=fixture(),{s,h,p,o}=f;if(reason==='poor')p.agenda.wealth=29;if(reason==='independent')p.agenda.duty=.9;if(reason==='absent')h.area='a1';if(reason==='disabled')setModule(s,'work-orders',false);const gold=p.agenda.wealth,rng=s.rng;assert.equal(commissionRepair(s,p,o),false);assert.equal(Object.keys(s.workOrders).length,0);assert.equal(p.agenda.wealth,gold);assert.equal(s.rng,rng);}
+ const f=fixture();assert.ok(commissionRepair(f.s,f.p,f.o));const c=Object.values(f.s.workOrders)[0];assert.equal(f.h.actorJournal?.some(e=>e.text.includes('просит восстановить')),false);assert.equal(c.status,'visiting');assert.equal(c.escrow,0);
+});
+test('a wealthy unhelpful expert can refuse while another obligation can let a quote expire without any payment',()=>{
+ const f=fixture(),{s,h,p,o}=f;const gold=p.agenda.wealth,c=quote(f);h.personality.generosity=.1;h.goal=null;assert.equal(servicePlan(s,ctx),false);assert.equal(c.status,'declined');assert.equal(p.agenda.wealth,gold);assert.equal(o.state,'burned');assert.equal(c.escrow,0);
+ const other=fixture(),d=quote(other);other.h.goal=null;other.h.commitments.personal={status:'active'};other.s.tick=d.deadline+1;workOrdersTick(other.s,ctx);assert.equal(d.status,'cancelled');assert.equal(other.p.agenda.wealth,40);assert.equal(other.a.civic.tools,3);
+});
+test('disabling or a real death returns only unspent escrow and leaves the original paid material in the client building',()=>{
+ for(const reason of ['disabled','helper-dead','client-dead']){const f=fixture(),{s,h,p,o,a}=f,c=accept(f),money=total(f);repairProperty(s,ctx);if(reason==='disabled')setModule(s,'work-orders',false);else if(reason==='helper-dead'){h.alive=false;s.people[h.lineage].alive=false;}else p.alive=false;workOrdersTick(s,ctx);assert.equal(c.status,'cancelled');assert.equal(c.escrow,0);assert.equal(p.agenda.wealth,22);assert.equal(a.civic.treasury,78);assert.equal(a.civic.tools,2);assert.equal(o.repair.materials,true);assert.equal(o.repair.remaining,3);assert.equal(o.service,null);assert.equal(h.counters.customerWork||0,0);assert.equal(total(f),money);}
+});
+test('the actual NPC and actor phases meet, agree, repair and pay while another person is observed',()=>{
+ const {s,h,o,p}=fixture(),person=h.lineage;h.memory.shopAfter=10000;createNextStory(s,{allowLiving:true});s.hero.goal={kind:'routeWait',area:s.hero.area,x:s.hero.x,until:10000};for(let i=0;i<240&&!h.counters.customerWork;i++)step(s);const done=Object.values(s.workOrders).find(c=>c.status==='done');assert.ok(done);assert.equal(done.helper,person);assert.equal(done.client,p.id);assert.equal(o.owner,p.id);assert.equal(o.state,'intact');assert.equal(done.paid,6);assert.equal(h.counters.customerWork,1);assert.equal(h.life.ended,false);assert.equal(s.lives.length,0);assert.ok(observeDetailedActor(s,person));assert.equal(s.hero,h);assert.equal(s.nextGeneration,2);
+});
+
+test('missing material does not consume the deposit, and a paid service blocks a simultaneous sale or a different-building payout',()=>{
+ const f=fixture(),{s,h,a,o,p}=f,c=accept(f),money=total(f);a.civic.tools=0;assert.equal(repairProperty(s,ctx),false);assert.equal(c.escrow,24);assert.equal(a.civic.treasury,60);assert.equal(total(f),money);
+ o.offer={owner:p.id,price:120};h.gold=200;const owner=o.owner;assert.equal(transferProperty(s,ctx,{id:o.id,seller:p.id,price:120}),null);assert.equal(o.owner,owner);assert.equal(h.gold,200);assert.equal(c.escrow,24);
+ a.civic.tools=1;servicePlan(s,ctx);repairProperty(s,ctx);const after=h.gold;const other={...o,id:'different-building',state:'intact'};finishServiceRepair(s,a,other,{actor:h.lineage,payer:p.id,damageAt:c.damageAt},ctx);assert.equal(h.gold,after);assert.equal(c.escrow,6);assert.equal(c.status,'active');
+});
+
+test('switching to the actual NPC client leaves the helper controller, deposit and completion unchanged',()=>{
+ const f=fixture(),{s,h,p}=f,c=accept(f),person=h.lineage,control=restore(serialize(s));
+ return import('../engine.js').then(({observeExistingPerson})=>{assert.ok(observeExistingPerson(s,p.id));for(let i=0;i<120;i++){step(s);step(control);}const a=s.actorStates[person],b=control.hero;for(const key of ['hp','energy','gold','xp','level','profession','goal','inventory','equipment','counters','career'])assert.deepEqual(a[key],b[key],key);assert.deepEqual(s.randomStreams,control.randomStreams);assert.equal(s.rng,control.rng);assert.deepEqual(s.workOrders,control.workOrders);assert.equal(c.status,'done');assert.equal(a.counters.customerWork,1);assert.equal(s.hero.gold,s.people[p.id].agenda.wealth);const saved=serialize(s);assert.equal(serialize(restore(saved)),saved);});
+});
+
+test('an existing transport role cannot be replaced by a new repair commission even when optional arbitration is disabled',()=>{
+ const {s,p,o}=fixture();setModule(s,'npc-control',false);s.logistics.convoys.push({id:'existing-manifest',person:p.id,source:p.area,to:'a1',food:4,medicine:0,path:[p.area,'a1'],index:0,remaining:16});const wealth=p.agenda.wealth;assert.equal(commissionRepair(s,p,o),false);assert.equal(Object.keys(s.workOrders).length,0);assert.equal(p.agenda.task,null);assert.equal(p.agenda.wealth,wealth);
+});
+
+

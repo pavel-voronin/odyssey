@@ -1,0 +1,17 @@
+import {startDelve} from '../modules/delve-attempts.js';
+import {createWorld} from '../engine.js';import {setModule,moduleRandom} from '../rules.js';
+import {composeEnemy} from '../modules/world.js';import {seedDungeonCaptive} from '../modules/dungeon-captives.js';import {initializeActorAtlas,revealArea,revealRoad} from '../actor-atlas.js';
+export function rescueStartFixture({allOn=true,courage=.25}={}){
+ const s=createWorld(0),h=s.hero,source=s.areas.a1;if(!allOn)for(const id of Object.keys(s.rules))setModule(s,id,false);for(const id of ['dungeon-rescue','people','npc-control','npc-needs','quests','identity','delves','delve-attempts'])setModule(s,id,true);
+ s.tick=200;Object.assign(h,{area:source.id,x:42,born:0,maxHp:120,hp:120,energy:100,hunger:0,gold:80,weapon:3,armor:2,goal:null,combat:null,transit:null});Object.assign(h.personality,{courage,generosity:.8,curiosity:.6});h.storyRarity={affinity:{expedition:true},budget:1,started:0,nextEligible:0};h.stats.spirit=1;h.habits=[];h.quests=[];h.companions=[];h.commitments.personal=null;h.career.path='adventurous';h.destiny.completed=true;h.memory.shopAfter=1e9;h.workAfter=1e9;h.memory.delveAfter=0;initializeActorAtlas(s,h);revealArea(s,source.id);s.randomStreams['dungeon-rescue']=2000;return {s,h,source};
+}
+export function rescueFixture({courage=.25,gold=80,allOn=false}={}){
+ const s=createWorld(0),h=s.hero;if(!allOn)for(const id of Object.keys(s.rules))setModule(s,id,false);for(const id of ['dungeon-rescue','people','npc-control','npc-needs','quests','identity','delves','delve-attempts'])setModule(s,id,true);
+ const a=s.areas.a2,source=s.areas.a1;s.tick=200;Object.assign(h,{area:a.id,x:5,born:0,maxHp:120,hp:120,energy:100,hunger:0,gold,weapon:3,armor:2,combat:null,transit:null,goal:{kind:'hunt',area:a.id,x:35,object:'guard-of-depths'}});h.personality.courage=courage;h.personality.generosity=.8;h.personality.curiosity=.6;h.stats.spirit=1;h.habits=[];h.quests=[];h.companions=[];h.commitments.personal=null;h.career.path='adventurous';h.destiny.completed=true;h.memory.shopAfter=1e9;h.workAfter=1e9;
+ a.type='dungeon';a.visited=false;a.dungeon={root:a.id,floor:1,cleared:false};a.depth=1;a.links=[source.id];a.objects=[{id:'guard-of-depths',kind:'enemy',name:'Страж глубин',baseName:'Страж глубин',alive:true,resolved:false,x:35,hp:28,maxHp:28,attack:7,patrol:0},{id:'far-boss',kind:'enemy',name:'Хозяин дальней сокровищницы',baseName:'Хозяин дальней сокровищницы',boss:true,alive:true,resolved:false,x:71,hp:120,maxHp:120,attack:30,patrol:0},{id:'untouched-treasure',kind:'relic',name:'Нетронутая реликвия',x:84,taken:false}];
+ s.edges[['a1','a2'].sort().join('|')]={mode:'stairs',duration:2};initializeActorAtlas(s,h);revealArea(s,a.id);revealRoad(s,source.id,a.id);h.delve={root:a.id,room:a.id,started:s.tick,floors:3,cleared:0};startDelve(s,h.delve,'prepared-rescue-entry');
+ s.randomStreams['dungeon-rescue']=2000;
+ const ctx={spawnEnemy(s,a,settings){const e={id:a.id+'/actual-captor',kind:'enemy',name:'Страж клетки',x:settings.x,hp:20,maxHp:20,attack:4,alive:true,patrol:0,...settings};composeEnemy(s,a,e,()=>moduleRandom(s,'event-enemies'));a.objects.push(e);return e;}};
+ if(!seedDungeonCaptive(s,a,source,ctx))throw Error('Prepared deterministic construction did not select a rescue');
+ const cage=a.objects.find(o=>o.id===a.dungeon.captive),p=s.people[cage.person],guard=a.objects.find(o=>o.id===cage.dungeonRescue.guard);return {s,h,a,source,cage,p,guard,boss:a.objects.find(o=>o.id==='far-boss'),treasure:a.objects.find(o=>o.id==='untouched-treasure')};
+}

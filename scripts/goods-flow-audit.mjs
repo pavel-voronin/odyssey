@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';import {writeFile} from 'node:fs/promises';
+import {createWorld,step,serialize,restore} from '../engine.js';import {goodsBalance} from '../modules/goods.js';import {assertSameSave} from './life-save-compare.mjs';
+const ticks=Number(process.argv[2]||960),seeds=(process.argv[3]||'1,2,9').split(',').map(Number),rows=[];let checks=0;
+for(const seed of seeds){let s=createWorld(seed);let failures=[];for(let i=0;i<ticks;i++){
+ step(s);for(const a of Object.values(s.areas)){if(a.goods){for(const kind of ['food','tools']){const balance=goodsBalance(a,kind);if(balance.difference&&!failures.some(f=>f.area===a.id&&f.kind===kind))failures.push({tick:s.tick,area:a.id,kind,...balance,history:structuredClone(a.goods.history)});}const sources=a.goods.sources;if(sources){assert.equal(sources.field.initial+sources.field.regrown-sources.field.harvested,sources.field.stock);assert.equal(sources.materials.initial+sources.materials.delivered-sources.materials.used,sources.materials.stock);}}if(a.goodsRaw)assert.equal(a.goodsRaw.initial-a.goodsRaw.extracted,a.goodsRaw.remaining);}
+ if((i+1)%240===0){const text=serialize(s);s=restore(text);assertSameSave(serialize(s),text);checks++;}
+ }
+ rows.push({seed,ticks:s.tick,alive:s.hero.alive,generation:s.generation,areas:Object.keys(s.areas).length,failures,production:Object.values(s.areas).filter(a=>a.goods).map(a=>({area:a.id,food:a.goods.ledger.food.produced,tools:a.goods.ledger.tools.produced,overflow:a.goods.overflow}))});
+}
+const result={stage:116,ticksPerSeed:ticks,steps:ticks*seeds.length,checks,scope:'Finite natural prefixes with exact per-step local stock and raw-source equations, checkpoint reloads. Not entire lives or complete stage acceptance.',rows};await writeFile('artifacts/goods-cycle-116/flow-prefix.json',JSON.stringify(result,null,2));console.log(JSON.stringify({steps:result.steps,checks,rows:rows.map(r=>({seed:r.seed,alive:r.alive,failures:r.failures.map(({history,...f})=>f),production:r.production}))}));assert.ok(rows.every(r=>r.failures.length===0),'Unrecorded stock writes remain; inspect flow-prefix.json');

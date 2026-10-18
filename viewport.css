@@ -1,0 +1,91 @@
+/* One portrait viewport for the whole game, including its top-layer dialogs. */
+#map-tools{position:absolute;right:8px;top:39px;display:flex;gap:3px;z-index:2}#map-tools[hidden]{display:none}#map-tools button{width:27px;height:27px;padding:0;font-size:16px;background:#243236e8;border-color:#56676a}
+:root{
+  --screen-top:env(safe-area-inset-top,0px);--screen-bottom:env(safe-area-inset-bottom,0px);
+  --screen-left:env(safe-area-inset-left,0px);--screen-right:env(safe-area-inset-right,0px);
+  --game-height:calc(100dvh - var(--screen-top) - var(--screen-bottom));
+  --game-width:min(calc(100vw - var(--screen-left) - var(--screen-right)),480px,calc(var(--game-height) * .5625));
+}
+body{display:grid;grid-template-columns:minmax(0,1fr) var(--game-width) minmax(0,1fr);grid-template-rows:minmax(0,1fr);padding:var(--screen-top) var(--screen-right) var(--screen-bottom) var(--screen-left);background:#101619}
+.screen-field{grid-row:1;align-self:stretch;touch-action:none}#left-field{grid-column:1}#right-field{grid-column:3}
+#game-shell{grid-column:2;grid-row:1;width:var(--game-width);height:var(--game-height);min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;container:game / size;--hero-height:80px;--speech-height:72px;--intent-height:64px}
+#game-shell .topbar{flex:0 0 34px;height:34px;min-height:34px;gap:8px;padding:0 10px;min-width:0}
+#game-shell .brand{font-size:10px;letter-spacing:.5px;white-space:nowrap}#game-shell #day{font-size:10px;min-width:0;line-height:1.1}
+#game-shell .topbar button{font-size:10px;flex-shrink:0}#game-shell #menu{font-size:21px}
+#game-shell main{width:100%;min-width:0;min-height:0;flex:1}
+#game-shell #game-view{flex:0 0 50%;min-height:0;overflow:hidden}
+#game-shell .hero-strip{flex:0 0 var(--hero-height);height:var(--hero-height);min-height:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:minmax(0,1fr) 18px;gap:6px 8px;padding:7px 12px}
+#game-shell .portrait{grid-column:1;grid-row:1;width:32px;height:34px}
+#game-shell .hero-name{grid-column:2/6;grid-row:1;min-width:0}#game-shell .hero-name h2{font-size:13px;margin:0 0 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#game-shell .hero-name>span{font-size:10px;max-width:100%}
+#game-shell .coins{grid-column:6;grid-row:1;min-width:0;max-width:100%;display:flex;flex-direction:column;align-items:flex-end;gap:0;font-size:12px;line-height:1.2}
+#game-shell .coins b{max-width:100%;overflow:hidden;text-overflow:ellipsis}#game-shell .coins small{font-size:10px}
+#game-shell .vital{width:auto;min-width:0;max-width:none;grid-column:1/3;grid-row:2}
+#game-shell .stamina{grid-column:3/5}#game-shell .arcana{grid-column:5/7}
+#game-shell .hero-strip:not(.has-mana) .vital:not(.stamina){grid-column:1/4}#game-shell .hero-strip:not(.has-mana) .stamina{grid-column:4/7}
+#game-shell .vital>div:first-child{font-size:10px;line-height:11px;gap:1px;margin-bottom:2px;min-width:0}
+#game-shell .vital b{font-size:10px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#game-shell .vital span{flex-shrink:0}
+#game-shell .resource-short{display:none;text-decoration:none}
+#game-shell .meter{height:4px}
+#game-shell .world{min-height:0;flex:1 1 auto}
+#game-shell .scene-label{top:8px;left:10px;right:10px;font-size:11px;line-height:14px;flex-wrap:nowrap;overflow:visible;pointer-events:none}
+#game-shell .scene-label>span{flex:0 0 auto;min-width:0;width:100%;max-width:100%}
+#game-shell .scene-label #biome,#game-shell .scene-bottom{font-size:10px}
+#game-shell .scene-label #biome{line-height:12px}
+#game-shell .scene-bottom{left:10px;right:10px;bottom:6px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;line-height:14px}
+#game-shell .scene-bottom>span{min-width:0;width:100%}
+#game-shell #tick{text-align:right}
+#game-shell .speech,#game-shell .speech:empty{flex:0 0 var(--speech-height);height:var(--speech-height);min-height:0;max-height:var(--speech-height);padding:6px 10px;--caption-max-font:12px}
+#game-shell .speech::after{display:none}
+#game-shell .intention{flex:0 0 var(--intent-height);height:var(--intent-height);min-height:0;max-height:var(--intent-height);padding:6px 10px;--intent-max-font:12px}
+#game-shell .intention p{font-size:var(--intent-font,12px)}#game-shell .intention div>span{font-size:var(--reason-font,10px)}#game-shell .tag{display:none}
+#game-shell .chronicle{flex:1;min-height:0;height:auto;max-height:none;padding:4px 10px}
+#game-shell #journal p{font-size:11px}#game-shell #journal time{font-size:10px;min-width:31px}#game-shell #journal li{padding:6px 0;gap:7px}
+#game-shell .time-control{position:relative;flex:0 0 22px;height:22px;min-height:22px;padding:2px 8px}
+#game-shell .tap-hint{font-size:10px;line-height:16px}
+#game-shell #tutorial{position:absolute;inset:2px 8px;padding:0;font-size:10px;line-height:16px;background:#171c20}
+#game-shell .time-control.onboarding .tap-hint{visibility:hidden}
+/* The succession control stays anchored to main, rather than its hint strip. */
+#game-shell #continue-story{position:absolute;left:12px;right:12px;bottom:8px;transform:none;width:calc(100% - 24px);max-width:440px;margin:0 auto}
+#game-shell .story-ended .chronicle{padding-bottom:64px}
+dialog{position:fixed;inset:auto;left:calc((100vw + var(--screen-left) - var(--screen-right)) / 2);top:calc((100dvh + var(--screen-top) - var(--screen-bottom)) / 2);transform:translate(-50%,-50%);margin:0;width:calc(var(--game-width) - 24px);max-width:calc(var(--game-width) - 24px);max-height:calc(var(--game-height) - 24px);padding:14px;overflow-x:hidden;overflow-y:auto}
+.sheet{height:min(700px,calc(var(--game-height) - 24px))}.sheet header{margin-bottom:12px;flex-shrink:0}
+dialog h2{font-size:14px;line-height:1.3;overflow-wrap:anywhere}dialog header button{flex-shrink:0}.tabs button{font-size:11px;padding:8px 10px}
+dialog p,.fact,.quest,.habit{overflow-wrap:anywhere}.fact{gap:8px}.fact b{min-width:0;text-align:right}
+.dialog-actions{flex-wrap:wrap}.dialog-actions button{flex:1 1 100px;min-width:0;padding:8px}
+@container game (max-height:700px){
+  main{--hero-height:64px;--speech-height:48px;--intent-height:44px}
+  #game-shell .hero-strip{padding:4px 10px;gap:3px 8px;grid-template-rows:minmax(0,1fr) 16px}
+  #game-shell .portrait{width:26px;height:auto}
+  #game-shell .speech,#game-shell .speech:empty{padding:4px 8px;--caption-max-font:11px}
+  #game-shell .intention{padding:4px 8px;--intent-max-font:11px}
+}
+@container game (max-height:600px){
+  main{--hero-height:58px;--speech-height:40px;--intent-height:40px}
+  #game-shell .hero-strip{padding:3px 8px;gap:2px 6px}
+}
+@container game (max-width:300px){
+  #game-shell .topbar{display:grid;grid-template-columns:minmax(0,1fr) auto 22px;grid-template-rows:16px 22px;gap:0 6px;height:44px;min-height:44px;flex-basis:44px;padding:3px 8px}
+  #game-shell .brand{grid-row:1;grid-column:1/3}#game-shell #menu{grid-column:3;grid-row:1/3}
+  #game-shell #day{grid-row:2;grid-column:1;margin:0;text-align:left;max-width:none}#game-shell #inspect{grid-row:2;grid-column:2;padding:0}
+  #game-shell .scene-label{top:4px;left:8px;right:8px;font-size:10px;gap:1px}
+  #game-shell .scene-bottom{left:8px;right:8px;bottom:3px;gap:4px}
+  dialog{padding:8px}dialog h2{font-size:12px}dialog header{gap:6px;margin-bottom:10px}.tabs button{padding:7px 8px;font-size:10px}
+  .menu-actions{gap:6px}.menu-actions button,.import-label{padding:8px;font-size:11px}
+}
+@container game (max-height:550px){
+  main{--hero-height:48px;--speech-height:24px;--intent-height:24px}
+  #game-shell .speech,#game-shell .speech:empty,#game-shell .intention{padding:2px 8px}
+}
+@container game (max-height:450px){
+  #game-shell .topbar{height:36px;min-height:36px;flex-basis:36px;grid-template-rows:12px 22px;padding-top:1px;padding-bottom:1px}#game-shell .brand{line-height:12px}
+  main{--hero-height:40px;--speech-height:15px;--intent-height:15px}
+  #game-shell .hero-strip{padding:1px 8px;gap:2px 6px;grid-template-rows:minmax(0,1fr) 14px}
+  #game-shell .portrait{width:20px;height:auto}#game-shell .hero-name h2{font-size:11px;line-height:12px;margin:0}#game-shell .coins{font-size:10px;line-height:1.1}
+  #game-shell .hero-name>span{font-size:10px;line-height:10px}
+  #game-shell .vital>div:first-child{margin-bottom:0}#game-shell .meter{height:3px}
+  #game-shell .resource-full{display:none}#game-shell .resource-short{display:inline}
+  #game-shell .speech,#game-shell .speech:empty{padding:1px 8px;--caption-max-font:10px;line-height:1.2}
+  #game-shell .intention{padding:1px 8px;--intent-max-font:10px}#game-shell .intention p{margin:0;line-height:1.2}#game-shell .intention div>span{line-height:1.2}
+  #game-shell #journal p{font-size:10px}#game-shell #journal li{padding:4px 0}
+}

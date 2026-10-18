@@ -1,0 +1,56 @@
+{
+  "actors": [
+    {
+      "seed": 7,
+      "id": "person-15",
+      "culture": "mist",
+      "colors": {
+        "paletteVersion": 2,
+        "skin": "#d0a587",
+        "hair": "#beaa47",
+        "cloak": "#5f3da2",
+        "trousers": "#452a52",
+        "shoes": "#3b2f1a",
+        "scarfColor": "#d2d98c",
+        "capeColor": "#6372c5",
+        "packColor": "#644b34"
+      }
+    },
+    {
+      "seed": 91,
+      "id": "person-82",
+      "culture": "ember",
+      "colors": {
+        "paletteVersion": 2,
+        "skin": "#cfb185",
+        "hair": "#ac774b",
+        "cloak": "#4cb25c",
+        "trousers": "#345745",
+        "shoes": "#534325",
+        "scarfColor": "#73297a",
+        "capeColor": "#84c464",
+        "packColor": "#664a31"
+      }
+    }
+  ],
+  "houses": [
+    {
+      "seed": 7,
+      "area": {
+        "id": "a9",
+        "culture": "mist"
+      },
+      "index": 1,
+      "colors": {
+        "plaster": "#b9aebe",
+        "roofColor": "#644663",
+        "woodColor": "#483a21",
+        "doorColor": "#453221",
+        "shutterColor": "#533e83",
+        "windowColor": "#81abac",
+        "stoneColor": "#9d8ea4",
+        "strawColor": "#bcad6b"
+      }
+    }
+  ]
+}

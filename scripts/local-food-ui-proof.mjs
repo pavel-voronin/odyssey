@@ -1,0 +1,2 @@
+import {writeFile} from 'node:fs/promises';import {foodFixture,startFood} from './local-food-scenarios.mjs';import {step,serialize} from '../engine.js';import {syncActiveActor} from '../actor-projection.js';
+for(const kind of ['mushroom','fish']){const f=foodFixture(kind),turns=startFood(f).remaining;for(let n=0;n<turns;n++)step(f.s);syncActiveActor(f.s);await writeFile(`artifacts/local-food-120/ui-${kind}.json`,serialize(f.s));console.log(kind,f.s.seed,f.s.tick,JSON.stringify(f.p.localFood.stock));}

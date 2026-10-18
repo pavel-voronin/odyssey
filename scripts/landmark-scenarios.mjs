@@ -1,0 +1,5 @@
+import {recordAreaVisit} from '../actor-atlas.js';
+import {createWorld,log} from '../engine.js';import {MODULES,setModule} from '../rules.js';import {syncActiveActor} from '../actor-projection.js';
+export const landmarkContext={log,goal(s,kind,area,x,intent,reason,extra={}){s.hero.goal={kind,area,x,started:s.tick,...extra};s.hero.intent=intent;s.hero.reason=reason;}};
+// Prepared actual existing forest/ruin, not a natural frequency or safe-world claim.
+export function landmarkFixture(){const s=createWorld(0);for(const m of MODULES)setModule(s,m.id,false);for(const id of['landmarks','scenery'])setModule(s,id,true);const h=s.hero;Object.assign(h,{area:'a2',x:90,goal:null,gold:30,energy:100,hp:h.maxHp,hunger:0,combat:null,transit:null,delve:null,caravanJob:null});recordAreaVisit(s,s.areas.a2);h.personality.curiosity=.9;h.habits=[];h.quests=[];h.companions=[];h.commitments.personal=null;h.memory.places=h.memory.places.filter(id=>id!=='a3');delete h.memory.landmarks;for(const o of s.areas.a2.objects)if(o.kind==='enemy')o.alive=false;syncActiveActor(s);return {s,h};}
