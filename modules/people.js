@@ -251,7 +251,7 @@ export function peopleTick(s,ctx){
     releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
-    if(p.rivalActionTick>=s.tick||p.fieldTeachTick>=s.tick||p.enemyBody?.lastActionTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
+    if(p.raidDefenseTick>=s.tick||p.rivalActionTick>=s.tick||p.fieldTeachTick>=s.tick||p.enemyBody?.lastActionTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
     const controller=npcController(s,p);
     if(enabled(s,'npc-control')&&!['personal','migration'].includes(controller)){if(controller==='none'&&p.agenda)p.agenda.task=null;continue;}

@@ -1,3 +1,4 @@
+import {claimHostileReply} from './hostile-state.js';
 import {positionBeforeReply,positionTacticalReply} from './position-replies.js';
 import {wardDamage} from './guardian-state.js';
 import {observeGuardianHit} from './guardian-knowledge.js';
@@ -24,6 +25,7 @@ export function enemyDamage(s,e,amount,type,ctx,learn=true){
  if(damage>0&&learn)elementalDamage(s,e,amount,type,ctx,true);return damage;
 }
 export function enemyReply(s,e,raw,ctx,actor=s.hero){
+  if(!claimHostileReply(s,e))return 0;
   if(positionBeforeReply(s,e,actor,ctx))return 0;
   e.battle ||= {turns:0,intent:'idle',summons:0,echo:0};const tactical=tacticalReply(s,e,raw,ctx,actor),damage=mutationReply(s,e,positionTacticalReply(s,e,actor,tactical,ctx),ctx,actor);if(actor===s.hero&&enabled(s,'tactics')&&e.tactic==='warden'&&e.battle.intent==='guard')observeThreat(s,e,'warden','guard',ctx);if(damage)elementImpact(s,e,ctx,actor);return damage;
 }

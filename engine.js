@@ -1,3 +1,4 @@
+import {hostileLifeTick} from './modules/hostile-life.js';
 import {rivalryTurn,rivalryTick} from './modules/craft-rivalry.js';
 import {bindEnemyPerson} from './modules/enemy-person-create.js';
 import {syncEnemyPeople} from './modules/enemy-person-state.js';
@@ -672,7 +673,7 @@ function worldTick(s) {
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   feastTick(s,context(s,'local-feasts'));
-  rivalryTick(s);peopleTick(s,context(s,'people'));
+  hostileLifeTick(s,context(s,'hostile-life'));rivalryTick(s);peopleTick(s,context(s,'people'));
   migrationContactTick(s);
   npcPetsTick(s,context(s,'pet-transfer'));
   petBoardingWorldTick(s,context(s,'pet-passage'));
@@ -696,7 +697,7 @@ function worldTick(s) {
   // Distant regions retain their identities. Only a small scheduled change is simulated.
   const activeFights=new Set(Object.values(s.actorStates).filter(h=>selfDrivenActor(s,h)&&h.combat).map(h=>h.combat));
   for (const a of Object.values(s.areas)) for (const o of a.objects) {
-    if (o.kind === 'enemy' && o.alive && !o.resolved && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
+    if (o.kind === 'enemy' && o.alive && !o.resolved && !s.people[o.person]?.hostileLife && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
       const beforeX=o.x;o.x += areaOffset(a,o.patrol*1.4);creatureTrace(s,a,o,beforeX);
       if (o.x < 29 || o.x > 83) o.patrol *= -1;
     }

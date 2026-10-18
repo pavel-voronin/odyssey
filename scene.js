@@ -96,6 +96,7 @@ export class Scene {
       this.from = this.actionObserved ? this.previousX : x; this.to = x;
       const previous=this.actionObserved?this.actorPositions:new Map();this.actorPositions=new Map();
       if(!state.hero.transit)for(const other of Object.values(state.actorStates||{}))if(other!==state.hero&&selfDrivenActor(state,other)&&!other.transit&&other.area===state.hero.area)this.actorPositions.set(other.lineage,{from:previous?.get(other.lineage)?.to??other.x,to:other.x});
+      for(const o of state.areas[state.hero.area].objects.filter(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&o.person))this.actorPositions.set(o.person,{from:previous?.get(o.person)?.to??o.x,to:o.x});
       for(const o of state.areas[state.hero.area].objects.filter(o=>o.kind==='resident'&&!selfDrivenActor(state,o.person)))this.actorPositions.set(o.person,{from:previous?.get(o.person)?.to??o.x,to:o.x});
       if(!state.hero.transit)for(const convoy of state.logistics?.convoys||[]){const p=state.people[convoy.person];if(p?.alive&&p.status==='caravan'&&p.area===state.hero.area&&(convoy.movement==='physical'||state.rules?.['npc-logistics']!==false))this.actorPositions.set(p.id,{from:previous?.get(p.id)?.to??p.x??42,to:p.x??42});}
       if(!state.hero.transit)for(const j of state.society?.journeys||[]){const p=state.people[j.person];if(j.movement==='physical'&&p?.alive&&p.status==='travelling'&&p.area===state.hero.area)this.actorPositions.set(p.id,{from:previous?.get(p.id)?.to??p.x??42,to:p.x??42});}
@@ -210,7 +211,7 @@ export class Scene {
         }
         else if(beastMotion&&o.shape==='dog')this.quadruped(x,ground,quadrupedPose(beastTrack,phase,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))*(w-48)/100),'dog');
         else if (o.shape === 'guard' || !o.shape) this.guard(x, ground);
-        else if (o.shape === 'human'){const p=s.people[o.person],look=p?looks(p,p.appearance):null;this.person(x,ground,look?.cloak||(p?'#ac906b':o.pacified?'#b2ba8a':'#a38b78'),false,-1,0,false,false,look);}
+        else if (o.shape === 'human'){const p=s.people[o.person],look=p?looks(p,p.appearance):null,track=p&&this.actorPositions?.get(p.id),walking=track&&track.from!==track.to&&phase<1&&!this.reduced,px=walking?screenX(track.from+(track.to-track.from)*phase):x,rest=Boolean(p?.needs?.sleeping)||p?.hostileLife?.action==='rest';this.person(px,ground,look?.cloak||(p?'#ac906b':o.pacified?'#b2ba8a':'#a38b78'),false,walking?Math.sign(track.to-track.from):o.facing||-1,0,false,rest,look,null,{kind:rest?'rest':walking?'walk':'idle',progress:phase,walking,distance:track?Math.abs(track.to-track.from)*(w-48)/100:0});}
         else if(beastMotion&&MOTION_SHAPES.includes(o.shape))this.formedCreature(x,ground,o.shape,creatureActionPose(o.shape,beastTrack,phase,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))));
         else this.creature(x, ground, o.shape, s.tick);
         c.restore();if(s.rules?.tactics!==false&&o.tactic==='charged'&&o.battle?.intent==='strike'){c.fillStyle='#d99b79';c.beginPath();c.moveTo(x,ground-61);c.lineTo(x-5,ground-52);c.lineTo(x+5,ground-52);c.fill();}
@@ -259,6 +260,7 @@ export class Scene {
         if(o.state==='burned'){c.fillStyle='#45423c';c.fillRect(x-14,ground-4,29,4);c.strokeStyle='#76644e';c.lineWidth=3;c.beginPath();c.moveTo(x-11,ground-2);c.lineTo(x+7,ground-10);c.moveTo(x-8,ground-9);c.lineTo(x+12,ground-2);c.stroke();}
         else{c.fillStyle='#97754b';c.fillRect(x-13,ground-15,26,4);c.fillRect(x-10,ground-11,3,11);c.fillRect(x+7,ground-11,3,11);c.fillStyle='#aeb4ad';c.fillRect(x-5,ground-21,11,6);c.fillRect(x-1,ground-15,4,2);}
       }
+      if(o.kind==='hostileCamp'){c.fillStyle='#534d39';c.beginPath();c.ellipse(x,ground-1,9,2,0,0,7);c.fill();c.strokeStyle='#a88d66';c.lineWidth=2;c.beginPath();c.moveTo(x-6,ground-2);c.lineTo(x+4,ground-6);c.moveTo(x-5,ground-6);c.lineTo(x+5,ground-2);c.stroke();}
       if(o.kind==='descent')drawDescent(c,o,x,screenX(o.descent.bottom),ground);
       if (o.kind === 'rest') {
         if (a.type === 'camp') this.fire(x, ground, s.tick);

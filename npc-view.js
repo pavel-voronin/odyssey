@@ -1,11 +1,13 @@
+import {carriedFood} from './modules/stores.js';
 import {NPC_TASKS,NPC_JOBS} from './npc-labels.js';
 import {companionAffairsEnabled} from './modules/companion-affair-state.js';
 import {materialDeliveryEnabled,pendingMaterialContract,materialContracts} from './modules/material-delivery-state.js';
 import {partyCombatOn} from './modules/party-combat-policy.js';
 // Read-only presentation of the existing NPC controller; never a second travel or work action.
 export function projectNPCView(s,h,p,leader,previous){
- if(p.alive&&p.enemyBody?.stage==='hostile'){h.lastAction='guard';h.intent='Вооружённый путник на дороге';h.reason='Следит за дорогой и не подпускает путников. Разговор может оказаться безопаснее боя.';h.transit=null;return;}
+ if(p.alive&&p.enemyBody?.stage==='hostile'){const q=p.hostileLife;h.lastAction=q?(q.lastActionTick===s.tick?({walk:'walk',rest:'rest',eat:'eat',forage:'work',raid:'attack',fight:'attack'}[q.action]||'guard'):p.needs.sleeping?'rest':'idle'):'guard';h.intent=q?.lastActionTick===s.tick&&q.action==='fight'?'Отбиваться на дороге':q?.goal?({forage:'Добыть еду в виденном месте',raid:'Попробовать отнять дорожные припасы',camp:'Вернуться к своей стоянке',relocate:'Перенести стоянку подальше от опасности',search:'Осмотреть другой конец дороги'}[q.goal.kind]):q?.action==='eat'?'Есть собственные припасы':q?.action==='rest'?'Отдыхать на своей стоянке':q?.action==='camp'?'Устроить стоянку в новом месте':q?.action==='forage'?'Собрать еду для дороги':q?.action==='raid'?'Отойти после налёта':'Вооружённый путник на дороге';h.reason=q?'В своей поклаже осталось '+carriedFood(p,p.actorLink?.inventory)+' порций. Действует по своим нуждам и виденным местам.':'Следит за дорогой и не подпускает путников. Разговор может оказаться безопаснее боя.';h.transit=null;return;}
  if(!p.alive){const route=p.deathJourney;h.lastAction='dead';h.transit=route&&s.areas[route.from]&&s.areas[route.to]?{...route,remaining:0,total:1,viewOnly:true,dead:true}:!p.area?{from:h.area,to:h.area,mode:'road',remaining:0,total:1,viewOnly:true,unknown:true,dead:true}:null;h.intent='Жизнь закончилась. Мир продолжается';h.reason='Можно остаться наблюдать это место или явно выбрать другую историю.';return;}
+ if(p.raidDefenseTick===s.tick){h.lastAction='attack';h.intent='Защищать припасы от налётчика';h.reason='Отвечает на попытку отнять дорожную еду поблизости.';h.transit=null;return;}
  const journey=s.society?.journeys.find(j=>j.person===p.id&&j.movement==='timed'),remaining=journey?Math.max(0,journey.arrival-s.tick):0,old=h.transit;
  if(leader?.transit)h.transit={...leader.transit,viewOnly:true};
  else if(leader)h.transit=null;

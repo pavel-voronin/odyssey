@@ -1,3 +1,4 @@
+import {stopHostileLife} from './hostile-state.js';
 import {enemyPerson,syncEnemyPeople} from './enemy-person-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -12,8 +13,8 @@ function keepPossessions(s,p,e){const bag=npcLooseItems(s,p);for(const i of e.it
 export function releaseEnemyPerson(s,e,method,ctx){
  const p=enemyPerson(s,e),h=s.hero,b=p?.enemyBody;
  if(!p||b.stage!=='hostile'||!e.alive||e.hp<=0||h.transit||h.area!==b.origin||method!=='sleep'&&physicalDistance(s.areas[h.area],h.x,e.x)>12||!['parley','surrender','sleep'].includes(method))return false;
- syncEnemyPeople(s);if(!npcAction(s,p,'enemy','mercy'))return false;
- b.stage='spared';b.lastActionTick=s.tick;b.mercy={tick:s.tick,by:h.lineage,method,coins:e.stolen||0};keepPossessions(s,p,e);if(e.stolen){setActorMoney(s,p,(s.actorStates?.[p.id]?.gold??p.agenda.wealth)+e.stolen);e.stolen=0;}p.status='resident';if(method==='sleep'){p.needs.sleeping=true;p.needs.energy=0;}p.agenda.task=null;p.agenda.due=s.tick+8;
+ syncEnemyPeople(s);if(!npcAction(s,p,'enemy',p.hostileLife?.lastActionTick===s.tick?'social':'mercy'))return false;
+ b.stage='spared';stopHostileLife(s,p,'spared');b.lastActionTick=s.tick;b.mercy={tick:s.tick,by:h.lineage,method,coins:e.stolen||0};keepPossessions(s,p,e);if(e.stolen){setActorMoney(s,p,(s.actorStates?.[p.id]?.gold??p.agenda.wealth)+e.stolen);e.stolen=0;}p.status='resident';if(method==='sleep'){p.needs.sleeping=true;p.needs.energy=0;}p.agenda.task=null;p.agenda.due=s.tick+8;
  e.resolved=true;e.pacified=true;e.patrol=0;h.combat=null;if(h.goal?.object===e.id)h.goal=null;
  const a=s.areas[p.area];a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);if(!a.objects.some(o=>o.kind==='resident'&&o.person===p.id))a.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x});
  p.agenda.bonds[h.lineage]=(p.agenda.bonds[h.lineage]||0)+2;observeNPCPlace(s,p);ctx?.meetPerson?.(s,p.id,ctx,2);return true;
@@ -38,9 +39,9 @@ export function releasedPersonPlan(s,p){
  b.decision={tick:s.tick,kind,target:choice?.area.id||p.area};
  m.task=choice?{kind:'return',target:choice.area.id,x:42,remaining:1,knownNavigation:true}:{kind:'study',target:p.area,x:p.x,remaining:3};m.due=s.tick;p.status=choice?'wandering':'resident';return true;
 }
-export function killEnemyPerson(s,e,killer=null){
+export function killEnemyPerson(s,e,killer=null,cause=null){
  const p=enemyPerson(s,e),b=p?.enemyBody;if(!p||b.stage==='dead')return null;
- p.area=b.stage==='hostile'?b.origin:p.area;p.x=b.stage==='hostile'?e.x:p.x;p.health=0;p.alive=false;p.status='dead';p.died=s.tick;p.deathCause=killer?'Погиб в бою с '+(s.people[killer]?.name||killer):'Погиб в бою';p.agenda.task=null;b.stage='dead';b.lastActionTick=s.tick;
+ p.area=b.stage==='hostile'?b.origin:p.area;p.x=b.stage==='hostile'?e.x:p.x;p.health=0;p.alive=false;p.status='dead';p.died=s.tick;p.deathCause=cause||(killer?'Погиб в бою с '+(s.people[killer]?.name||killer):'Погиб в бою');p.agenda.task=null;b.stage='dead';stopHostileLife(s,p,'dead');b.lastActionTick=s.tick;
  keepPossessions(s,p,e);const body=recordPersonRemains(s,p);if(body)e.remainsId=body.id;
  const bag=npcLooseItems(s,p);if(bag.length){const items=bag.splice(0);cacheItems(s,items,{area:p.area,x:p.x,leftBy:p.id,name:'Поклажа: '+p.name});p.looseItems=[];}
  e.hp=0;e.alive=false;e.resolved=true;e.patrol=0;return p;
