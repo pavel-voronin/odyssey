@@ -13,7 +13,7 @@ test('twenty-day temperate seasons and the eighty-day year have exact shared bou
 test('changing climate changes local season translation without advancing the world day, year, or night',()=>{
  const tick=25*DAY_TICKS+210,expected={temperate:['summer',6],tropical:['wet',26],arid:['summer',26],alpine:['autumn',1],underground:['deep',26]};
  for(const [climate,value]of Object.entries(expected)){const d=worldDate(s,tick,{climate,era:0});assert.deepEqual([d.season,d.seasonDay],value);assert.equal(d.dayOfYear,26);assert.equal(d.year,743);assert.equal(d.night,true);}
- const past=worldDate(s,tick,{climate:'arid',era:-120});assert.equal(past.year,623);assert.equal(past.dayOfYear,26);
+ const past=worldDate(s,tick,{climate:'arid',era:-120});assert.equal(past.year,743);assert.equal(past.sceneYear,623);assert.equal(past.temporalOffset,-120);assert.equal(past.dayOfYear,26);
 });
 test('old worlds keep their simulation and born values; passive dates consume no RNG or data and unknown climates fall back',()=>{
  const state=createWorld(7),before=serialize(state);for(let i=0;i<100;i++){worldDate(state,i*DAY_TICKS);dateLabel(state,i*DAY_TICKS);}assert.equal(serialize(state),before);assert.equal(serialize(restore(before)),before);

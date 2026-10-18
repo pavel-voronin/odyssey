@@ -1,8 +1,7 @@
 import {areaEnvironment} from './area-environment.js';
-export const DAY_TICKS = 240;
-export const LIGHT_TICKS = 200;
-export const DAYS_PER_YEAR = 80;
-export const YEAR_TICKS = DAY_TICKS*DAYS_PER_YEAR;
+import {DAY_TICKS,LIGHT_TICKS,DAYS_PER_YEAR,YEAR_TICKS} from './calendar-units.js';
+export {DAY_TICKS,LIGHT_TICKS,DAYS_PER_YEAR,YEAR_TICKS} from './calendar-units.js';
+import {historicalDate} from './modules/historical-calendar.js';
 export const CLIMATES={
   temperate:{name:'Умеренный',seasons:[['spring','Весна','Ве',20],['summer','Лето','Ле',20],['autumn','Осень','Ос',20],['winter','Зима','Зи',20]]},
   tropical:{name:'Тропический',seasons:[['wet','Дожди','Дж',40],['dry','Сушь','Су',40]]},
@@ -28,9 +27,10 @@ export function worldDate(s,tick=s.tick,area=s.areas?.[s.hero?.area]){
   const t=Math.max(0,Math.floor(Number.isFinite(tick)?tick:0)),yearIndex=Math.floor(t/YEAR_TICKS),dayOfYear=Math.floor(t/DAY_TICKS)%DAYS_PER_YEAR+1,climate=climateId(s,area),seasons=CLIMATES[climate].seasons;
   let day=dayOfYear,season=seasons[0];for(const candidate of seasons){season=candidate;if(day<=candidate[3])break;day-=candidate[3];}
   const base=Number.isFinite(s.chronology?.year)?Math.floor(s.chronology.year):743,era=Number.isFinite(area?.era)?Math.floor(area.era):0;
-  return {...calendar(t),year:base+yearIndex+era,yearIndex,dayOfYear,climate,season:season[0],seasonName:season[1],seasonShort:season[2],seasonDay:day,seasonDays:season[3]};
+  const civil=historicalDate(s,t),physicalYear=base+yearIndex,sceneYear=physicalYear+era;
+  return {...calendar(t),...civil,year:civil.civilYear,physicalYear,sceneYear,temporalOffset:era,yearIndex,dayOfYear,climate,season:season[0],seasonName:season[1],seasonShort:season[2],seasonDay:day,seasonDays:season[3]};
 }
-export function dateLabel(s,tick=s.tick,area){const d=worldDate(s,tick,area);return `${d.seasonName}, ${d.seasonDay} · ${d.year} г.`;}
+export function dateLabel(s,tick=s.tick,area){const d=worldDate(s,tick,area);return `${d.seasonName}, ${d.seasonDay} · ${d.periodKind==='historical'?d.year:d.sceneYear} г.`;}
 export function dateStamp(s,tick=s.tick,area){const d=worldDate(s,tick,area);return `${d.seasonShort} ${d.seasonDay}`;}
 export function elapsedLabel(ticks){
   const t=Math.max(0,Math.floor(ticks||0)),years=Math.floor(t/YEAR_TICKS),days=Math.floor(t/DAY_TICKS)%DAYS_PER_YEAR,hours=Math.floor(t%DAY_TICKS/10),minutes=t%10*6;

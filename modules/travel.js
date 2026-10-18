@@ -1,3 +1,4 @@
+import {initializeHistoricalCalendar} from './historical-calendar.js';
 import {startInvitation,exoticInvitationPenalty} from './invitation-rhythm.js';
 import {revealArea,hideNewArea} from '../actor-atlas.js';
 import { BIOMES, CONTINENT_NAMES, LANDMARK_NAMES, ROUTE_NAMES } from '../content.js';
@@ -16,7 +17,7 @@ export const edgeKey=(a,b)=>[a,b].sort().join('|');
 const pick=(s,list)=>list[Math.floor(moduleRandom(s,'geography')*list.length)];
 export function initializeGeography(s){
   s.continents={c0:{id:'c0',name:CONTINENT_NAMES[0]}};s.nextContinent=1;
-  s.edges={};s.chronology={year:743,paradox:0,visits:0,echoes:[]};
+  s.edges={};s.chronology={year:743,paradox:0,visits:0,echoes:[]};initializeHistoricalCalendar(s);
 }
 export function annotateRegion(s,a,metadata={}){
   a.continent=metadata.continent||'c0';a.realm=metadata.realm||BIOMES[a.type]?.realm||'surface';a.era=metadata.era??0;
