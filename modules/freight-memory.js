@@ -1,3 +1,4 @@
+import {demandFreightEnabled,localDemand,demandOffer} from './demand-freight.js';
 import {enabled} from '../rules.js';
 import {detailedActors,selfDrivenActor} from '../actor-projection.js';
 import {isTown} from './common.js';
@@ -14,6 +15,7 @@ export function observeFreightActor(s,p,area=p?.area,sharedObservation=false){
   p.navigation.markets ??=[];let record=p.navigation.markets.find(e=>e.area===area);
   if(!record){record={area};p.navigation.markets.push(record);}
   Object.assign(record,{name:a.name,food:a.civic.food,medicine:a.civic.medicine,treasury:a.civic.treasury||0,era:a.era,realm:a.realm,seen:s.tick});
+  if(demandFreightEnabled(s))Object.assign(record,{tools:a.civic.tools||0,demand:{...localDemand(s,a),seen:s.tick,foodStock:a.civic.food,toolStock:a.civic.tools||0,medicineStock:a.civic.medicine,treasury:a.civic.treasury||0}});
   if(p.navigation.markets.length>MARKET_LIMIT)p.navigation.markets.sort((a,b)=>a.seen-b.seen).splice(0,p.navigation.markets.length-MARKET_LIMIT);
 }
 export function availableFreightDriver(s,p,source){
@@ -33,6 +35,7 @@ export function rememberedMarket(s,p,source,to=null,threshold=35){
   return null;
 }
 export function freightDispatch(s){
+  if(demandFreightEnabled(s)){for(const source of Object.values(s.areas))if(isTown(source)&&source.civic){for(const id of source.population||[]){const p=s.people[id];if(availableFreightDriver(s,p,source)){const offer=demandOffer(s,p,source);if(offer)return {source,target:s.areas[offer.market.area],driver:p.id};}}}return null;}
   for(const source of Object.values(s.areas))if(isTown(source)&&source.civic?.food>60){
     for(const id of source.population||[]){const driver=s.people[id];if(!availableFreightDriver(s,driver,source))continue;
       const memory=rememberedMarket(s,driver,source);if(memory&&(memory.market.treasury>=3||driver.agenda.duty>.65))return {source,target:s.areas[memory.market.area],driver:driver.id};
@@ -41,8 +44,9 @@ export function freightDispatch(s){
   return null;
 }
 export function freightRequest(s,source,destination,driverId=null){
-  if(!enabled(s,'npc-logistics')||!source?.civic||!destination||source.id===destination.id||source.civic.food<12)return null;
+  if(!enabled(s,'npc-logistics')||!source?.civic||!destination||source.id===destination.id||!demandFreightEnabled(s)&&source.civic.food<12)return null;
   const drivers=(source.population||[]).map(id=>s.people[id]).filter(p=>availableFreightDriver(s,p,source)&&(!driverId||p.id===driverId));
+  if(demandFreightEnabled(s)){for(const p of drivers){const offer=demandOffer(s,p,source,destination.id);if(offer)return {driver:p,author:p.id,...offer};}return null;}
   if(driverId){const p=drivers[0],memory=p&&rememberedMarket(s,p,source,destination.id);return memory&&(memory.market.treasury>=3||p.agenda.duty>.65)?{driver:p,author:p.id,...memory}:null;}
   const authors=detailedActors(s).filter(h=>selfDrivenActor(s,h)&&!h.transit&&h.area===source.id);
   for(const author of authors){const person=s.people[author.lineage],memory=person?.alive&&rememberedMarket(s,person,source,destination.id,40);if(memory){const driver=drivers.find(p=>memory.market.treasury>=3||p.agenda.duty>.65);if(driver)return {driver,author:person.id,...memory};}}
@@ -51,7 +55,7 @@ export function freightRequest(s,source,destination,driverId=null){
 }
 export function observeConvoy(s,c){
   const p=s.people[c.person];if(!p)return;
-  const a=s.areas[p.area];if(a)for(const h of detailedActors(s))if(localContact(s,h.lineage,a.id)){delete c.sightings[h.lineage];c.sightings[h.lineage]={area:a.id,tick:s.tick,food:c.food,medicine:c.medicine};}
+  const a=s.areas[p.area];if(a)for(const h of detailedActors(s))if(localContact(s,h.lineage,a.id)){delete c.sightings[h.lineage];c.sightings[h.lineage]={area:a.id,tick:s.tick,food:c.food,medicine:c.medicine,...(c.tools?{tools:c.tools}:{})};}
   while(Object.keys(c.sightings).length>6)delete c.sightings[Object.keys(c.sightings)[0]];
 }
 export function freightEvent(s,c,a,text,ctx){
@@ -65,7 +69,7 @@ export function freightEvent(s,c,a,text,ctx){
 }
 export function convoyView(s,c){
   const p=s.people[c.person],a=p&&s.areas[p.area];
-  if(c.movement==='timed'&&!enabled(s,'npc-logistics'))return {area:p?.area,tick:s.tick,food:c.food,medicine:c.medicine,timed:true};
-  if(a&&heroPresent(s,a))return {area:a.id,tick:s.tick,food:c.food,medicine:c.medicine,here:true};
+  if(c.movement==='timed'&&!enabled(s,'npc-logistics'))return {area:p?.area,tick:s.tick,food:c.food,medicine:c.medicine,...(c.tools?{tools:c.tools}:{}),timed:true};
+  if(a&&heroPresent(s,a))return {area:a.id,tick:s.tick,food:c.food,medicine:c.medicine,...(c.tools?{tools:c.tools}:{}),here:true};
   return c.sightings?.[s.hero.lineage]||null;
 }

@@ -1,5 +1,6 @@
 import {areaScale,areaOffset,campPassage,physicalDistance} from '../geometry.js';
 import {npcFordGate} from './ford-actors.js';
+import {demandDeparture} from './demand-freight.js';
 import {takeGoods,putGoods} from './goods.js';
 import {enabled} from '../rules.js';
 import {selfDrivenActor} from '../actor-projection.js';
@@ -12,9 +13,9 @@ export function freightHistory(s,c,outcome,proof){
   if(s.logistics.history.length>80)s.logistics.history.shift();
 }
 function removeFreight(s,c){s.logistics.convoys=s.logistics.convoys.filter(other=>other!==c);}
-function cacheCargo(s,c,a,food,medicine,name='Брошенный груз каравана'){
-  if(food<=0&&medicine<=0)return;
-  if(!a.objects.some(o=>o.id===c.id+'-cargo'))a.objects.push({id:c.id+'-cargo',kind:'supplyCache',name,x:Math.min(92,Math.max(8,s.people[c.person]?.x||55)),food,medicine,taken:false});
+function cacheCargo(s,c,a,food,medicine,name='Брошенный груз каравана',tools=c.tools||0){
+  if(food<=0&&medicine<=0&&!(tools>0))return;
+  if(!a.objects.some(o=>o.id===c.id+'-cargo'))a.objects.push({id:c.id+'-cargo',kind:'supplyCache',name,x:Math.min(92,Math.max(8,s.people[c.person]?.x||55)),food,medicine,...(tools?{tools}:{}),taken:false});
 }
 function releaseDriver(s,c){
   const p=s.people[c.person],a=s.areas[p.area];if(!p.alive)return;
@@ -33,14 +34,15 @@ function finishFreight(s,c,ctx,outcome){
   if(['delivered','returned'].includes(outcome)&&a.civic){
     const acceptedFood=Math.min(food,Math.max(0,100-a.civic.food)),acceptedMedicine=Math.min(medicine,Math.max(0,100-a.civic.medicine));
     putGoods(s,a,'food',acceptedFood,{reason:'freight-'+outcome,actor:p.id});a.civic.medicine+=acceptedMedicine;
-    cacheCargo(s,c,a,food-acceptedFood,medicine-acceptedMedicine,'Припасы, не поместившиеся в кладовой');
+    cacheCargo(s,c,a,food-acceptedFood,medicine-acceptedMedicine,'Припасы, не поместившиеся в кладовой',0);
+    if(c.tools)putGoods(s,a,'tools',c.tools,{reason:'freight-'+outcome,actor:p.id});
     if(a.civic.food>=40&&a.civic.crisis?.kind==='hunger')a.civic.crisis=null;
     if(outcome==='delivered'){s.logistics.deliveries++;c.wagePaid=Math.min(3,Math.max(0,a.civic.treasury||0));a.civic.treasury-=c.wagePaid;p.agenda.wealth+=c.wagePaid;p.agenda.work++;}
-    releaseDriver(s,c);c.food=0;c.medicine=0;
-    const text=outcome==='delivered'?`${p.name} привозит в ${a.name}: еда ${food}, медицина ${medicine}. Оплата из казны: ◈${c.wagePaid}.`:`${p.name} возвращает в ${a.name} оставшиеся припасы: еда ${food}, медицина ${medicine}. Путь оказался недоступен.`;
+    releaseDriver(s,c);c.food=0;c.medicine=0;if(c.tools)c.tools=0;
+    const text=outcome==='delivered'?`${p.name} привозит в ${a.name}: еда ${food}, инструменты ${c.demand?.kind==='tools'?c.demand.quantity:0}, медицина ${medicine}. Оплата из казны: ◈${c.wagePaid}.`:`${p.name} возвращает в ${a.name} оставшиеся припасы: еда ${food}, медицина ${medicine}. Путь оказался недоступен.`;
     const proof=freightEvent(s,c,a,text,ctx);freightHistory(s,c,outcome,proof);removeFreight(s,c);observeFreightActor(s,p);return;
   }
-  cacheCargo(s,c,a,food,medicine);c.food=0;c.medicine=0;s.logistics.losses++;
+  cacheCargo(s,c,a,food,medicine);c.food=0;c.medicine=0;if(c.tools)c.tools=0;s.logistics.losses++;
   releaseDriver(s,c);const proof=freightEvent(s,c,a,p.alive?`${p.name} оставляет груз в месте «${a.name}»: дальше пройти не удалось. Припасы остаются здесь.`:`${p.name} погибает в месте «${a.name}». Его припасы остаются на дороге.`,ctx);
   freightHistory(s,c,'stranded',proof);removeFreight(s,c);
 }
@@ -53,19 +55,21 @@ function returnFreight(s,c,ctx){
 function captureFreight(s,c,p,a,ctx){
   rememberNPCHazard(s,p);p.status='captive';p.health=Math.max(1,p.health-20);
   if(!a.objects.some(o=>o.id===c.id+'-captive'))a.objects.push({id:c.id+'-captive',kind:'captive',person:p.id,name:p.name,x:p.x,resolved:false});
-  cacheCargo(s,c,a,c.food,c.medicine);c.food=0;c.medicine=0;s.logistics.losses++;
+  cacheCargo(s,c,a,c.food,c.medicine);c.food=0;c.medicine=0;if(c.tools)c.tools=0;s.logistics.losses++;
   const proof=freightEvent(s,c,a,`${p.name} перехвачен в месте «${a.name}». Его груз остался на дороге.`,ctx);freightHistory(s,c,'captured',proof);removeFreight(s,c);
 }
 export function createFreight(s,source,destination,ctx,driverId=null){
   const request=freightRequest(s,source,destination,driverId);if(!request)return null;
-  const p=request.driver,medicine=Math.min(4,Math.max(0,source.civic.medicine-30));
-  takeGoods(s,source,'food',12,{flow:'exported',reason:'freight-departure',actor:p.id});source.civic.medicine-=medicine;
-  const c={id:'convoy-'+s.logistics.nextConvoy++,person:p.id,source:source.id,to:destination.id,path:[...request.path],index:0,food:12,medicine,version:1,movement:'physical',elapsed:0,lastTick:s.tick,
+  const p=request.driver,medicine=request.kind?(request.kind==='medicine'?request.quantity:0):Math.min(4,Math.max(0,source.civic.medicine-30));
+  const food=request.kind?(request.kind==='food'?request.quantity:0):12,tools=request.kind==='tools'?request.quantity:0;
+  if(request.kind!=='medicine'&&takeGoods(s,source,request.kind||'food',request.quantity||12,{flow:'exported',reason:'freight-departure',actor:p.id})!==(request.quantity||12))return null;source.civic.medicine-=medicine;
+  const c={id:'convoy-'+s.logistics.nextConvoy++,person:p.id,source:source.id,to:destination.id,path:[...request.path],index:0,food,medicine,...(tools?{tools}:{}),version:1,movement:'physical',elapsed:0,lastTick:s.tick,
     sourceName:source.name,targetName:request.market.name,manifest:{author:request.author,seen:request.market.seen},sightings:{}};
+  if(request.kind)demandDeparture(s,source,c,request);
   s.logistics.convoys.push(c);p.status='caravan';p.agenda.task=null;
   markNPCDeparture(s,p,'caravan');
   source.population=source.population.filter(id=>id!==p.id);source.objects=source.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);
-  configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.`,ctx);observeFreightActor(s,p);return c;
+  configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.${c.demand?` Потребность по сведениям от тика ${c.demand.seen}: ${c.demand.kind==='food'?'еда':c.demand.kind==='medicine'?'медицина':'инструменты'} ${c.demand.knownStock}/${c.demand.target}; партия ${c.demand.quantity}, резерв отправителя ${c.demand.reserve}.`:''}`,ctx);observeFreightActor(s,p);return c;
 }
 export function advanceFreight(s,c,ctx){
   if(!enabled(s,'npc-logistics')||!s.logistics.convoys.includes(c)||c.lastTick===s.tick)return;

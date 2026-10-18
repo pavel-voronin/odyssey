@@ -85,7 +85,7 @@ function plan(s,p,ctx){
   if(npcDeedAllows(s,p,'learning')&&personalVisitPlan(s,p,ctx))return;
   if(npcLodgingPlan(s,p))return;
   if(npcTavernPlan(s,p))return;
-  if(goodsEnabled(s)&&a.civic&&a.goods?.harvestRequest?.until>=s.tick&&a.civic.food<100&&(m.job==='farmer'||m.duty>.4)&&productionSources(s,a).field.stock>0){begin(p,'farm',p.area,42);return;}
+  if(goodsEnabled(s)&&a.civic&&a.goods?.harvestRequest?.until>=s.tick&&a.civic.food<(a.goods.harvestRequest.target??100)&&(m.job==='farmer'||m.duty>.4)&&productionSources(s,a).field.stock>0){begin(p,'farm',p.area,42);return;}
   if(a.civic?.food<40&&(m.duty>.35||a.civic.food<20)){
     const target=a.links.map(id=>s.areas[id]).find(other=>other.forage?.stock>0&&(!localFoodEnabled(s)||!other.forage.localFood||localFoodChoice(s,p,null,other))&&safePath(s,[a.id,other.id],p));
     if(target){const food=localFoodChoice(s,p,null,target);begin(p,'gather',target.id,target.forage.x,food?.remaining||3,{home:p.area,...(food?{foodSource:food.id}:{})});p.status='wandering';return;}

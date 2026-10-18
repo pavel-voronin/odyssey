@@ -193,5 +193,5 @@ export function launchConvoy(s,source,destination,ctx){
   report(s,`${source.name} отправляет припасы в ${destination.name}. Они вычтены из исходной кладовой и пока находятся в дороге.`,ctx,c,source);
   return c;
 }
-export function recoverCargo(s,o,ctx){if(!enabled(s,'supply')||o.taken)return;o.taken=true;s.hero.inventory.rations+=Math.floor(o.food/4);s.hero.inventory.herbs+=o.medicine;if(goodsEnabled(s)){const p=s.people[s.hero.lineage];p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food=(p.roadSupplies.food||0)+o.food%4;o.food=0;o.medicine=0;}ctx.log(s,'Найден потерянный груз каравана. Еда и лечебные средства теперь в сумке героя.','food');}
+export function recoverCargo(s,o,ctx){if(!enabled(s,'supply')||o.taken)return;o.taken=true;s.hero.inventory.rations+=Math.floor(o.food/4);s.hero.inventory.herbs+=o.medicine;if(goodsEnabled(s)){const p=s.people[s.hero.lineage];p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food=(p.roadSupplies.food||0)+o.food%4;o.food=0;o.medicine=0;}if(o.tools){const p=s.people[s.hero.lineage];p.marketCargo ||= {tools:0};p.marketCargo.tools+=o.tools;o.tools=0;}ctx.log(s,'Найден потерянный груз каравана. Еда и лечебные средства теперь в сумке героя.','food');}
 export function spoilRation(s){if(!enabled(s,'supply')||s.hero.inventory.rations<=0)return false;s.hero.inventory.rations--;return true;}
