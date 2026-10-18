@@ -1,3 +1,4 @@
+import {shipRecoveryAction} from './modules/ship-recovery.js';
 import {petRouteDeferred,knownPetRoute,petPassageEntered} from './modules/pet-passage-state.js';import {petPassagePlan,petRetrievalPlan,petPassagePath,petBoardingAction,petBoardingTarget} from './modules/pet-boarding.js';import {petBoardingWorldTick} from './modules/pet-boarding-actors.js';
 import {petTransferPlan,petTransferAction} from './modules/pet-transfer.js';import {npcPetsTick} from './modules/pet-transfer-actors.js';
 import {cacheItems} from './modules/item-originals.js';
@@ -741,7 +742,7 @@ function actObserved(s) {
   if(!holdPoisonRest(s)&&pairCampCare(s,context(s,'party-relations')))return s;
   const groupNeed=partyDemand(s);
   intentionTick(s,context(s,'intentions'));
-  if(enabled(s,'repertoire')&&['craft','navigation'].includes(h.goal?.repertoire?.line)&&repertoireInterrupt(s,{...context(s,'repertoire'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))},currentQuest(h,s)))return s;
+  if(enabled(s,'repertoire')&&['craft','navigation','returnship'].includes(h.goal?.repertoire?.line)&&repertoireInterrupt(s,{...context(s,'repertoire'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))},currentQuest(h,s)))return s;
   if(balanceIntentions(s,{...context(s,'intention-balance'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))}))return s;
   if(!h.goal?.intention&&respondAid(s,context(s,'personal-aid')))return s;
   if(h.goal?.kind==='leisure'&&h.goal.signals!==undefined&&h.goal.signals!==quietSignals(s))h.goal=null;
@@ -873,6 +874,7 @@ function actObserved(s) {
   else if (g.kind === 'weatherWait') weatherWait(s,context(s,'weather'));
   else if (g.kind === 'govern') governTick(s,context(s,'politics'));
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
+  else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
   else if (g.kind === 'storyAction') storyAction(s,g.story,context(s,'stories'));
   else if (g.kind === 'moneyCache') moneyCacheAction(s,context(s,'finances'));
   else if (g.kind === 'routeMap') routeMapAction(s,context(s,'route-maps'));

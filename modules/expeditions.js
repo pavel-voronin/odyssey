@@ -1,3 +1,5 @@
+import {launchShip} from './ship-launch.js';
+import {rememberShipFailure} from './ship-recovery-state.js';
 import {revealArea} from '../actor-atlas.js';
 import {moduleRandom,enabled} from '../rules.js';
 import {stat,profile,moral,hasHabit} from './common.js';
@@ -19,21 +21,19 @@ export function plan(s,c,ctx){
   storyGoal(s,c,ctx,c.target,82,c.variant==='ship'?'Исследовать звёздный корабль':'Проверить, кто считает этот мир','Механизм реален: к нему ведёт новый путь, а охрана преграждает проход.');return true;
 }
 export function act(s,c,ctx){
+  if(c.status!=='active')return;
   if(workExpeditionNode(s,c,ctx))return;
   const h=s.hero,a=s.areas[c.target];h.goal=null;h.lastAction='collect';
   const clever=stat(h,'wit')>=4||['time','repair','magic','relic'].includes(profile(h).skill);
   const fuel=h.inventory.relics>0;
   if(c.variant==='ship'){
     if(clever&&fuel){
-      h.inventory.relics--;const destination=ctx.addArea(s,'island','Остров под чужой луной',a.depth+1,{realm:'surface'});
-      ctx.connect(s,a.id,destination,{mode:'portal',duration:4,cost:0});revealArea(s,destination);
-      const assistant={id:'star-assistant',name:'Бортовой дух с неисправным этикетом',uid:c.id+'-helper',attack:2,healing:1,scouting:2,loyalty:65,hp:24,maxHp:24,ethics:0,joined:s.tick};
-      if(enabled(s,'companions')&&h.companions.length<3){h.companions.push(assistant);h.counters.companions++;}
+      if(!launchShip(s,c,ctx,c.id+'/launch'))return;
       chronicleChoice(s,c,'Восстановил корабль древним светом.');narrativeChange(s,c,'Звёздный корабль открыл постоянный проход к острову под чужой луной.');
       ctx.storyFinish(s,c,ctx,'done','Реликвия зажигает корабль. Открывается новый остров; бортовой дух спрашивает, почему пассажиры снова забыли эволюционировать.');
     }else if(hasHabit(h,'hoarder')||!fuel){
-      receiveItem(s,ctx,4);h.gold+=18;chronicleChoice(s,c,'Разобрал сердце корабля.');narrativeChange(s,c,'Корабль лишился сердца и больше никогда не полетит.');ctx.storyFinish(s,c,ctx,'done','Герой разбирает сердце корабля на полезные детали. Находка велика, но чужая луна остаётся недостижимой.');
-    }else {h.inventory.relics--;h.hp=Math.max(1,h.hp-15);c.broken=true;narrativeChange(s,c,'Неудачный запуск погасил звёздный корабль.');ctx.storyFinish(s,c,ctx,'failed','Древний свет перегружает систему. Герой получает ожоги, корабль замолкает. Знаний не хватило.');}
+      const heart=a.objects.find(o=>o.id===c.console);if(heart)heart.dismantled=true;receiveItem(s,ctx,4);h.gold+=18;chronicleChoice(s,c,'Разобрал сердце корабля.');narrativeChange(s,c,'Корабль лишился сердца и больше никогда не полетит.');ctx.storyFinish(s,c,ctx,'done','Герой разбирает сердце корабля на полезные детали. Находка велика, но чужая луна остаётся недостижимой.');
+    }else {const before=h.hp;h.inventory.relics--;h.hp=Math.max(1,h.hp-15);c.broken=true;rememberShipFailure(s,c,before);narrativeChange(s,c,'Неудачный запуск погасил звёздный корабль.');ctx.storyFinish(s,c,ctx,'failed','Древний свет перегружает систему. Герой получает ожоги, корабль замолкает. Знаний не хватило.');}
     return;
   }
   if(clever&&h.personality.curiosity>.65){

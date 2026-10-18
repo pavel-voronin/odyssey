@@ -1,3 +1,4 @@
+import {shipRecoveryText} from './modules/ship-recovery-state.js';
 import {petPassageHTML,petKeeperHTML} from './pet-passage-sheet.js';
 import {petMemoriesHTML} from './pet-custody-sheet.js';
 import {packPetHTML} from './pack-pet-sheet.js';
@@ -261,7 +262,7 @@ function enrichSheet(){
     const cases=state.storyCases.filter(c=>c.owner===state.hero.lineage);
     const knownVerdicts=cases.map(c=>verdictKnowledgeHTML(state,c,escape,eventDate)).join('');
     if(knownVerdicts)$('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ПРОВЕРКА ПРЕЖНИХ ПРИГОВОРОВ</p>${knownVerdicts}`);
-    $('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ДОЛГИЕ ИСТОРИИ</p>${cases.map(c=>`<details class="habit"><summary>${escape(STORY_NAMES[c.kind])} · ${escape(({active:'Продолжается',done:'Завершена',failed:'Не удалось',declined:'Отказался',abandoned:'Оставлена'})[c.status])}</summary><p>${escape(c.summary||({opening:'Необычное предложение',owed:'Долг: '+c.debt+' зол. к '+dateLabel(state,c.due),collection:'Долг пришёл за героем',evidence:'Сбор улик',trial:'Разбирательство',investigate:'Исследование'})[c.stage]||c.stage)}</p>${c.choices.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}${c.effects.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}</details>`).join('')||'<p class="empty">Новые встречи ещё могут изменить эту жизнь.</p>'}`);
+    $('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ДОЛГИЕ ИСТОРИИ</p>${cases.map(c=>`<details class="habit"><summary>${escape(STORY_NAMES[c.kind])} · ${escape(({active:'Продолжается',done:'Завершена',failed:'Не удалось',declined:'Отказался',abandoned:'Оставлена'})[c.status])}</summary><p>${escape(c.summary||({opening:'Необычное предложение',owed:'Долг: '+c.debt+' зол. к '+dateLabel(state,c.due),collection:'Долг пришёл за героем',evidence:'Сбор улик',trial:'Разбирательство',investigate:'Исследование'})[c.stage]||c.stage)}</p>${c.shipRecovery?`<p>${escape(shipRecoveryText(c))}</p>`:''}${c.choices.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}${c.effects.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}</details>`).join('')||'<p class="empty">Новые встречи ещё могут изменить эту жизнь.</p>'}`);
   }
   if(tab==='map'){
     const enemies=state.areas[state.hero.area].objects.filter(e=>e.kind==='enemy'&&e.alive&&!e.resolved);

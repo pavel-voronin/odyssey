@@ -34,7 +34,7 @@ const release = checksResult.release;
 if (!/^[a-f0-9]{16}$/.test(release.revision)) throw new Error('Invalid release identifier');
 const remote = `/srv/kolpaque/releases/odyssey/${release.revision}`;
 const live = '/srv/kolpaque/sites/odyssey';
-const ssh = script => run('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=30', '-o', 'ServerAliveInterval=10', '-o', 'ServerAliveCountMax=3', host, script]);
+const ssh = script => run('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=30', '-o', 'ServerAliveInterval=10', '-o', 'ServerAliveCountMax=3', host, 'sh', '-s'], {input:script});
 // Do not overwrite a pre-existing unmanaged deployment.
 const previous = await readPublishedTarget(ssh);
 if (previous && !/^\/srv\/kolpaque\/releases\/odyssey\/[a-f0-9]{16}$/.test(previous)) throw new Error('Unexpected previous release path');
