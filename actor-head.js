@@ -11,6 +11,7 @@ export function drawHead(c,look={},species=null,color='#a9c686',skin=actorSkin(l
     if(look.hat==='cap'){c.fillStyle=color;c.fillRect(-6,-46,12,5);c.fillRect(3,-42,6,2);}
     if(look.hat==='brim'){c.fillStyle=look.shoes;c.fillRect(-4,-48,8,7);c.fillRect(-9,-42,18,2);}
     if(look.hat==='hood'){c.strokeStyle=color;c.lineWidth=3;c.beginPath();c.moveTo(-6,-34);c.lineTo(-6,-43);c.lineTo(0,-47);c.lineTo(7,-41);c.stroke();}
+    if(look.hat==='coif'){c.fillStyle=look.plateColor||color;c.fillRect(-5,-45,11,6);c.fillRect(-5,-39,2,9);c.fillRect(5,-39,2,9);c.strokeStyle=look.edgeColor||'#d1d8c6';c.lineWidth=.7;c.beginPath();c.moveTo(-4,-42);c.lineTo(5,-42);c.stroke();}
     if(look.scarf){c.fillStyle=look.scarfColor;c.fillRect(-5,-32,12,3);c.fillRect(-5,-30,3,11);}
     if(species?.id==='elf'||species?.id==='goblin'){c.fillStyle=species.skin;c.beginPath();c.moveTo(-4,-36);c.lineTo(-10,-39);c.lineTo(-4,-33);c.fill();}
     if(species?.id==='dwarf'){c.fillStyle=look.hair||'#9b8764';c.fillRect(-4,-33,8,6);}

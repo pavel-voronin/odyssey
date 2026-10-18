@@ -2,12 +2,18 @@ import {visualRandom} from './visual-random.js';
 
 // Frozen v1 visual recipe. Identity belongs to the physical item, never to its
 // wearer, current profession, world clock or simulation random stream.
+// Headwear is part of that same equipped garment; the existing colors consume
+// the same frozen sequence before its one additional visual-only draw.
 export function itemOutfit(item){
  if(!item||item.slot!=='armor')return null;
  const base=item.base||String(item.name||'').split(':')[0],metal=['mail','доспех'].includes(base);
  const rnd=visualRandom(0,`outfit.v1:${item.id||item.name||base}:${base}`),pick=a=>a[Math.floor(rnd()*a.length)];
  const cloak=pick(metal?['#819eaa','#b89b70','#94a88a','#a09ab9']:['#ad614b','#598f9e','#9673a3','#92964e','#507861','#b08a52']);
- return {garmentVersion:1,garmentId:item.id||null,garmentName:item.name||'Одежда',material:metal?'metal':'cloth',coat:metal?'cuirass':pick(['mantle','long']),armored:metal,cloak,trim:pick(['#e8c88f','#cee0d2','#ddc0ce']),plateColor:metal?cloak:null,edgeColor:metal?'#d1d8c6':'#382f32'};
+ const coat=metal?'cuirass':pick(['mantle','long']);
+ const trim=pick(['#e8c88f','#cee0d2','#ddc0ce']);
+ const headwear=metal?'coif':pick(['hood','cap','brim']);
+ const headwearName=({coif:'Кольчужный подшлемник',hood:'Капюшон плаща',cap:'Дорожная шапка',brim:'Дорожная шляпа'})[headwear];
+ return {hat:headwear,headwearVersion:1,headwearName,headwearId:item.id||null,garmentVersion:1,garmentId:item.id||null,garmentName:item.name||'Одежда',material:metal?'metal':'cloth',coat,armored:metal,cloak,trim,plateColor:metal?cloak:null,edgeColor:metal?'#d1d8c6':'#382f32'};
 }
 
 // Shared painter: scene, portrait, and the recorded scene contour use exactly

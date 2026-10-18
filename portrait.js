@@ -14,9 +14,9 @@ export function drawHeroPortrait(canvas,s){
   paintPortrait(canvas,model);
 }
 export function drawArchivePortrait(canvas,life){
- const look=life.outfitSnapshot;if(!look)return;
+ const snapshot=life.portraitSnapshot,look=snapshot?.look||life.outfitSnapshot;if(!look)return;
  canvas.setAttribute('aria-label',`Сохранённый портрет: ${life.name}`);
- paintPortrait(canvas,{look:portraitLook(look),species:race(life.race),alive:life.outcome!=='dead'});
+ paintPortrait(canvas,{look:portraitLook(look),species:snapshot?(snapshot.race===null?null:race(snapshot.race)):race(life.race),alive:snapshot?snapshot.alive:life.outcome!=='dead'});
 }
 function paintPortrait(canvas,model){
   const dpr=Math.min(globalThis.devicePixelRatio||1,2),key=JSON.stringify([model,dpr]);

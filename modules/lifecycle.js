@@ -1,3 +1,4 @@
+import {portraitModel} from '../portrait.js';
 import {knownArea,revealArea} from '../actor-atlas.js';
 import {takeLegacyMoney,takeLegacyItem,syncActiveActor} from '../actor-projection.js';
 import {initializeAge} from './age.js';
@@ -34,6 +35,7 @@ export function archiveLife(s,outcome,cause,{ended=s.tick,recordedAt,wealthBasis
   const archived=s.lives.at(-1);archived.career=copy(h.career);archived.affiliation=copy(h.affiliation||{});
   if(h.remainsId)archived.remainsId=h.remainsId;
   if(enabled(s,'outfit-appearance')&&enabled(s,'appearance'))archived.outfitSnapshot=copy(heroAppearance(s));
+  if(enabled(s,'appearance'))archived.portraitSnapshot={version:1,race:enabled(s,'lineage')?h.race:null,alive:h.alive,look:copy(portraitModel(s).look)};
   if(causeMeaning)archived.causeMeaning=copy(causeMeaning);
   if(deathReport)archived.deathReport=copy(deathReport);
   if(h.workMaterials)archived.workMaterials=copy(h.workMaterials);
