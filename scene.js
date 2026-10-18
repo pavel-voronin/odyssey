@@ -280,7 +280,7 @@ export class Scene {
         c.fillStyle='#e0d2a1';c.font='11px monospace';c.textAlign='center';c.fillText('?',x,ground-50);c.textAlign='left';
       }
     }
-    if(s.rules?.companions!==false&&!h.transit)for(const p of Object.values(s.people))for(const pet of p.pets||[]){const body=pet.packCargo?.body||pet.petCustody?.body;if(pet.hp<=0||body?.area!==a.id)continue;const track=this.beastTracks.tracks.get(companionKey(pet));this.companionPet(pet,screenX(body.x)+(body.area===p.area&&Math.abs(body.x-p.x)<3?14:0),ground,track,phase);}
+    if(s.rules?.companions!==false&&!h.transit)for(const p of Object.values(s.people))for(const pet of [...(p.pets||[]),...(p.petBoarding?[p.petBoarding.pet]:[])]){const body=pet.packCargo?.body||pet.petCustody?.body;if(pet.hp<=0||body?.area!==a.id)continue;const track=this.beastTracks.tracks.get(companionKey(pet));this.companionPet(pet,screenX(body.x)+(body.area===p.area&&Math.abs(body.x-p.x)<3?14:0),ground,track,phase);}
     let freightDrawn=0;
     if(!h.transit)for(const convoy of s.logistics?.convoys||[]){const p=s.people[convoy.person];if(!p?.alive||p.status!=='caravan'||p.area!==a.id||convoy.movement!=='physical'&&s.rules?.['npc-logistics']===false)continue;
       freightDrawn++;

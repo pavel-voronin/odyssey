@@ -8,7 +8,7 @@ export const originalsOn=s=>enabled(s,'item-originals');
 export function presentItem(input,id){
  const s=rootWorld(input),actors=new Map(Object.values(s.actorStates||{}).map(h=>[h.lineage,h]));actors.set(input.hero.lineage,input.hero);
  for(const h of actors.values())for(const item of [...h.bag,...Object.values(h.equipment).filter(Boolean)])if(item.id===id)return {item,kind:'person',id:h.lineage};
- for(const p of Object.values(s.people))for(const c of p.pets||[])for(const item of petPack(c)?.items||[])if(item.id===id)return {item,kind:'companion',id:c.uid};
+ for(const p of Object.values(s.people))for(const c of [...(p.pets||[]),...(p.petBoarding?[p.petBoarding.pet]:[])])for(const item of petPack(c)?.items||[])if(item.id===id)return {item,kind:'companion',id:c.uid};
  for(const h of actors.values())for(const c of h.companions)for(const item of petPack(c)?.items||[])if(item.id===id)return {item,kind:'companion',id:c.uid};
  for(const a of Object.values(s.areas))for(const o of a.objects)for(const item of petPack(o.existingPet||o.packPetBody)?.items||[])if(item.id===id)return {item,kind:'companion',id:(o.existingPet||o.packPetBody).uid};
  for(const item of s.merchant.items||[])if(item.id===id)return {item,kind:'merchant',id:'merchant'};

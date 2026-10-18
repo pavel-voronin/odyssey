@@ -1,3 +1,4 @@
+import {petRouteDeferred,knownPetRoute,petPassageEntered} from './modules/pet-passage-state.js';import {petPassagePlan,petRetrievalPlan,petPassagePath,petBoardingAction,petBoardingTarget} from './modules/pet-boarding.js';import {petBoardingWorldTick} from './modules/pet-boarding-actors.js';
 import {petTransferPlan,petTransferAction} from './modules/pet-transfer.js';import {npcPetsTick} from './modules/pet-transfer-actors.js';
 import {cacheItems} from './modules/item-originals.js';
 import {packPetPlan,packPetAction,packPetCare,advancePackPets,waitingPackPetsTick} from './modules/pack-pets.js';
@@ -254,7 +255,7 @@ function enter(s, id) {
   initializeAreaFacades(s,a);
   initializeInteriors(s);
   initializeLodging(s);
-  const firstVisit=!visitedArea(s,a);h.area = id;recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
+  const firstVisit=!visitedArea(s,a);h.area = id;petPassageEntered(s);recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
   if(a.temporaryCamp)return;
   if (firstVisit) { gainXp(s, 3 + (hasHabit(h, 'diary') ? 2 : 0)); log(s, `Открыто место: ${a.name}.`, 'discover'); }
   if (!h.memory.places.includes(id)) {const bonus=enchantedDiscovery(s,a,context(s,'enchantments'));if(bonus)gainXp(s,bonus);h.memory.places.push(id);}
@@ -281,7 +282,7 @@ export function route(s,from,to){
 }
 export function knownRoute(s,from,to){
   countMarket(s,'route');
-  if(!s.hero.atlas||!s.areas[from]||!s.areas[to])return [];
+  if(!s.hero.atlas||!s.areas[from]||!s.areas[to]||from!==to&&petRouteDeferred(s,to))return [];
   const blockedFords=new Set(fordBlocked(s,s.hero));
   if(from!==to&&!knownArea(s,to))return [];const membership=s.hero.atlas.known.length>3?routeMembership(s):null,queue=[from],parents={[from]:null};
   for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){if(id in parents||knownLiftBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownGrateBlocked(s,s.people[s.hero.lineage],queue[i],id)||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;parents[id]=queue[i];queue.push(id);}
@@ -610,6 +611,7 @@ function worldTick(s) {
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   peopleTick(s,context(s,'people'));
   npcPetsTick(s,context(s,'pet-transfer'));
+  petBoardingWorldTick(s,context(s,'pet-passage'));
   propertyGiftsTick(s,context(s,'property-gifts'));
   propertyAidTick(s,context(s,'property-aid'));
   ordersTick(s,context(s,'npc-combat'));
@@ -664,7 +666,7 @@ export function advanceWorld(s) {
   observeRouteMap(view,s.people[h.lineage]);
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
-  try{actObserved(view);}finally{advancePackPets(view,{...context(view,'pack-pets'),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  try{actObserved(view);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
@@ -692,6 +694,7 @@ export function observeExistingPerson(s,person){
 function actObserved(s) {
  const h=s.hero;
   petTrainingTick(s);
+  if(h.petPassage?.lastActionTick===s.tick){h.lastAction='companion';return s;}
   weaponTick(s);
   pairCombatTick(s);
   rememberPracticalRole(s,s.people[h.lineage],h);
@@ -759,6 +762,9 @@ function actObserved(s) {
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(clothingPriority(s))return s;
   if(!urgent&&packPetCare(s,context(s,'pack-pets')))return s;
+  if(!urgent)petRetrievalPlan(s,context(s,'pet-passage'));
+  if(petPassagePlan(s,context(s,'pet-passage')))return s;
+  petBoardingTarget(s);
   if(!urgent)petTransferPlan(s,context(s,'pet-transfer'));
   if(!urgent)packPetPlan(s,context(s,'pack-pets'));
   if(!urgent)clothingPlan(s,context(s,'practical-clothing'));
@@ -776,7 +782,7 @@ function actObserved(s) {
   }
   let target = g.x, next = null;
   if (h.area !== g.area) {
-    const original=knownRoute(s,h.area,g.area),path=fordDetour(s,h,g,g.area,original);next=path[1];if(!next){h.goal=null;return s;}
+    const original=knownRoute(s,h.area,g.area),path=petPassagePath(s,g,fordDetour(s,h,g,g.area,original),id=>areaAvoided(s,id));next=path[1];if(!next){h.goal=null;return s;}
     target = Number(next.slice(1)) > Number(h.area.slice(1)) ? 100 : 0;
     const passage=interiorPassage(s,h.area,next);if(passage){target=passage.x;if(!passage.allowed){if(['mechanism','lift'].includes(passage.kind)){if(passage.kind==='lift'?blockedLiftPlan(s,next,context(s,'mechanisms')):teamLeverPlan(s,next,context(s,'mechanisms'))||blockedGratePlan(s,next,context(s,'mechanisms')))return s;if(physicalDistance(a,h.x,target)<=1){h.goal=null;return s;}}else{h.goal=null;h.tavernAfter=s.tick+240;log(s,'Дверь закрыта. Он возвращается к другим делам.','plan');return s;}}}
   }
@@ -835,6 +841,7 @@ function actObserved(s) {
   else if(g.kind==='propertyContract')propertyContractAction(s,context(s,'property-contracts'));
   else if(g.kind==='propertyRepair')repairProperty(s,context(s,'property'));
   else if(g.kind==='craftStudy')craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))});
+  else if(['petBoard','petRetrieve','petRecover','petCall'].includes(g.kind))petBoardingAction(s,context(s,'pet-passage'));
   else if(g.kind==='petTransfer')petTransferAction(s,context(s,'pet-transfer'));
   else if(['petPackFit','petPackLoad','petPackUnload'].includes(g.kind))packPetAction(s,context(s,'pack-pets'));
   else if(['clothingBuy','clothingDress','clothingSell'].includes(g.kind))clothingAction(s,context(s,'practical-clothing'));

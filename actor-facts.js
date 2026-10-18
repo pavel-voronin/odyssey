@@ -54,7 +54,7 @@ export class ActorTracks{
       add(other.lineage,other.x,other.facing,other.lastAction==='rest');
       for(const c of other.companions||[]){const b=c.packCargo?.body||c.petCustody?.body;if(b&&b.area!==s.hero.area)continue;add(companionKey(c),b?.x??other.x,other.facing,other.lastAction==='rest');}
     }
-    for(const p of Object.values(s.people))for(const c of p.pets||[]){const b=c.packCargo?.body||c.petCustody?.body;if(c.hp>0&&b?.area===s.hero.area)add(companionKey(c),b.x,p.facing||1,false);}
+    for(const p of Object.values(s.people))for(const c of [...(p.pets||[]),...(p.petBoarding?[p.petBoarding.pet]:[])]){const b=c.packCargo?.body||c.petCustody?.body;if(c.hp>0&&b?.area===s.hero.area)add(companionKey(c),b.x,p.facing||1,false);}
     for(const c of s.hero.companions||[]){
       const b=c.packCargo?.body||c.petCustody?.body;if(b&&b.area!==s.hero.area)continue;
       const key=companionKey(c),attack=facts.find(f=>f.kind==='attack'&&f.actor===key);

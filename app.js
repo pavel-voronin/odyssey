@@ -1,3 +1,4 @@
+import {petPassageHTML,petKeeperHTML} from './pet-passage-sheet.js';
 import {petMemoriesHTML} from './pet-custody-sheet.js';
 import {packPetHTML} from './pack-pet-sheet.js';
 import {clothingHTML} from './clothing-sheet.js';
@@ -204,8 +205,8 @@ function enrichSheet(){
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',itemRepairHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',`<div id="delivery-cargo-live">${deliveryCargoHTML(state,state.people[state.hero.lineage],escape)}</div>`+localBodyMaterialsHTML(state,escape));
   if(tab==='quests'&&state.hero.actorMode!=='npc')$('detail-panel').insertAdjacentHTML('afterbegin',materialDeliveriesHTML(state,state.people[state.hero.lineage],escape));
-  if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape));
-  if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
+  if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape)+petPassageHTML(state,escape));
+  if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',petPassageHTML(state,escape)+packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));
@@ -336,6 +337,7 @@ function render(automatic=false,batching=false) {
     refreshCalendarDetails($('detail-panel'),calendarDetailsHTML(state,escape));
   } scene.update(state);renderEffects();
   if(automatic&&$('sheet').open&&tab==='skills')renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape));
+  if(automatic&&$('sheet').open){const care=$('detail-panel').querySelector('.pet-passage-live');if(care)care.outerHTML=petPassageHTML(state,escape);const keeper=$('detail-panel').querySelector('.pet-keeper-live');if(keeper)keeper.outerHTML=petKeeperHTML(state,state.people[h.lineage],escape);}
   if(automatic&&$('sheet').open&&tab==='bag'){const petPack=$('detail-panel').querySelector('.pack-pet-live');if(petPack)petPack.outerHTML=packPetHTML(state,escape);const clothes=$('detail-panel').querySelector('.clothing-live');if(clothes)clothes.outerHTML=clothingHTML(state,escape);const memory=$('detail-panel').querySelector('.navigation-memory-live');if(memory)memory.outerHTML=navigationMemoryHTML(state,escape);const rope=$('detail-panel').querySelector('.navigation-tool-live');if(rope)rope.outerHTML=navigationToolHTML(state,escape);const wardrobe=$('detail-panel').querySelector('.spare-outfit-live');if(wardrobe)wardrobe.outerHTML=spareOutfitHTML(state,escape);const pack=$('detail-panel').querySelector('.pack-live');if(pack)pack.outerHTML=containerHTML(state);const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
   $('scene').setAttribute('aria-label', `${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
   $('run-life').textContent=fastRun?'Остановить прогон':lifeFinished(state)?'Итоги этой жизни':'Прожить жизнь до конца';

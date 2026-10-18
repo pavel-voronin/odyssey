@@ -2,7 +2,7 @@ import {petTransfersOn,trainedDog,custodyNear,petMemo,recordPetCustody,ownedNPCP
 export const PET_BID=12,PET_ASK=14;
 const food=(s,p)=>carriedFood(p,s.actorStates?.[p.id]?.inventory||p.actorLink?.inventory||{});
 export function petBuyerNeed(s,p){const t=p?.agenda?.task;return Boolean(t?.kind==='gather'&&s.areas[t.target]?.type==='forest');}
-export function petCareAvailable(s,p){return Boolean(p?.alive&&p.health>=(p.maxHealth||100)*.7&&!p.ailment&&!p.needs?.sleeping&&(p.needs?.energy??0)>=35&&(p.needs?.hunger??100)<55&&food(s,p)>=6);}
+export function petCareAvailable(s,p){return Boolean(p?.alive&&!p.petBoarding&&!p.petMessage&&p.health>=(p.maxHealth||100)*.7&&!p.ailment&&!p.needs?.sleeping&&(p.needs?.energy??0)>=35&&(p.needs?.hunger??100)<55&&food(s,p)>=6);}
 function local(s,p){const h=s.hero;return petTransfersOn(s)&&h.alive&&h.actorMode!=='npc'&&!h.transit&&!h.combat&&h.energy>=4&&h.hunger<=75&&p?.id!==h.lineage&&p?.alive&&p.area===h.area&&npcController(s,p)==='personal'&&physicalDistance(s.areas[h.area],h.x,p.x)<=3&&p.petTradeTick!==s.tick&&h.petTransfers?.lastActionTick!==s.tick&&!s.areas[h.area].objects.some(e=>e.kind==='enemy'&&e.alive&&!e.hidden&&!e.resolved&&physicalDistance(s.areas[h.area],h.x,e.x)<=12);}
 export function petAttachmentRefusal(s,c){const h=s.hero,p=s.people[h.lineage],bond=c.petTraining?.lessons.filter(l=>l.owner===h.lineage).length===3;return Boolean(bond&&h.personality.generosity>=.65&&h.gold>=12&&carriedFood(p,h.inventory)>=3);}
 export function petTransferOffer(s,uid,person,{gift=false,buy=false}={}){const h=s.hero,p=s.people[person],c=buy?ownedNPCPet(s,p,uid):h.companions.find(c=>c.uid===uid);if(!local(s,p)||!trainedDog(c)||!custodyNear(s,c,buy?p:h)||petPack(c)?.items.length)return null;

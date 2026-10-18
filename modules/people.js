@@ -1,3 +1,4 @@
+import {boardingPetCare,petBoardingNPCAction} from './pet-boarding-actors.js';
 import {npcPetCare} from './pet-transfer-actors.js';
 import {npcClothingTurn} from './clothing-actors.js';
 import {navigationNPCStep} from './navigation-tools.js';
@@ -246,6 +247,7 @@ export function peopleTick(s,ctx){
     observeFreightActor(s,p,p.area,true);
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(boardingPetCare(s,p))continue;
     if(npcPetCare(s,p))continue;
     if(freightKeeperTurn(s,p))continue;
     if(creditSupplierTurn(s,p,ctx))continue;
@@ -276,6 +278,7 @@ export function peopleTick(s,ctx){
     bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(petBoardingNPCAction(s,p,ctx))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task.kind)){fieldCraftAction(s,p,p.agenda.task,ctx);continue;}
     if(['creditTalk','creditWork'].includes(p.agenda.task.kind)){npcCreditAction(s,p,ctx);continue;}
     if(['materialCollect','materialReturn'].includes(p.agenda.task.kind)){workMaterialDelivery(s,p,ctx);continue;}
