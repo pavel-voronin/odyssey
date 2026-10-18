@@ -1,3 +1,4 @@
+import {textValuesOn,textNeed} from './modules/text-values.js';
 import {askSequenceWitness} from './modules/mechanism-sequences.js';
 import {literacyPlan,literacyAction} from './modules/literacy-actions.js';
 import {birthLiteracy} from './modules/literacy-state.js';
@@ -326,6 +327,7 @@ function plan(s) {
   if(a.interior){if(a.interior.kind==='workshop'&&(itemRepairPlan(s,context(s,'item-wear'))||toolPlan(s,context(s,'workshop-tools'))||refitPlan(s,context(s,'knife-refit'))||forgePlan(s,context(s,'forging'))))return;if(lodgingPlan(s,context(s,'lodging')))return;tavernPlan(s,context(s,'interiors'));return;}
   if(a.temporaryCamp){leaveCamp(s,context(s,'fieldcamp'));return;}
   if(partyDemand(s)==='food'&&foodPlan(s,context(s,'supply')))return;
+  if(textValuesOn(s)&&textNeed(s,s.people[h.lineage])&&literacyPlan(s,context(s,'text-values'),{urgentOnly:true}))return;
   if (enabled(s, 'body') && traitsPlan(s, context(s, 'body'))) return;
   if (h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23||partyDemand(s)==='rest') {
     if(lodgingPlan(s,context(s,'lodging')))return;

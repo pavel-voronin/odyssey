@@ -22,5 +22,6 @@ export function validateLiteracy(s,fail){
   const t=p.literacyTeaching;if(t!==undefined){
    if(t?.version!==1||!s.people[t.pupil]||t.pupil===p.id||!['reading','writing','language','aloud'].includes(t.branch)||!TEXT_LANGUAGES.includes(t.language)||!s.literature?.works[t.content]||s.literature.works[t.content].language!==t.language||typeof t.copy!=='string'||!s.areas[t.area]||!integer(t.requested)||t.requested>s.tick||!integer(t.until)||t.until<t.requested||t.until>s.tick+24||!Number.isInteger(t.turn)||t.turn< -1||t.turn>s.tick||typeof t.used!=='boolean')fail(key+'.teaching');
   }
+  const r=p.textPurchase;if(r!==undefined){if(r?.version!==1||!s.people[r.seller]||r.seller===p.id||typeof r.item!=='string'||!s.literature?.works[r.content]||!s.areas[r.area]||![1,2,4].includes(r.price)||!integer(r.requested)||r.requested>s.tick||r.until!==r.requested+16||!Number.isInteger(r.turn)||r.turn< -1||r.turn>s.tick||r.turn!==-1&&r.turn<r.requested)fail(key+'.textPurchase');}
  }
 }

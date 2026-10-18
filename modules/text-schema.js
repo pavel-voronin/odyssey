@@ -18,6 +18,10 @@ export function validateTexts(s,fail){
   if(m?.version!==1||!integer(m.serial)||!Number.isInteger(m.lastActionTick)||m.lastActionTick< -1||m.lastActionTick>s.tick||m.work!==null&&lib?.works[m.work]?.author!==p.id||!Array.isArray(m.copied)||new Set(m.copied).size!==m.copied.length||m.copied.some(id=>!lib?.works[id])||!Array.isArray(m.readings)||new Set(m.readings.map(e=>e.content)).size!==m.readings.length)fail(key);
   for(const e of m.readings)if(!lib?.works[e.content]||typeof e.copy!=='string'||e.author!==lib.works[e.content].author||e.revision!==1||!integer(e.at)||e.at<lib.works[e.content].written||e.at>s.tick)fail(key+'.reading');
   if(m.sequenceWorks!==undefined)for(const [node,id]of Object.entries(m.sequenceWorks)){const w=lib?.works[id];if(w?.author!==p.id||w.content.kind!=='mechanism-sequence'||w.content.node!==node)fail(key+'.sequenceWorks');}
+  if(m.sales!==undefined){
+   if(!Array.isArray(m.sales)||m.sales.length>24)fail(key+'.sales');
+   for(const [i,r]of m.sales.entries())if(!integer(r.tick)||r.tick>s.tick||i>0&&r.tick<=m.sales[i-1].tick||typeof r.item!=='string'||!lib?.works[r.content]||!s.people[r.buyer]||r.buyer===p.id||![1,2,4].includes(r.price)||!['need','spare','unneeded','uninterested'].includes(r.reason)||![r.buyerBefore,r.buyerAfter,r.sellerBefore,r.sellerAfter].every(n=>Number.isFinite(n)&&n>=0)||Math.abs(r.buyerBefore-r.buyerAfter-r.price)>1e-7||Math.abs(r.sellerAfter-r.sellerBefore-r.price)>1e-7)fail(key+'.sale');
+  }
   if(m.offer!==null&&(!m.offer||!m.copied.includes(m.offer.content)||typeof m.offer.item!=='string'||!integer(m.offer.tick)||m.offer.tick>s.tick))fail(key+'.offer');
  }
  const seen=new Set(),items=[];

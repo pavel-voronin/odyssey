@@ -1,7 +1,8 @@
+import {textValuesOn,textValue,textBuyerPrice} from './text-values.js';
 import {weatherAt} from './weather.js';
 import {physicalDistance} from '../geometry.js';
 import {localContact} from './npc-contacts.js';
-import {npcAction,npcController} from './npc-control.js';
+import {npcAction,npcController,canStartNPCActivity} from './npc-control.js';
 import {marketWallet} from './market.js';
 import {setActorMoney} from '../actor-projection.js';
 import {fitsPack} from './container-state.js';
@@ -69,9 +70,25 @@ export function askTextReader(s,p,t,id,ctx=null){
  rememberTextReading(s,t,item);rememberTextInformation(s,p,work,known,t.id,true);claim.reservation.used=true;delete t.literacyTeaching;
  return {status:'reported',report};
 }
+function tradeReady(s,p){const h=textActor(s,p?.id);return p?.alive&&!p.needs.sleeping&&(h?!h.transit&&!h.combat&&h.energy>=12&&h.hp>=h.maxHp*.25:p.needs.energy>=12&&p.health>=(p.maxHealth||100)*.25);}
 export function sellTextWithoutReading(s,p,buyer,id){
- const item=book(s,p,id),work=textWork(s,item),a=pos(s,p),b=pos(s,buyer);
- if(!literacyEnabled(s)||!healthy(s,p)||!healthy(s,buyer)||spent(s,p)||spent(s,buyer)||!item||!work||p.id===buyer.id||!a||!b||a.area!==b.area||physicalDistance(s.areas[a.area],a.x,b.x)>3||textActor(s,buyer.id)||npcController(s,buyer)!=='personal'||buyer.agenda.task||buyer.literacyTeaching||!['merchant','scholar'].includes(buyer.agenda.job)||marketWallet(s,buyer.id)<2||heldTexts(s,buyer.id).some(i=>i.textCopy?.content===work.id)||!fitsPack(s,buyer.id,{items:[...heldTexts(s,buyer.id),item]})||!npcAction(s,buyer,'personal'))return false;
- const items=heldTexts(s,p.id);items.splice(items.indexOf(item),1);npcLooseItems(s,buyer).push(item);actorItemLocation(s,item,buyer.id);setActorMoney(s,p,marketWallet(s,p.id)+2);setActorMoney(s,buyer,marketWallet(s,buyer.id)-2);spend(s,p,1);spend(s,buyer,1);
- item.history.push({tick:s.tick,text:`Передан реальному покупателю ${buyer.name} за ◈2; знание продавца не изменилось.`});return true;
+ const item=heldTexts(s,p?.id).find(i=>i.id===id&&i.textCopy?.owner===p.id),work=textWork(s,item),a=pos(s,p),b=pos(s,buyer);
+ const ownTurn=p?.actionControl?.tick===s.tick&&p.actionControl.owner==='personal'&&p.actionControl.phases.includes('act')&&p.agenda.task?.kind==='literacySell'&&p.agenda.task.item===id&&p.agenda.task.buyer===buyer?.id;
+ const valued=textValuesOn(s),decision=valued&&textValue(s,p,item),price=valued?textBuyerPrice(s,buyer,item):2;
+ if(!literacyEnabled(s)||!(valued?tradeReady(s,p):healthy(s,p))||!healthy(s,buyer)||valued&&(!decision.sell||price===null)||spent(s,p)||spent(s,buyer)||!item||!work||p.id===buyer.id||!a||!b||a.area!==b.area||physicalDistance(s.areas[a.area],a.x,b.x)>3||textActor(s,buyer.id)||npcController(s,buyer)!=='personal'||buyer.agenda.task||buyer.literacyTeaching||!['merchant','scholar'].includes(buyer.agenda.job)||marketWallet(s,buyer.id)<price||heldTexts(s,buyer.id).some(i=>i.textCopy?.content===work.id)||!fitsPack(s,buyer.id,{items:[...heldTexts(s,buyer.id),item]})||buyer.textPurchase&&buyer.textPurchase.until>=s.tick&&buyer.textPurchase.seller!==p.id||!textActor(s,p.id)&&!canStartNPCActivity(s,p)&&!ownTurn)return false;
+ const reserved=buyer.textPurchase?.seller===p.id&&buyer.textPurchase.item===id&&buyer.textPurchase.turn===s.tick&&buyer.textPurchase.until>=s.tick;
+ if(!canStartNPCActivity(s,buyer)&&!reserved){if(valued&&(!buyer.textPurchase||buyer.textPurchase.until<s.tick))buyer.textPurchase={version:1,seller:p.id,item:id,content:work.id,area:a.area,price,requested:s.tick,until:s.tick+16,turn:-1};return false;}
+ if(!npcAction(s,buyer,'personal',reserved?'text-purchase':'act')||!textActor(s,p.id)&&!npcAction(s,p,'personal',ownTurn?'text-sale':'act'))return false;
+ if(buyer.textPurchase?.seller===p.id)delete buyer.textPurchase;
+ const before=marketWallet(s,buyer.id),sellerBefore=marketWallet(s,p.id);
+ const items=heldTexts(s,p.id);items.splice(items.indexOf(item),1);npcLooseItems(s,buyer).push(item);actorItemLocation(s,item,buyer.id);setActorMoney(s,p,marketWallet(s,p.id)+price);setActorMoney(s,buyer,marketWallet(s,buyer.id)-price);spend(s,p,1);spend(s,buyer,1);
+ if(valued){const m=textMemory(p);m.sales ||= [];m.sales.push({tick:s.tick,item:item.id,content:work.id,buyer:buyer.id,price,buyerBefore:before,buyerAfter:before-price,sellerBefore,sellerAfter:sellerBefore+price,reason:decision.kind});if(m.sales.length>24)m.sales.shift();}
+ item.history.push({tick:s.tick,text:`Передан реальному покупателю ${buyer.name} за ◈${price}; знание продавца не изменилось.`});return true;
+}
+
+export function textBuyerTurn(s,buyer){
+ const r=buyer.textPurchase;if(!r||!textValuesOn(s))return false;
+ const p=s.people[r.seller],task=p&&taskOf(s,p),item=p&&heldTexts(s,p.id).find(i=>i.id===r.item),a=p&&pos(s,p),b=pos(s,buyer);
+ if(r.until<s.tick||!p?.alive||!item||task?.kind!=='literacySell'||task.buyer!==buyer.id||task.item!==r.item||!a||!b||a.area!==b.area||a.area!==r.area||physicalDistance(s.areas[a.area],a.x,b.x)>3||!tradeReady(s,p)||!healthy(s,buyer)||!textValue(s,p,item).sell||textBuyerPrice(s,buyer,item)!==r.price||marketWallet(s,buyer.id)<r.price){delete buyer.textPurchase;return false;}
+ r.turn=s.tick;return true;
 }

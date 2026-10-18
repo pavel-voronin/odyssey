@@ -1,4 +1,5 @@
-import {literacyEnabled,literacyTeacherTurn} from './literacy.js';
+import {textValuesOn} from './text-values.js';
+import {literacyEnabled,literacyTeacherTurn,textBuyerTurn} from './literacy.js';
 import {literacyNPCTask,literacyNPCAction} from './literacy-actions.js';
 import {textsOn} from './text-state.js';
 import {textNPCTask,textNPCAction} from './text-actions.js';
@@ -256,6 +257,7 @@ export function peopleTick(s,ctx){
     observeFreightActor(s,p,p.area,true);
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(textBuyerTurn(s,p))continue;
     if(literacyTeacherTurn(s,p))continue;
     if(boardingPetCare(s,p))continue;
     if(npcPetCare(s,p))continue;
@@ -270,6 +272,7 @@ export function peopleTick(s,ctx){
     if(p.caseReports?.length)announceCaseWitness(s,p);
     if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
     if(['literacyStudy','textAloud','literacySell'].includes(p.agenda.task?.kind)&&!literacyEnabled(s))continue;
+    if(p.agenda.task?.kind==='literacySell'&&p.agenda.task.valueReason&&!textValuesOn(s))continue;
     if(['textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
     if(['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(p.agenda.task?.kind)&&!homeBuildingOn(s))continue;
     if(p.agenda.task?.kind==='caseRecordStudy'&&!enabled(s,'verdict-knowledge'))continue;
