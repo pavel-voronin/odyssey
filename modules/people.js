@@ -1,3 +1,5 @@
+import {creditEnabled,creditStatus,creditSupplierTurn} from './provision-credit.js';
+import {npcCreditTask,npcCreditAction} from './provision-credit-actors.js';
 import {freightKeeperTurn,releaseDeadFreightCustody} from './freight-custody.js';
 import {merchantEnabled} from './merchant-policy.js';
 import {areaScale,areaStep} from '../geometry.js';
@@ -81,6 +83,7 @@ function plan(s,p,ctx){
     if(a.civic?.medicine>=2){begin(p,'recover',p.area,68);return;}
   }
   if(planAidRequest(s,p,ctx))return;
+  const credit=npcCreditTask(s,p);if(credit){m.task=credit;return;}
   const moneyCache=npcMoneyCachePlan(s,p);if(moneyCache){m.task=moneyCache;return;}
   const routeMap=npcRouteMapPlan(s,p);if(routeMap){m.task=routeMap;return;}
   const mapCopy=npcMapCopyPlan(s,p);if(mapCopy){m.task=mapCopy;return;}
@@ -134,6 +137,7 @@ function moveTask(s,p,ctx){
   if(!npcFamilyTarget(s,p,t))return false;
   if(t.kind==='repairCommission'&&!commissionTarget(s,p,t))return false;
   if(t.kind==='askAid'&&!aidVisitTarget(s,p,t))return false;
+  if(t.kind==='creditTalk'&&p.area===t.target&&s.people[t.person]?.area===p.area)t.x=s.people[t.person].x;
   if(enabled(s,'npc-contacts')&&t.kind==='visit'&&p.area===t.target){const body=localContact(s,t.person,p.area);if(body)t.x=body.x;}
   const escape=rescueEscapeRoute(s,p,t),known=enabled(s,'npc-knowledge')&&t.knownNavigation;
   const original=escape||(known?npcKnownRoute(p,p.area,t.target,knownNPCHazards(s,p)):ctx.route(s,p.area,t.target)),path=fordDetour(s,p,t,t.target,original);if(!path.length){p.agenda.task=null;if(known||escape)p.agenda.due=s.tick+96;if(escape)p.rescueFlight.blocked={tick:s.tick,kind:'exit'};p.status=t.migration||escape?'wandering':'resident';return false;}
@@ -215,7 +219,7 @@ function finish(s,p,ctx){
 export function peopleTick(s,ctx){
   if(!enabled(s,'people')||s.tick%8!==0)return;
   for(const p of Object.values(s.people)){
-    releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);
+    releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
@@ -235,6 +239,7 @@ export function peopleTick(s,ctx){
     observeFreightActor(s,p,p.area,true);
     if(personNeeds(s,p,ctx))continue;
     if(freightKeeperTurn(s,p))continue;
+    if(creditSupplierTurn(s,p,ctx))continue;
     if(npcInteriorStay(s,p))continue;
     if(brothTeacherTurn(s,p))continue;
     if(toolTeacherTurn(s,p))continue;
@@ -253,12 +258,14 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='propertyRepair'&&(!enabled(s,'property')||!enabled(s,'property-damage')))continue;
     if(p.agenda.task?.kind==='toolMend'&&(!enabled(s,'workshop-tools')||!enabled(s,'property')||p.agenda.task.methodSource==='npc-paid-lessons'&&!enabled(s,'mentor-journeys'))){p.agenda.toolMendPending=p.agenda.task;p.agenda.task=null;}
     if(p.agenda.task?.kind==='rawGather'&&!goodsEnabled(s))continue;
+    if(['creditTalk','creditWork'].includes(p.agenda.task?.kind)&&!creditEnabled(s))continue;
     if(p.agenda.task?.migration&&!enabled(s,'migrations'))continue;
     objectAt(s,p);
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}
     bindNPCDeedTask(s,p);
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(['creditTalk','creditWork'].includes(p.agenda.task.kind)){npcCreditAction(s,p,ctx);continue;}
     if(['materialCollect','materialReturn'].includes(p.agenda.task.kind)){workMaterialDelivery(s,p,ctx);continue;}
     if(['workshopTalk','workshopWait'].includes(p.agenda.task.kind)){npcDisputeAction(s,p,p.agenda.task,ctx);continue;}
     if(p.agenda.task.kind==='caseRecordStudy'){caseRecordStudyAction(s,p);announceCaseWitness(s,p);continue;}

@@ -1,3 +1,4 @@
+import {heroCreditPlan} from './provision-credit-actors.js';
 import {merchantDispatch} from './merchant-freight.js';
 import {canBargain} from './skill-branches.js';
 import {pathHasFord} from './fords.js';
@@ -52,6 +53,7 @@ export function foodPlan(s,ctx){
   const h=s.hero;
   if(edibleBroth(s,h)){const fire=actualHearth(s,h.area);ctx.goal(s,'brothEat',h.area,fire.x,'Поесть у очага','Здесь осталась приготовленная похлёбка. Готовое блюдо ждёт у огня.');return true;}
   if(carriedFood(s.people[h.lineage],h.inventory)>0){ctx.goal(s,'eat',h.area,h.x,'Съесть дорожные припасы','Еда уже в сумке; голод не требует похода в поселение.');return true;}
+  if(heroCreditPlan(s,ctx,{request:true}))return true;
   const local=localFoodChoice(s,s.people[h.lineage],h,s.areas[h.area]);
   if(local&&serviceReachable(s,s.areas[h.area],local.x,ctx)){ctx.goal(s,'forage',h.area,local.x,local.kind==='fish'?'Поймать рыбу':'Собрать знакомые грибы',`${local.name}: известен способ и есть собственное средство. ${local.remaining} рабочих действий у местного источника.`,{remaining:local.remaining,foodSource:local.id});return true;}
   if(marketKnowledgeEnabled(s)){
