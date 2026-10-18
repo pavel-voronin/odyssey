@@ -61,7 +61,7 @@ export function askTextReader(s,p,t,id,ctx=null){
  if(!literacyEnabled(s)||!healthy(s,p)||spent(s,p)||!item||!work||p.literacy?.reports.some(e=>e.content===work.id&&e.helper===t?.id)||marketWallet(s,p.id)<1||h&&ctx?.maySpend&&!ctx.maySpend(s,'learning',1,ctx))return {status:'unavailable'};
  const claim=request(s,p,t,item,'aloud');if(!claim)return {status:'unavailable'};if(claim.waiting)return {status:'waiting'};
  const l=registerLiteracy(s,p,h,'heard-reader',work.id);registerLiteracy(s,t,null,'actual-reader',work.id);
- const partial=t.agenda.duty<.6||energy(s,t)<45,n=work.content,known={area:n.area,name:n.name,observed:n.observed,...(partial?{}:{available:n.available})};
+ const partial=t.agenda.duty<.6||energy(s,t)<45,n=work.content,known=n.kind==='mechanism-sequence'?{kind:n.kind,node:n.node,key:n.key,area:n.area,x:n.x,name:n.name,observed:n.observed,order:partial?n.order.slice(0,2):[...n.order],complete:!partial&&n.complete}:{area:n.area,name:n.name,observed:n.observed,...(partial?{}:{available:n.available})};
  setActorMoney(s,p,marketWallet(s,p.id)-1);setActorMoney(s,t,marketWallet(s,t.id)+1);spend(s,p,1);spend(s,t,2);
  const report={content:work.id,copy:item.id,helper:t.id,medium:sharedLanguage(s,p,t),at:s.tick,paid:1,partial,known};l.reports.push(report);
  // The helper really looked at the supplied copy. The listener retains a

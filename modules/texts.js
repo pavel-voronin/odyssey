@@ -1,4 +1,5 @@
 import {literacyOn,registerLiteracy,readingScript,writingScript} from './literacy-state.js';
+import {sequenceNote,learnSequence,SEQUENCE_NAMES} from './sequence-memory.js';
 import {physicalDistance} from '../geometry.js';
 import {enabled} from '../rules.js';
 import {localContact} from './npc-contacts.js';
@@ -36,6 +37,13 @@ export function writeWorkNotice(s,p,paperID){
  const work={version:1,id,author:p.id,editor:p.id,revision:1,parent:null,written:s.tick,language:p.culture||a.culture||'river',title:'Датированная записка о работе · '+a.name,source:{kind:'own-market-observation',observer:p.id,area:a.id,x:42,at:s.tick},content:{kind:'employment-note',area:a.id,name:a.name,available,observed:s.tick,text:`При осмотре места найма в «${a.name}» ${available?'были средства для оплаты труда':'не хватало средств на оплату труда'}. Это сведения на дату записи, а не обещание будущего заработка.`}};
  library.works[id]=work;textMemory(p).work=id;return inscribe(s,p,paper,work);
 }
+export function writeSequenceManual(s,p,paperID,node){
+ const b=ready(s,p),a=b&&s.areas[b.area],paper=heldTexts(s,p?.id).find(i=>i.id===paperID&&i.kind==='writingPaper'),n=sequenceNote(p,node);
+ if(!b||!paper||!canWriteText(s,p)||!a.civic||a.interior||physicalDistance(a,b.x,42)>3||!n?.hint?.complete||p.textCraft?.sequenceWorks?.[node])return null;
+ const library=s.literature ||= {version:1,serial:0,works:{}},id=`text-work/${p.id}/${++library.serial}`,order=[...n.hint.order];
+ const work={version:1,id,author:p.id,editor:p.id,revision:1,parent:null,written:s.tick,language:p.culture||a.culture||'river',title:'Памятка о порядке тяги · '+n.name,source:{kind:'personal-sequence-knowledge',observer:p.id,area:n.area,x:n.x,at:n.hint.learnedAt,basis:{...n.hint.source}},content:{kind:'mechanism-sequence',node:n.node,key:n.key,area:n.area,x:n.x,name:n.name,observed:n.hint.learnedAt,order,complete:true,text:`По узнанным автором сведениям для «${n.name}» нужен порядок: ${order.map(t=>SEQUENCE_NAMES[t]).join(' → ')}. Это запись известного ему способа, не обещание исправности устройства.`}};
+ library.works[id]=work;const m=textMemory(p);m.work=id;m.sequenceWorks ||= {};m.sequenceWorks[node]=id;return inscribe(s,p,paper,work);
+}
 export function copyText(s,p,sourceID,paperID){
  const b=ready(s,p),items=heldTexts(s,p?.id),source=items.find(i=>i.id===sourceID),paper=items.find(i=>i.id===paperID&&i.kind==='writingPaper'),work=textWork(s,source);
  if(!b||!work||!paper||(!literacyOn(s)?!canWriteText(s,p):!readingScript(s,p,work.language,textActor(s,p.id))||!writingScript(s,p,work.language,textActor(s,p.id)))||source.textCopy.owner!==p.id||source.textCopy.condition!=='intact'||p.textCraft?.copied.includes(work.id))return null;
@@ -51,6 +59,10 @@ export function readText(s,p,id){
  return rememberTextReading(s,p,item);
 }
 export function rememberTextInformation(s,p,work,info=work.content,source=work.author,reported=false){
+ if(work.content.kind==='mechanism-sequence'){
+  if(!Array.isArray(info.order)||!info.order.length)return;
+  learnSequence(s,p,info,{kind:reported?'heard-text-reader':'understood-text',person:source,tick:s.tick,id:(reported?'report/'+source+'/':'')+work.id});return;
+ }
  const n=info;initializeNPCKnowledge(s,p);let place=p.navigation.places.find(k=>k.area===n.area);if(!place){place={area:n.area,name:n.name,seen:n.observed};p.navigation.places.push(place);}
  if(typeof n.available==='boolean'&&(place.workSeen??-1)<=n.observed)Object.assign(place,{payroll:n.available,workSeen:n.observed,text:work.id,source,...(reported?{reported:true}:{} )});
  const h=textActor(s,p.id);if(h&&typeof n.available==='boolean'){h.memory.services ||= {};const key=n.area+'/employment';if((h.memory.services[key]?.seen??-1)<=n.observed)h.memory.services[key]={version:1,area:n.area,kind:'employment',available:n.available,provider:null,reason:null,seen:n.observed,text:work.id,source,...(reported?{reported:true}:{} )};}

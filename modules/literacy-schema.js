@@ -1,4 +1,5 @@
 import {TEXT_LANGUAGES} from './literacy-state.js';
+import {validSequence} from './sequence-memory.js';
 export function validateLiteracy(s,fail){
  const integer=n=>Number.isSafeInteger(n)&&n>=0,list=a=>Array.isArray(a)&&new Set(a).size===a.length&&a.every(id=>TEXT_LANGUAGES.includes(id));
  for(const p of Object.values(s.people)){
@@ -13,7 +14,9 @@ export function validateLiteracy(s,fail){
    for(const [field,branch]of [['reading','reading'],['writing','writing'],['spoken','language']])for(const lang of l[field])if(!l.origin[field].includes(lang)&&!l.courses.some(c=>c.branch===branch&&c.language===lang&&c.status==='learned'))fail(key+'.unearned.'+field);
    const reports=new Set();for(const r of l.reports){
     const w=s.literature?.works[r.content],id=r.content+'/'+r.helper;
-    if(!w||typeof r.copy!=='string'||!s.people[r.helper]||r.helper===p.id||!TEXT_LANGUAGES.includes(r.medium)||!integer(r.at)||r.at<w.written||r.at>s.tick||r.paid!==1||typeof r.partial!=='boolean'||!r.known||r.known.area!==w.content.area||r.known.name!==w.content.name||r.known.observed!==w.content.observed||r.partial&&Object.hasOwn(r.known,'available')||!r.partial&&r.known.available!==w.content.available||reports.has(id))fail(key+'.report');reports.add(id);
+    if(!w||typeof r.copy!=='string'||!s.people[r.helper]||r.helper===p.id||!TEXT_LANGUAGES.includes(r.medium)||!integer(r.at)||r.at<w.written||r.at>s.tick||r.paid!==1||typeof r.partial!=='boolean'||!r.known||r.known.area!==w.content.area||r.known.name!==w.content.name||r.known.observed!==w.content.observed||reports.has(id))fail(key+'.report');reports.add(id);
+    if(w.content.kind==='mechanism-sequence'){const n=r.known,c=w.content;if(n.kind!==c.kind||n.node!==c.node||n.key!==c.key||n.x!==c.x||!validSequence(n.order)||JSON.stringify(n.order)!==JSON.stringify(r.partial?c.order.slice(0,2):c.order)||n.complete!==(!r.partial&&c.complete))fail(key+'.report.sequence');}
+    else if(r.partial&&Object.hasOwn(r.known,'available')||!r.partial&&r.known.available!==w.content.available)fail(key+'.report.employment');
    }
   }
   const t=p.literacyTeaching;if(t!==undefined){

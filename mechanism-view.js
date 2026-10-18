@@ -5,7 +5,7 @@ export function drawMechanisms(c,s,a,screenX,ground){
  for(const to of a.links){const g=s.edges?.[[a.id,to].sort().join('|')]?.mechanism;if(!g)continue;
   const x=screenX(gateX(a.id,to)),closed=g.state==='closed';c.save();c.strokeStyle='#b2bebc';c.lineWidth=3;c.beginPath();c.moveTo(x-16,ground);c.lineTo(x-16,ground-70);c.lineTo(x+16,ground-70);c.lineTo(x+16,ground);c.stroke();
   c.strokeStyle='#788b90';c.lineWidth=2;for(let i=-12;i<=12;i+=6){c.beginPath();c.moveTo(x+i,ground-67);c.lineTo(x+i,closed?ground:ground-51);c.stroke();}
-  const lever=g.lever.area===a.id&&a.objects.find(o=>o.id===g.lever.id&&o.kind==='mechanismLever');if(lever){const lx=screenX(lever.x);c.fillStyle='#535b60';c.fillRect(lx-5,ground-16,10,16);c.strokeStyle='#d7b977';c.lineWidth=4;c.beginPath();c.moveTo(lx,ground-9);c.lineTo(lx+(closed?-9:9),ground-29);c.stroke();}c.restore();
+  const lever=g.lever.area===a.id&&a.objects.find(o=>o.id===g.lever.id&&o.kind==='mechanismLever');if(lever){const lx=screenX(lever.x);c.fillStyle='#535b60';c.fillRect(lx-5,ground-16,10,16);c.strokeStyle='#d7b977';c.lineWidth=4;c.beginPath();c.moveTo(lx,ground-9);c.lineTo(lx+(closed?-9:9),ground-29);c.stroke();if(g.sequence){c.fillStyle="#d7b977";for(let i=0;i<3;i++)c.fillRect(lx-9+i*7,ground-42,4,5);}}c.restore();
  }
 }
 export function drawLifts(c,s,a,screenX,ground){

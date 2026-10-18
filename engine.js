@@ -1,3 +1,4 @@
+import {askSequenceWitness} from './modules/mechanism-sequences.js';
 import {literacyPlan,literacyAction} from './modules/literacy-actions.js';
 import {birthLiteracy} from './modules/literacy-state.js';
 import {textPlan,textAction} from './modules/text-actions.js';
@@ -888,7 +889,7 @@ function actObserved(s) {
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
   else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));
-  else if(['textPaper','textWrite','textCopy','textRead','textGift'].includes(g.kind))textAction(s,context(s,'texts'));
+  else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))textAction(s,context(s,'texts'));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))homeBuildingAction(s,context(s,'home-building'));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))homeAction(s,context(s,'homes'));
   else if (g.kind === 'storyAction') storyAction(s,g.story,context(s,'stories'));
@@ -896,6 +897,7 @@ function actObserved(s) {
   else if (g.kind === 'routeMap') routeMapAction(s,context(s,'route-maps'));
   else if (g.kind === 'mapCopy') mapCopyAction(s,s.people[h.lineage],g,context(s,'route-maps'));
   else if (g.kind === 'studyCreature') studyBestiaryAction(s,context(s,'bestiary'));
+  else if(g.kind==='sequenceAdvice'){askSequenceWitness(s,s.people[h.lineage],s.people[g.person],g.key,context(s,'mechanism-sequences'));h.goal=null;}
   else if (g.kind === 'mechanism') mechanismAction(s,context(s,'mechanisms'));
   else if (g.kind === 'mechanismHold') leverHoldAction(s,context(s,'mechanisms'));
   else if (g.kind === 'liftWork') liftAction(s,context(s,'mechanisms'));

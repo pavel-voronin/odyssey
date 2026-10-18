@@ -1,13 +1,23 @@
+import {validSequence} from './sequence-memory.js';
 export function validateTexts(s,fail){
  const integer=n=>Number.isSafeInteger(n)&&n>=0,lib=s.literature;
  if(lib!==undefined){
   if(lib?.version!==1||!integer(lib.serial)||!lib.works||typeof lib.works!=='object'||Array.isArray(lib.works)||Object.keys(lib.works).length>lib.serial)fail('literature');
-  for(const [id,w]of Object.entries(lib.works))if(w?.version!==1||w.id!==id||!id.startsWith('text-work/'+w.author+'/')||!s.people[w.author]||w.editor!==w.author||w.revision!==1||w.parent!==null||!integer(w.written)||w.written>s.tick||typeof w.language!=='string'||!w.language||typeof w.title!=='string'||w.source?.kind!=='own-market-observation'||w.source.observer!==w.author||w.source.at!==w.written||w.source.x!==42||!s.areas[w.source.area]||w.content?.kind!=='employment-note'||w.content.area!==w.source.area||w.content.observed!==w.written||typeof w.content.name!=='string'||typeof w.content.text!=='string'||typeof w.content.available!=='boolean')fail('literature.work.'+id);
+  for(const [id,w]of Object.entries(lib.works)){
+   const key='literature.work.'+id,n=w?.content,src=w?.source;
+   if(w?.version!==1||w.id!==id||!id.startsWith('text-work/'+w.author+'/')||!s.people[w.author]||w.editor!==w.author||w.revision!==1||w.parent!==null||!integer(w.written)||w.written>s.tick||typeof w.language!=='string'||!w.language||typeof w.title!=='string'||src?.observer!==w.author||!s.areas[src?.area]||n?.area!==src.area||typeof n.name!=='string'||typeof n.text!=='string')fail(key);
+   if(n.kind==='employment-note'){if(src.kind!=='own-market-observation'||src.at!==w.written||src.x!==42||n.observed!==w.written||typeof n.available!=='boolean')fail(key);}
+   else if(n.kind==='mechanism-sequence'){
+    const g=s.edges[n.key]?.mechanism;
+    if(src.kind!=='personal-sequence-knowledge'||!integer(src.at)||src.at>w.written||src.at!==n.observed||src.x!==n.x||!src.basis||typeof src.basis.kind!=='string'||!s.people[src.basis.person]||!integer(src.basis.tick)||src.basis.tick>src.at||typeof src.basis.id!=='string'||g?.id!==n.node||!g.sequence||g.lever.area!==n.area||g.lever.x!==n.x||!validSequence(n.order)||n.order.length!==3||n.complete!==true)fail(key);
+   }else fail(key);
+  }
  }
  for(const p of Object.values(s.people)){
   const m=p.textCraft;if(m===undefined)continue;const key=p.id+'.textCraft';
   if(m?.version!==1||!integer(m.serial)||!Number.isInteger(m.lastActionTick)||m.lastActionTick< -1||m.lastActionTick>s.tick||m.work!==null&&lib?.works[m.work]?.author!==p.id||!Array.isArray(m.copied)||new Set(m.copied).size!==m.copied.length||m.copied.some(id=>!lib?.works[id])||!Array.isArray(m.readings)||new Set(m.readings.map(e=>e.content)).size!==m.readings.length)fail(key);
   for(const e of m.readings)if(!lib?.works[e.content]||typeof e.copy!=='string'||e.author!==lib.works[e.content].author||e.revision!==1||!integer(e.at)||e.at<lib.works[e.content].written||e.at>s.tick)fail(key+'.reading');
+  if(m.sequenceWorks!==undefined)for(const [node,id]of Object.entries(m.sequenceWorks)){const w=lib?.works[id];if(w?.author!==p.id||w.content.kind!=='mechanism-sequence'||w.content.node!==node)fail(key+'.sequenceWorks');}
   if(m.offer!==null&&(!m.offer||!m.copied.includes(m.offer.content)||typeof m.offer.item!=='string'||!integer(m.offer.tick)||m.offer.tick>s.tick))fail(key+'.offer');
  }
  const seen=new Set(),items=[];

@@ -1,3 +1,6 @@
+import {mechanismMemory as memory} from './mechanism-memory.js';
+import {newSequence,sequencesOn} from './sequence-memory.js';
+import {sequenceOperation,blockedSequencePlan} from './mechanism-sequences.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {selfDrivenActor} from '../actor-projection.js';
@@ -5,13 +8,13 @@ import {localContact} from './npc-contacts.js';
 import {npcAction} from './npc-control.js';
 import {partyBodySpent} from './party-combat-policy.js';
 import {mechanismKey,grateAt,gateX} from './mechanism-policy.js';
-const memory=p=>(p.mechanisms ||= {version:1,known:[],lastActionTick:-1});
 const actor=(s,p)=>selfDrivenActor(s,p.id)?s.actorStates[p.id]:null;
 function body(s,p){const h=actor(s,p);return h?(h.transit?null:{area:h.area,x:h.x}):localContact(s,p.id,p.area);}
-export function createGrate(s,from,to,bypass,{hold=false}={}){
+export function createGrate(s,from,to,bypass,{hold=false,sequence=false}={}){
  if(!enabled(s,'mechanisms')||grateAt(s,from,to)||!s.edges?.[mechanismKey(from,to)]||!s.areas[from]?.links.includes(bypass)||!s.areas[to]?.links.includes(bypass)||grateAt(s,from,bypass)||grateAt(s,to,bypass))return null;
  const key=mechanismKey(from,to),x=gateX(from,to)===100?82:18;
  const g={version:1,id:'grate/'+key,from,to,state:'closed',created:s.tick,changed:s.tick,lever:{id:'lever/'+key,area:from,x},bypass,operations:[]};
+ if(sequence&&sequencesOn(s)&&!hold)g.sequence=newSequence(s,g);
  if(hold)g.holding={version:1,person:null};
  s.edges[key].mechanism=g;s.areas[from].objects.push({id:g.lever.id,kind:'mechanismLever',name:'Рычаг решётки',x,key});s.graphRevision=(s.graphRevision||0)+1;return g;
 }
@@ -28,8 +31,10 @@ export function operateGrate(s,p,key,action='open',ctx={}){
  const g=s.edges?.[key]?.mechanism,b=p&&body(s,p),h=p&&actor(s,p),a=b&&s.areas[b.area],lever=a?.objects.find(o=>o.id===g?.lever.id&&o.kind==='mechanismLever'&&o.key===key),energy=h?.energy??p?.needs?.energy;
  if(!enabled(s,'mechanisms')||!g||!p?.alive||p.needs.sleeping||!b||b.area!==g.lever.area||!lever||physicalDistance(a,b.x,lever.x)>9||partyBodySpent(s,p)||energy<3||!['inspect','open','close'].includes(action)||action!=='inspect'&&g.state===(action==='open'?'open':'closed'))return false;
  if(g.holding&&action!=='inspect')return false;
+ if(g.sequence&&!sequencesOn(s))return false;
  if(!h&&!npcAction(s,p,'personal'))return false;
  const n=observeGrate(s,p,g.from,g.to);if(!n)return false;
+ if(g.sequence&&sequencesOn(s)&&action!=='close')return sequenceOperation(s,p,g,action,ctx);
  const cost=action==='inspect'?1:2;if(h)h.energy-=cost;else p.needs.energy-=cost;
  memory(p).lastActionTick=s.tick;
  if(action==='inspect')n.understood=true;
@@ -41,6 +46,8 @@ export function operateGrate(s,p,key,action='open',ctx={}){
 export function blockedGratePlan(s,to,ctx){
  const h=s.hero,p=s.people[h.lineage],g=grateAt(s,h.area,to),n=observeGrate(s,p,h.area,to);
  if(!n)return false;
+ if(g.sequence&&!sequencesOn(s)){s.hero.goal=null;return true;}
+ if(g.sequence&&sequencesOn(s)&&n.leverArea===h.area&&h.energy>=35)return blockedSequencePlan(s,p,g,ctx);
  if(!g.holding&&n.leverArea===h.area&&h.energy>=35&&h.personality.curiosity>=.5){
   ctx.goal(s,'mechanism',h.area,g.lever.x,n.understood?'Поднять решётку':'Исследовать рычаг','Видимый рычаг связан с этим проходом. Нужно подойти и потратить отдельное действие.',{key:mechanismKey(h.area,to),operation:n.understood?'open':'inspect'});
  }else {h.goal=null;ctx.log?.(s,'Решётка закрыта. Герой запоминает преграду и ищет известный обход.','plan');}
