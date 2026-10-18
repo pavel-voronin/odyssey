@@ -17,11 +17,12 @@ function populate(s,a,count,offset=0){
 export function openSettlement(s,a,ctx){
   if(!enabled(s,'districts')||!isTown(a)||a.city)return;
   a.city=a.id;a.district='Площадь';a.districts=[a.id];populate(s,a,4,0);
+  if(a.geography&&['village','district-center'].includes(a.geography.tier)){a.district=a.geography.tier==='village'?'Деревня':'Районный центр';initializeAreaFacades(s,a);return;}
   const sections=[['Торговые ряды',['trade','parley','sea'],3],['Мастерские',['craft','healing','relic','time'],0],['Жилой посад',['healing','parley'],7]];
   let previous=a.id;
   for(const [label,services,offset] of sections){
-    const id=ctx.addArea(s,a.type,`${a.name}: ${label}`,a.depth,{continent:a.continent,era:a.era,danger:0,culture:a.culture});
-    const d=s.areas[id];d.city=a.id;d.district=label;d.services=services;d.faction=a.faction;d.expanded=true;revealArea(s,d);a.districts.push(id);populate(s,d,4,offset);
+    const id=ctx.addArea(s,a.type,`${a.name}: ${label}`,a.depth,{continent:a.continent,era:a.era,danger:0,culture:a.culture,...(a.geography?{geography:{...a.geography,ordinal:a.districts.length}}:{})});
+    const d=s.areas[id];d.city=a.id;d.district=label;d.services=services;d.faction=a.faction;d.expanded=true;if(s.hero)revealArea(s,d);a.districts.push(id);populate(s,d,4,offset);
     if(label==='Мастерские'&&enabled(s,'workshop-dispute'))d.workshopLayout={version:1,owners:d.population.filter(id=>s.people[id]?.agenda?.job==='artisan').slice(0,2),created:s.tick};
     initializeAreaFacades(s,d);ctx.connect(s,previous,id);previous=id;
   }

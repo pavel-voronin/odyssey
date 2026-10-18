@@ -1,3 +1,4 @@
+import {createGeographyFrame} from './modules/geography-frame.js';
 import {createPlaceRule} from './modules/place-rule-state.js';
 import {observePlaceRule,knownLawBurden} from './modules/place-rules.js';
 import {hostileLifeTick} from './modules/hostile-life.js';
@@ -284,6 +285,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   const ruins = addArea(s, 'ruins', origin[3], 2);
   const camp = addArea(s, 'camp', origin[4], 1);
   connect(s, road, town); connect(s, town, forest); connect(s, forest, ruins); connect(s, forest, camp);
+  createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);

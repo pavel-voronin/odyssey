@@ -24,9 +24,10 @@ export function initializeGeography(s){
 export function annotateRegion(s,a,metadata={}){
   a.continent=metadata.continent||'c0';a.realm=metadata.realm||BIOMES[a.type]?.realm||'surface';a.era=metadata.era??0;
   if(metadata.timelineRoot)a.timelineRoot=metadata.timelineRoot;
+  if(metadata.geography)a.geography={...metadata.geography};
 }
 export function addRoute(s,a,b,options={}){
-  s.edges ||= {};const existing=s.edges[edgeKey(a,b)],previous=existing?.spatial;s.edges[edgeKey(a,b)]={a,b,mode:'road',duration:0,cost:0,...(previous?{spatial:previous}:{}),...(existing?.ford?{ford:existing.ford}:{}),...(existing?.mechanism?{mechanism:existing.mechanism}:{}),...(existing?.lift?{lift:existing.lift}:{}),...options};
+  s.edges ||= {};const existing=s.edges[edgeKey(a,b)];s.edges[edgeKey(a,b)]={a,b,mode:'road',duration:0,cost:0,...existing,...options};
   const o=s.edges[edgeKey(a,b)];
   if(!existing)newFord(s,o);
   if(o.mode!=='road'){

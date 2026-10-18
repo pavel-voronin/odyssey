@@ -1,3 +1,4 @@
+import {geographyAnchor} from './geography-anchor.js';
 import {rootWorld} from '../world-ref.js';
 import {areaScale} from '../geometry.js';
 import {personLocation} from '../person-location.js';
@@ -22,10 +23,10 @@ function attachment(s,a){
 export function registerSpatialArea(input,area){
  const s=rootWorld(input),a=typeof area==='string'?s.areas[area]:area;if(!a||s.areas[a.id]!==a||a.spatial&&a.spatial.version!==1)return;
  const world=registry(s);if(world.version!==1)return;
- const layer=layerId(a),attach=attachment(s,a),continent=a.continent||'c0',settlement=a.city||null,signature=JSON.stringify([layer,continent,settlement,attach]);
+ const layer=layerId(a),attach=attachment(s,a),continent=a.continent||'c0',settlement=a.city||null,signature=JSON.stringify([layer,continent,settlement,attach,...(a.geography?[a.geography,geographyAnchor(s,a)]:[])]);
  world.layers[layer] ||= {id:layer,realm:a.realm||'surface',era:a.era??0,scheme:'schematic-v1',unit:'diagram'};
  if(a.spatial?.signature===signature)return a.spatial;
- const old=a.spatial;a.spatial={version:1,revision:(old?.revision||0)+1,layer,continent,settlement,scheme:'schematic-v1',signature,...(attach?{attachment:attach}:{anchor:old?.anchor||rootAnchor(s,a)})};world.revision++;
+ const old=a.spatial;a.spatial={version:1,revision:(old?.revision||0)+1,layer,continent,settlement,scheme:'schematic-v1',signature,...(attach?{attachment:attach}:{anchor:geographyAnchor(s,a)||old?.anchor||rootAnchor(s,a)})};world.revision++;
  // Refresh only real incident passages when this writer changes a place, never a full per-tick graph scan.
  if(old)for(const to of a.links||[])if(s.edges?.[key(a.id,to)])registerSpatialEdge(s,key(a.id,to));
  return a.spatial;
@@ -45,7 +46,7 @@ export function registerSpatialEdge(input,id){
  const signature=JSON.stringify([e.a,e.b,e.mode,e.duration,e.cost,kind,ends]);if(e.spatial?.signature===signature)return e.spatial;
  e.spatial={version:1,id:'edge/'+id,revision:(e.spatial?.revision||0)+1,kind,scheme:'schematic-v1',ends,signature};world.revision++;return e.spatial;
 }
-// Called by migration and world writers, never by a renderer/address query.
+// Called by actual world writers, never by a renderer/address query.
 export function initializeSpatial(input,{force=false}={}){
  const s=rootWorld(input),world=registry(s);if(world.version!==1||world.initialized&&!force)return;
  for(const a of Object.values(s.areas))registerSpatialArea(s,a);
@@ -60,7 +61,7 @@ export function spatialAddress(input,id,x=50){
   if(seen.has(a.id))return unknown(id,x,'parent-cycle');seen.add(a.id);
   const p=a.spatial;if(!p||p.version!==1||!s.spatial?.layers?.[p.layer]||p.layer!==layerId(a)||p.continent!==(a.continent||'c0'))return unknown(id,x,'unregistered-place');
   if(a.city&&a.city!==a.id&&!s.areas[a.city])return unknown(id,x,'missing-settlement');
-  if(!p.attachment){if(!p.anchor||!Number.isFinite(p.anchor.x)||!Number.isFinite(p.anchor.y))return unknown(id,x,'invalid-anchor');const center=p.anchor,point={x:center.x+(rootX-50)*1.2,y:center.y,unit:'diagram'};return {version:1,status:precision==='area'?'partial':'known',scheme:'schematic-v1',layer:first.spatial.layer,continent:first.spatial.continent,anchor:center.id,scene,point,precision,attachments:chain};}
+  if(!p.attachment){if(!p.anchor||!Number.isFinite(p.anchor.x)||!Number.isFinite(p.anchor.y))return unknown(id,x,'invalid-anchor');const center=p.anchor,point={x:center.x+(rootX-50)*(center.sceneScale??1.2),y:center.y,unit:'diagram'};return {version:1,status:precision==='area'?'partial':'known',scheme:'schematic-v1',layer:first.spatial.layer,continent:first.spatial.continent,anchor:center.id,scene,point,precision,attachments:chain};}
   const actual=attachment(s,a),ref=p.attachment;if(JSON.stringify(actual)!==JSON.stringify(ref))return unknown(id,x,'changed-parent');
   const parent=s.areas[ref.parent];if(!parent||!parent.links.includes(a.id)||!a.links.includes(parent.id))return unknown(id,x,'missing-parent');
   chain.push({area:a.id,...ref});rootX=pct(ref.entrance)?ref.entrance:50;if(!pct(ref.entrance))precision='area';else if(precision!=='area')precision='entrance';a=parent;

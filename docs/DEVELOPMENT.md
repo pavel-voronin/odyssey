@@ -2505,3 +2505,14 @@ Pages216: Actions39172270940 success, HTML HTTP200/build5257429; commit96f70e4c1
 Pages217: Actions39173292451 success, HTML HTTP200/build03949fe; commit350a4dbb89935c4e3aed16c61698217ee6c5e3a7.
 
 Опубликовано https://odyssey.kolpaque.dev:3113a0a5692bc82f;438 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.
+
+<a id="stage-219"></a>
+## Этап219 · MAP-01.2 · мир до наблюдателя
+
+Для нового мира до hero/observation создаётся устойчивый seed-каркас:2суши с настоящими береговыми port berths, страны/округа,20мест и связанный граф. Главный город/районный центр/деревни различаются; есть две наземные альтернативы и два реальных sea-перехода через пролив. Прежние основные биомы/лестницы/порталы доступны, stock/people/права создаются прежними constructors один раз. Нет бесплатного правителя/казны/ранга. Каркас не раскрывается герою целиком; старый save/его координаты не перестраиваются. Адреса остаются diagram, metric distance/масштабы отдельно. На карте участок теперь использует настоящие spatial endpoints, а не фиксированную старую линию. addRoute при изменении duration сохраняет mode/cost/другую прежнюю metadata; реальный spatial edge revision обновляется.
+
+Код modules/geography-frame/geography-anchor/geography-frame-schema, engine/districts/spatial/travel/rules/save-schema, geography-sheet/app/road-map; test/geography-frame и один обновлённый ожидаемый sceneScale в прежнем road-map case; scripts/render-geography-frame. CONTRACT geography-frame.v1. PARTIAL6/6 exit0,842мс, artifacts/checks/56226d821daa932a.log; revision1ab301b9a38af135.5малых групп/ровно2фиксированных seed0/1: обратное раскрытие не меняет topology/stock/people, берега/локальные концы/иерархия/связность/морские ребра, спокойный actual7tick рейс с одной платой и exact partial replay, смена наблюдения/реальный edge writer, старый отсутствующий frame/ON/restore и повреждённый каркас. Дополнительно один2step marker test passed396мс. Node constructor двух выбранных default worlds≈22.5мс/41–43area/129people, не профиль всех миров. Браузер320/390 показал только5/2знакомых места и текущую страну/округ, read-only/overflow0; осмотрено. Первоначальное предположение о возврате платы опроверг журнал: прежняя находка в море дала те же3монеты. Для проверки одного дебета выбран фиксированный спокойный voyage stream, старый loot/storm не менялся. Build/короткий smoke пройдены; full/SOAK/длинные жизни/перебор/прочие seed не запускались.
+
+Pages218: Actions39173608234 success, HTML HTTP200/build3113a0a; commit7d5f6bda293c14858070232c72d94257ec4b241a.
+
+Опубликовано https://odyssey.kolpaque.dev:1ab301b9a38af135;442 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.
