@@ -1,5 +1,6 @@
 import {areaScale,areaOffset,campPassage,physicalDistance} from '../geometry.js';
 import {npcFordGate} from './ford-actors.js';
+import {finishMerchantFreight} from './merchant-settlement.js';
 import {demandDeparture} from './demand-freight.js';
 import {takeGoods,putGoods} from './goods.js';
 import {enabled} from '../rules.js';
@@ -9,7 +10,7 @@ import {freightRequest,freightEvent,observeFreightActor,observeConvoy} from './f
 import {npcAction,markNPCDeparture} from './npc-control.js';
 import {roadNeeds} from './road-needs.js';
 export function freightHistory(s,c,outcome,proof){
-  s.logistics.history.push({id:c.id,source:c.source,to:c.to,person:c.person,tick:s.tick,outcome,area:proof.area,eventId:proof.id,knownBy:[...proof.knownBy],wage:c.wagePaid||0});
+  s.logistics.history.push({id:c.id,source:c.source,to:c.to,person:c.person,tick:s.tick,outcome,area:proof.area,eventId:proof.id,knownBy:[...proof.knownBy],wage:c.wagePaid||0,...(c.trade?{trade:{cost:c.trade.cost,foodCost:c.trade.foodCost,revenue:c.tradeOutcome?.revenue||0,net:(c.tradeOutcome?.revenue||0)-c.trade.cost-c.trade.foodCost}}:{})});
   if(s.logistics.history.length>80)s.logistics.history.shift();
 }
 function removeFreight(s,c){s.logistics.convoys=s.logistics.convoys.filter(other=>other!==c);}
@@ -31,6 +32,10 @@ function configureLeg(s,c,p,ticks=16){
 function finishFreight(s,c,ctx,outcome){
   if(!s.logistics.convoys.includes(c))return;
   const p=s.people[c.person],a=s.areas[p.area],food=c.food,medicine=c.medicine;
+  if(c.trade&&['delivered','returned'].includes(outcome)){
+    const r=finishMerchantFreight(s,c,outcome);c.tradeOutcome=r;releaseDriver(s,c);if(r.sold)s.logistics.deliveries++;
+    const proof=freightEvent(s,c,a,`${p.name} продаёт своих инструментов ${r.sold} за ◈${r.revenue}. Денежный итог после покупки и провианта ◈${r.net}; непроданных ${r.remaining}, они остаются у него.`,ctx);freightHistory(s,c,outcome,proof);removeFreight(s,c);observeFreightActor(s,p);return;
+  }
   if(['delivered','returned'].includes(outcome)&&a.civic){
     const acceptedFood=Math.min(food,Math.max(0,100-a.civic.food)),acceptedMedicine=Math.min(medicine,Math.max(0,100-a.civic.medicine));
     putGoods(s,a,'food',acceptedFood,{reason:'freight-'+outcome,actor:p.id});a.civic.medicine+=acceptedMedicine;
@@ -60,12 +65,15 @@ function captureFreight(s,c,p,a,ctx){
 }
 export function createFreight(s,source,destination,ctx,driverId=null){
   const request=freightRequest(s,source,destination,driverId);if(!request)return null;
+  return departFreight(s,source,destination,request,ctx);
+}
+export function departFreight(s,source,destination,request,ctx,paid=null){
   const p=request.driver,medicine=request.kind?(request.kind==='medicine'?request.quantity:0):Math.min(4,Math.max(0,source.civic.medicine-30));
   const food=request.kind?(request.kind==='food'?request.quantity:0):12,tools=request.kind==='tools'?request.quantity:0;
-  if(request.kind!=='medicine'&&takeGoods(s,source,request.kind||'food',request.quantity||12,{flow:'exported',reason:'freight-departure',actor:p.id})!==(request.quantity||12))return null;source.civic.medicine-=medicine;
+  if(!paid&&request.kind!=='medicine'&&takeGoods(s,source,request.kind||'food',request.quantity||12,{flow:'exported',reason:'freight-departure',actor:p.id})!==(request.quantity||12))return null;source.civic.medicine-=medicine;
   const c={id:'convoy-'+s.logistics.nextConvoy++,person:p.id,source:source.id,to:destination.id,path:[...request.path],index:0,food,medicine,...(tools?{tools}:{}),version:1,movement:'physical',elapsed:0,lastTick:s.tick,
     sourceName:source.name,targetName:request.market.name,manifest:{author:request.author,seen:request.market.seen},sightings:{}};
-  if(request.kind)demandDeparture(s,source,c,request);
+  if(paid)c.trade=paid;else if(request.kind)demandDeparture(s,source,c,request);
   s.logistics.convoys.push(c);p.status='caravan';p.agenda.task=null;
   markNPCDeparture(s,p,'caravan');
   source.population=source.population.filter(id=>id!==p.id);source.objects=source.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);

@@ -1,0 +1,12 @@
+import {createWorld,route,knownRoute} from '../engine.js';
+import {setModule} from '../rules.js';import {civicArea} from '../modules/society.js';import {createPerson} from '../modules/lineage.js';
+import {initializeGoodsArea} from '../modules/goods.js';import {observeNPCPlace} from '../modules/npc-knowledge.js';import {observeMarket} from '../modules/market-knowledge.js';
+import {syncActiveActor} from '../actor-projection.js';import {revealArea} from '../actor-atlas.js';
+export const merchantContext={route,knownRoute,log(){},goal(s,kind,area,x,intent,reason,extra={}){s.hero.goal={kind,area,x,started:s.tick,...extra};s.hero.intent=intent;s.hero.reason=reason;}};
+export function merchantFixture({hero=false}={}){
+ const s=createWorld(1);for(const id of Object.keys(s.rules))setModule(s,id,false);for(const id of ['supply','goods-cycle','local-market','market-knowledge','npc-knowledge','npc-logistics','npc-control','merchant-trips','finances'])setModule(s,id,true);
+ const a=s.areas.a1,b=s.areas.a2;for(const x of [a,b]){x.type='village';civicArea(s,x);x.realm='surface';x.era=0;x.population=[];x.objects=[];x.links=[x===a?b.id:a.id];x.civic.food=70;x.civic.tools=x===a?20:0;x.civic.treasury=100;x.civic.medicine=40;delete x.goods;initializeGoodsArea(s,x);}
+ s.edges[[a.id,b.id].sort().join('|')]={mode:'road'};const id=hero?s.hero.lineage:createPerson(s,{name:'Travelling merchant',area:a.id,x:58,status:'resident',role:'житель',alive:true,health:100,maxHealth:100}),p=s.people[id];p.area=a.id;p.x=58;p.status='resident';p.health=p.maxHealth||100;Object.assign(p.agenda,{job:'merchant',wealth:100,duty:.8,curiosity:.8,task:null,due:10000,tools:1});Object.assign(p.needs,{hunger:10,energy:100,sleeping:false});a.population.push(id);a.objects.push({id:'body-'+id,kind:'resident',person:id,x:58,name:p.name});
+ if(hero){const h=s.hero;Object.assign(h,{area:a.id,x:58,profession:'merchant',gold:100,hp:100,maxHp:100,energy:100,hunger:10,goal:null,combat:null,transit:null,companions:[],quests:[]});h.money.style='cautious';h.commitments.personal=null;h.personality.courage=.8;h.inventory.rations=0;h.memory.merchant=null;syncActiveActor(s);for(const x of [a,b])revealArea(s,x);h.atlas.roads.push([a.id,b.id].sort().join('|'));}
+ const from=p.area;if(hero){s.hero.area=b.id;syncActiveActor(s);}else p.area=b.id;observeNPCPlace(s,p);observeMarket(s,id,{force:true});if(hero){s.hero.area=a.id;syncActiveActor(s);}else p.area=from;observeNPCPlace(s,p);observeMarket(s,id,{force:true});s.logistics.nextDispatch=10000;return {s,a,b,p,h:s.hero};
+}

@@ -1,5 +1,6 @@
 export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится'};
 export const NPC_TASKS={
+ marketWait:'Сравнивает местные предложения и ждёт известий',
  moneyCache:'Ищет известный денежный тайник',
  routeMap:'Записывает или покупает карту пути',
  mapCopy:'Работает с экземпляром карты тайника',

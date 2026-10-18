@@ -1,3 +1,4 @@
+import {merchantEnabled} from './merchant-policy.js';
 import {areaScale,areaStep} from '../geometry.js';
 import {npcMoneyCachePlan,takeBuriedMoney} from './money-caches.js';
 import {observeRouteMap,npcRouteMapPlan,npcRouteMapAction} from './route-maps.js';
@@ -119,6 +120,7 @@ function plan(s,p,ctx){
     begin(p,m.duty>.5?'farm':'learn',p.area,42);return;
   }
   if(goodsEnabled(s)&&m.job==='farmer'&&productionSources(s,a).field.stock===0){begin(p,'waitHarvest',p.area,42,1);return;}
+  if(m.job==='merchant'&&merchantEnabled(s)){begin(p,'marketWait',p.area,42,1);return;}
   begin(p,m.job==='farmer'?'farm':m.job==='healer'?'medicine':m.job==='guard'?'patrol':m.job==='scholar'||m.curiosity>.75&&m.work%3===1?'learn':'work',p.area,m.job==='guard'?80:42);
 }
 function moveTask(s,p,ctx){

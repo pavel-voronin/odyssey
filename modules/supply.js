@@ -1,3 +1,4 @@
+import {merchantDispatch} from './merchant-freight.js';
 import {canBargain} from './skill-branches.js';
 import {pathHasFord} from './fords.js';
 import {grateClosed} from './mechanism-policy.js';
@@ -174,7 +175,7 @@ export function supplyTick(s,ctx){
     }else c.remaining=Math.ceil(16*areaScale(a));
   }
   if(s.tick<s.logistics.nextDispatch)return;s.logistics.nextDispatch=s.tick+192;
-  if(enabled(s,'npc-logistics')){const request=freightDispatch(s);if(request)createFreight(s,request.source,request.target,ctx,request.driver);return;}
+  if(enabled(s,'npc-logistics')){if(merchantDispatch(s,ctx))return;const request=freightDispatch(s);if(request)createFreight(s,request.source,request.target,ctx,request.driver);return;}
   const towns=Object.values(s.areas).filter(a=>isTown(a)&&a.discovered);
   const destination=towns.find(a=>a.civic.food<35||a.civic.medicine<12);if(!destination)return;
   const source=towns.find(a=>{const path=ctx.route(s,a.id,destination.id);return a.id!==destination.id&&a.era===destination.era&&a.realm===destination.realm&&a.civic.food>60&&path.length>=2&&path.length<=7&&path.slice(1).every((node,i)=>!['time','portal'].includes(s.edges[[path[i],node].sort().join('|')]?.mode));});if(!source)return;

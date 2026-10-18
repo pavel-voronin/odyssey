@@ -120,6 +120,7 @@ import {areaDanger} from './modules/danger.js';
 import {openSettlement} from './modules/districts.js';
 import {initializeDiplomacy} from './modules/diplomacy.js';
 import {initializeFactionPaths,factionPathTick,factionPathPlan,factionDuty} from './modules/faction-paths.js';
+import {heroMerchantPlan,heroMerchantAction} from './modules/merchant-hero.js';
 import {caravanPlan,caravanRaid,noticeCaravan} from './modules/caravans.js';
 import {planFieldCamp,pitchCamp,leaveCamp,campCrossed,campContinue} from './modules/fieldcamp.js';
 import {observeCampSites} from './modules/camp-sites.js';
@@ -317,6 +318,7 @@ function plan(s) {
   if(hearCaptivePlan(s,context(s,'dungeon-rescue')))return;
   if(isDungeonRescue(q)){planQuest(s,q,context(s,'quests'));return;}
   if(h.delve&&delvePlan(s,delveContext(s)))return;
+  if(h.merchantTrip&&heroMerchantPlan(s,context(s,'merchant-trips')))return;
   if(h.caravanJob&&caravanPlan(s,context(s,'caravans')))return;
   if(weatherShelter(s,context(s,'weather')))return;
   if(localNeedsPlan(s,context(s,'supply')))return;
@@ -346,6 +348,7 @@ function plan(s) {
   if(!q&&forgePlan(s,context(s,'forging')))return;
   if(!q&&refitPlan(s,context(s,'knife-refit')))return;
   if(!q&&landmarkPlan(s,context(s,'landmarks')))return;
+  if(!q&&heroMerchantPlan(s,context(s,'merchant-trips')))return;
   if(caravanPlan(s,context(s,'caravans')))return;
   if(delvePlan(s,delveContext(s)))return;
   if(repertoirePlan(s,{...context(s,'repertoire'),work:world=>planWork(world,context(world,'work'),{interest:true}),explore:explorePlan,planQuest:(world,quest)=>planQuest(world,quest,context(world,'quests'))},q))return;
@@ -840,6 +843,7 @@ function actObserved(s) {
   else if (g.kind === 'dogLesson') dogLessonAction(s,context(s,'pet-training'));
   else if (g.kind === 'dogSearch') dogSearchAction(s,context(s,'pet-training'));
   else if (g.kind === 'dogFeed') dogFeedAction(s,context(s,'pet-training'));
+  else if (['merchantBuy','merchantSell'].includes(g.kind)) heroMerchantAction(s,context(s,'merchant-trips'));
   else if (g.kind === 'questAction') questAction(s,h.quests.find(q=>q.id===g.quest),context(s,'quests'));
   else if (g.kind === 'encounter') { const object = a.objects.find(o => o.id === g.object); if (object) encounter(s, object, context(s, 'encounters')); else h.goal = null; }
   else if (g.kind === 'turnin') completeQuest(s, h.quests.find(q => q.id === g.quest));

@@ -25,7 +25,7 @@ export function caravanPlan(s,ctx){
   }
   if(s.tick<(h.memory.caravanAfter||0)||h.energy<24||h.hp<h.maxHp*.65)return false;
   const a=s.areas[h.area],skill=profile(h).skill;
-  const present=s.logistics.convoys.find(c=>s.people[c.person]?.area===h.area&&!c.escort);
+  const present=s.logistics.convoys.find(c=>s.people[c.person]?.area===h.area&&!c.escort&&!c.trade);
   if(present&&(opportunity(s,'raid').allowed||skill==='steal'&&(h.alignment<-10||h.gold<80&&h.personality.generosity<.45))){
     ctx.goal(s,'caravanRaid',a.id,s.people[present.person].x||42,'Перехватить караван','Чужой груз можно отнять. Поселение не получит припасы, а фракции запомнят поступок.',{convoy:present.id,remaining:3,caravan:true});return true;
   }
