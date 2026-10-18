@@ -2516,3 +2516,14 @@ Pages217: Actions39173292451 success, HTML HTTP200/build03949fe; commit350a4dbb8
 Pages218: Actions39173608234 success, HTML HTTP200/build3113a0a; commit7d5f6bda293c14858070232c72d94257ec4b241a.
 
 Опубликовано https://odyssey.kolpaque.dev:1ab301b9a38af135;442 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.
+
+<a id="stage-220"></a>
+## Этап220 · MAP-01.6 · масштабы и знакомые слои
+
+Общий вид/округ/тропы меняют представление одного личного графа; авто приближает тропы после подтверждённого перехода и отдаляет магистраль. Меню открывает только знакомые слои, переходы показаны у своих входов. В другом слое нет ложного marker/DOM effects; позиции просмотра разделены, единственный background переиспользуется. Сохранение/маршруты/время не меняются от просмотра. Код map-view-model/road-map/scene/app/index/viewport; CONTRACT map-view.v1.
+
+PARTIAL7/7 exit0,849мс, artifacts/checks/03820bc79f2d3a01.log; revision918b2d7fc6671473. Шесть малых групп, actual stairs roundtrip9тиков и exact partial replay. Browser4кадра320/390 +actual menu320: control ticks0, обычное время4тика, overflow0; осмотрено, наложение подписей исправлено. Desktop8/29реальных areas: cold≤3.43мс/warm≤1.82мс (3образца, включая HTTP overhead), background327600bytes при390×210/DPR1; это не гарантия телефона/произвольного большого мира. Build/smoke пройдены; full/SOAK/длинные жизни не запускались.
+
+Pages219: Actions39175753084 success, HTML HTTP200/build1ab301b; commit7f9e88d59139800a2f0d75d96aa2e6e981e006d5.
+
+Опубликовано https://odyssey.kolpaque.dev:918b2d7fc6671473;443 payload-хеша/HTTPS подтверждены, проверки переиспользованы.

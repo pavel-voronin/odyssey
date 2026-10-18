@@ -84,7 +84,7 @@ export class Scene {
     this.grade.destroy();
   }
   update(state) {
-    if(this.roadView==='map')this.roadMap.update(state);
+    if(this.roadView==='map'||this.roadMap.inspect)this.roadMap.update(state);
     const replaced=Boolean(this.state&&this.state!==state);
     this.deathMotion.update(state,{scene:state.hero.area,now:performance.now(),reset:replaced,animate:!this.reduced&&state.rules?.animation!==false});
     if(replaced)this.beastTracks=new ActorTracks();
@@ -108,7 +108,8 @@ export class Scene {
     this.state = state;
     this.redraw();
   }
-  setRoadView(view){this.roadView=view==='scene'?'scene':'map';if(this.roadView==='map'&&this.state)this.roadMap.update(this.state);this.redraw();}
+  setRoadView(view){this.roadView=view==='scene'?'scene':'map';this.roadMap.setView({inspect:false,layer:'current'});if(this.roadView==='map'&&this.state)this.roadMap.update(this.state);this.redraw();}
+  setMapView(options){if(this.state)this.roadMap.update(this.state);this.roadMap.setView(options);if(this.state)this.roadMap.update(this.state);this.redraw();}
   panMap(dx,dy){if(this.mode!=='map')return;this.roadMap.pan(dx,dy);this.redraw();}
   zoomMap(factor){if(this.mode!=='map')return;this.roadMap.zoom(factor);this.redraw();}
   followMap(){this.roadMap.follow();this.redraw();}
@@ -122,8 +123,8 @@ export class Scene {
     if(viewportWidth<=0||ht<=0)return;
     this.pixelRatio=dpr;
     if (canvas.width !== Math.round(viewportWidth * dpr) || canvas.height !== Math.round(ht * dpr)) { canvas.width = Math.round(viewportWidth * dpr); canvas.height = Math.round(ht * dpr); }
-    this.mode=this.roadView==='map'&&this.roadMap.model?'map':'scene';canvas.dataset.view=this.mode;canvas.dataset.fordIds='';canvas.dataset.petMotion='[]';this.petViewFacts=[];
-    if(this.mode==='map'){this.mapMarker=this.roadMap.draw(this.output,viewportWidth,ht,dpr);canvas.dataset.boundaryIds='';canvas.dataset.transitBlend='';canvas.dataset.renderMs=(performance.now()-now).toFixed(3);canvas.dataset.mapBuilds=String(this.roadMap.builds);canvas.dataset.mapKnown=String(this.roadMap.model.nodes.length);this.onCameraFrame?.();return;}
+    this.mode=(this.roadView==='map'||this.roadMap.inspect)&&this.roadMap.model?'map':'scene';canvas.dataset.view=this.mode;canvas.dataset.fordIds='';canvas.dataset.petMotion='[]';this.petViewFacts=[];
+    if(this.mode==='map'){canvas.dataset.mapScope=this.roadMap.model.scope;canvas.dataset.mapLayer=this.roadMap.model.layer;canvas.dataset.mapBody=this.roadMap.model.body;this.mapMarker=this.roadMap.draw(this.output,viewportWidth,ht,dpr);canvas.dataset.boundaryIds='';canvas.dataset.transitBlend='';canvas.dataset.renderMs=(performance.now()-now).toFixed(3);canvas.dataset.mapBuilds=String(this.roadMap.builds);canvas.dataset.mapKnown=String(this.roadMap.model.nodes.length);this.onCameraFrame?.();return;}
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.composition=s.rules?.['scene-planes']===false||terrain.type==='sea'||terrain.interior?null:sceneComposition(s,terrain,w,ht);
     const base=palette[terrain.type]||palette.road,areaPalette=area=>biomePalette(s.seed,area,palette[area.type]||palette.road),pair=travel?.mix?[areaPalette(travel.mix.from),areaPalette(travel.mix.to)]:null;

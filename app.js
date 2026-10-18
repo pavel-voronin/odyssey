@@ -1,4 +1,5 @@
 import {geographyHTML} from './geography-sheet.js';
+import {knownMapLayers} from './road-map.js';
 import {limbSummary} from './modules/limb-state.js';
 import {patientHTML} from './patient-view.js';
 import {woundSummary} from './modules/wound-state.js';
@@ -118,8 +119,10 @@ const speechMemory=createSpeech();
 let effectIdentity='';
 function renderEffects(){
   $('map-tools').hidden=scene.mode!=='map';
+  $('map-auto').hidden=!scene.roadMap.inspect&&scene.roadMap.scope==='auto'&&scene.roadMap.layer==='current';
   const root=$('effects'),h=state.hero,key=`${state.seed}/${state.generation}/${h.lineage}/${h.born}`;
   if(effectIdentity!==key){root.replaceChildren();effectIdentity=key;}
+  root.hidden=scene.mode==='map'&&!scene.mapMarker;if(root.hidden)return;
   const effects=activeEffects(state),ids=new Set(effects.map(e=>e.id)),world=$('scene');
   const worldTop=world.getBoundingClientRect().top;
   const startY=Math.max(38,document.querySelector('.scene-label').getBoundingClientRect().bottom-worldTop+5);
@@ -367,7 +370,7 @@ function render(automatic=false,batching=false) {
   if(automatic&&$('sheet').open&&tab==='skills')renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape));
   if(automatic&&$('sheet').open){const care=$('detail-panel').querySelector('.pet-passage-live');if(care)care.outerHTML=petPassageHTML(state,escape);const keeper=$('detail-panel').querySelector('.pet-keeper-live');if(keeper)keeper.outerHTML=petKeeperHTML(state,state.people[h.lineage],escape);}
   if(automatic&&$('sheet').open&&tab==='bag'){const petPack=$('detail-panel').querySelector('.pack-pet-live');if(petPack)petPack.outerHTML=packPetHTML(state,escape);const clothes=$('detail-panel').querySelector('.clothing-live');if(clothes)clothes.outerHTML=clothingHTML(state,escape);const memory=$('detail-panel').querySelector('.navigation-memory-live');if(memory)memory.outerHTML=navigationMemoryHTML(state,escape);const rope=$('detail-panel').querySelector('.navigation-tool-live');if(rope)rope.outerHTML=navigationToolHTML(state,escape);const wardrobe=$('detail-panel').querySelector('.spare-outfit-live');if(wardrobe)wardrobe.outerHTML=spareOutfitHTML(state,escape);const pack=$('detail-panel').querySelector('.pack-live');if(pack)pack.outerHTML=containerHTML(state);const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
-  $('scene').setAttribute('aria-label', `${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
+  $('scene').setAttribute('aria-label',scene.mode==='map'?`Карта знакомых мест: ${scene.roadMap.model.layerName}. ${scene.mapMarker?h.name:'Персонаж вне показанных мест.'}`:`${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
   $('run-life').textContent=fastRun?'Остановить прогон':'Прожить год';
   $('run-until-death').textContent=fastRun?'Остановить прогон':'Наблюдать до смерти · до 10 лет';
   document.querySelector('.tap-hint').textContent=fastRun?(fastRun.untilDeath?'До смерти · клик — стоп':`Год: ${fastRun.committed} / 19 200 · клик — стоп`):fastNotice||(lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с');
@@ -407,7 +410,7 @@ document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false})
 document.addEventListener('touchmove',e=>{if(e.touches.length>1){releaseHold();e.preventDefault();}},{passive:false});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('keydown', e => {
-  if (e.code !== 'Space' || e.repeat || $('sheet').open || $('settings-dialog').open || $('reset-dialog').open || $('observer-dialog').open || /INPUT|TEXTAREA|BUTTON|SUMMARY|A/.test(document.activeElement.tagName)) return;
+  if (e.code !== 'Space' || e.repeat || $('sheet').open || $('settings-dialog').open || $('reset-dialog').open || $('observer-dialog').open || /INPUT|TEXTAREA|SELECT|BUTTON|SUMMARY|A/.test(document.activeElement.tagName)) return;
   e.preventDefault(); advance();
 });
 for (const button of document.querySelectorAll('[data-tab]')) button.addEventListener('click', () => {
@@ -419,11 +422,18 @@ for (const button of document.querySelectorAll('[data-tab]')) button.addEventLis
 $('inspect').addEventListener('click', () => { detail(); enrichSheet(); $('sheet').showModal(); });
 $('close-sheet').addEventListener('click', () => { $('sheet').close();if(lifeReview)showLifeSummary(); });
 $('sheet').addEventListener('close',()=>{if(lifeReview&&!$('life-summary').open)showLifeSummary();});
-$('menu').addEventListener('click', () => $('settings-dialog').showModal());
+function mapMenu(){
+ const r=scene.roadMap,layers=knownMapLayers(state),select=$('map-layer'),options='<option value="current">У персонажа</option>'+layers.map(l=>`<option value="${escape(l.id)}">${escape(l.name)}</option>`).join('');if(select.dataset.options!==options){select.innerHTML=options;select.dataset.options=options;}select.value=layers.some(l=>l.id===r.layer)?r.layer:'current';$('map-scope').value=r.scope;$('map-preview').textContent=r.inspect?'Закрыть просмотр карты':'Просмотреть карту';
+}
+$('menu').addEventListener('click', () => {mapMenu();$('settings-dialog').showModal();});
 $('close-menu').addEventListener('click', () => $('settings-dialog').close());
 function roadViewLabel(){$('road-view').textContent=roadView==='map'?'В дороге: карта':'В дороге: сцена';$('road-view').setAttribute('aria-pressed',String(roadView==='map'));}roadViewLabel();
 $('road-view').addEventListener('click',()=>{releaseHold();roadView=roadView==='map'?'scene':'map';scene.setRoadView(roadView);roadViewLabel();renderEffects();try{localStorage.setItem(SAVE_KEY+'-road-view',roadView);}catch{}});
 $('map-zoom-in').addEventListener('click',()=>scene.zoomMap(1.25));$('map-zoom-out').addEventListener('click',()=>scene.zoomMap(.8));$('map-follow').addEventListener('click',()=>scene.followMap());
+$('map-scope').addEventListener('change',()=>{releaseHold();scene.setMapView({scope:$('map-scope').value,inspect:true});mapMenu();});
+$('map-layer').addEventListener('change',()=>{releaseHold();scene.setMapView({layer:$('map-layer').value,inspect:true});mapMenu();});
+$('map-preview').addEventListener('click',()=>{releaseHold();scene.setMapView({inspect:!scene.roadMap.inspect});$('settings-dialog').close();});
+$('map-auto').addEventListener('click',()=>{releaseHold();scene.setMapView({inspect:false,scope:'auto',layer:'current'});});
 $('scene').addEventListener('wheel',e=>{if(scene.mode!=='map')return;e.preventDefault();releaseHold();scene.zoomMap(e.deltaY<0?1.15:1/1.15);},{passive:false});
 $('save-file').addEventListener('click',()=>{
   const url=URL.createObjectURL(new Blob([serialize(state)],{type:'application/json'}));
