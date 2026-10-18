@@ -1,0 +1,8 @@
+import {enabled} from '../rules.js';import {weatherAt} from './weather.js';import {itemWorking} from './item-condition.js';
+export const practicalClothingOn=s=>enabled(s,'practical-clothing')&&enabled(s,'equipment')&&enabled(s,'armor-balance')&&enabled(s,'spare-outfit');
+export const clothingKind=i=>i?.clothing?.version===1&&['warm','light'].includes(i.clothing.kind)?i.clothing.kind:null;
+export function clothingSituation(s){const h=s.hero,w=weatherAt(s,s.areas[h.area]),g=h.goal?.kind==='clothingDress'||h.goal?.kind==='clothingBuy'?h.goal.resume||h.goal:h.goal;return {weather:w,cold:w.id!=='shelter'&&(w.id==='snow'||w.season==='winter'),hot:w.id==='heat',civil:g?.kind==='work'&&['repair','market','song','medicine'].includes(g.job)||g?.kind==='factionDuty',goal:g};}
+export function clothingWalkExtra(s,item,weather){if(!practicalClothingOn(s)||!itemWorking(item))return 0;const kind=clothingKind(item),cold=weather.id!=='shelter'&&(weather.id==='snow'||weather.season==='winter'),hot=weather.id==='heat';return kind==='warm'?(cold?-.12:hot?.14:.06):kind==='light'?(cold?.08:-.04):0;}
+export function clothingPreference(s,item){if(!practicalClothingOn(s)||!itemWorking(item))return 0;const kind=clothingKind(item),v=clothingSituation(s),combat=v.goal?.kind==='hunt';return kind==='warm'?(v.cold?(combat?.6:4):v.hot?-2:0):kind==='light'?(v.hot?3:v.civil?2:0):0;}
+export function clothingDisposition(s){const h=s.hero,v=clothingSituation(s);return h.personality.curiosity>=.45||v.cold&&h.energy<45||v.hot&&h.energy<45;}
+export function clothingEffectKey(s){const i=s.hero.equipment.armor,k=clothingKind(i);if(!practicalClothingOn(s)||!k)return '';const v=clothingSituation(s);return '/clothing:'+i.id+'/'+v.cold+'/'+v.hot;}

@@ -1,3 +1,4 @@
+import {clothingEffectKey} from './clothing-state.js';
 import {knownArea} from '../actor-atlas.js';
 import {foodWalkingTicks,mealWarmth} from './hearth-food.js';
 import {physicalDistance} from '../geometry.js';
@@ -38,7 +39,7 @@ export function preparePlan(s,ctx){
   // A validated, visible local conversation is not a new expedition. Combat
   // assistance still uses hunt and its ordinary preparation/resource budget.
   if(g.kind==='assist'&&g.area===h.area)return false;
-  const w=weatherAt(s,s.areas[h.area]),key=`${g.kind}/${g.area}/${g.started}/${h.area}/${w.id}/${w.period}${armorWalkExtra(s)?'/heavy:'+h.equipment.armor.id:''}${mealWarmth(s)?'/warm:'+mealWarmth(s).until:''}`;
+  const w=weatherAt(s,s.areas[h.area]),key=`${g.kind}/${g.area}/${g.started}/${h.area}/${w.id}/${w.period}${armorWalkExtra(s)?'/heavy:'+h.equipment.armor.id:''}${mealWarmth(s)?'/warm:'+mealWarmth(s).until:''}${clothingEffectKey(s)}`;
   if(h.planning.checked===key)return false;h.planning.checked=key;
   const estimate=estimatePlan(s,g,ctx);if(!estimate)return false;
   h.planning.last={tick:s.tick,kind:g.kind,target:g.area,...estimate,prepared:false};

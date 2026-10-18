@@ -13,7 +13,8 @@ export function itemOutfit(item){
  const trim=pick(['#e8c88f','#cee0d2','#ddc0ce']);
  const headwear=metal?'coif':pick(['hood','cap','brim']);
  const headwearName=({coif:'Кольчужный подшлемник',hood:'Капюшон плаща',cap:'Дорожная шапка',brim:'Дорожная шляпа'})[headwear];
- return {hat:headwear,headwearVersion:1,headwearName,headwearId:item.id||null,garmentVersion:1,garmentId:item.id||null,garmentName:item.name||'Одежда',material:metal?'metal':'cloth',coat,armored:metal,cloak,trim,plateColor:metal?cloak:null,edgeColor:metal?'#d1d8c6':'#382f32'};
+ const clothing=item.clothing?.version===1?item.clothing.kind:null;
+ return {...(clothing==='warm'?{scarf:true,scarfColor:trim}:clothing==='light'?{scarf:false}:{}),hat:clothing==='warm'?'hood':clothing==='light'?'none':headwear,headwearVersion:1,headwearName,headwearId:item.id||null,garmentVersion:1,garmentId:item.id||null,garmentName:item.name||'Одежда',material:metal?'metal':'cloth',coat:clothing==='warm'?'long':clothing==='light'?'vest':coat,armored:metal,cloak,trim,plateColor:metal?cloak:null,edgeColor:metal?'#d1d8c6':'#382f32'};
 }
 
 // Shared painter: scene, portrait, and the recorded scene contour use exactly

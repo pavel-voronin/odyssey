@@ -1,3 +1,4 @@
+import {clothingPlan,clothingPriority,clothingAction} from './modules/clothing-retail.js';
 import {observeNavigationBlockers,navigationHoldKnownBlocker,navigationReturnTarget,finishNavigationReturn} from './modules/navigation-memory.js';
 import {initializeDescent,navigationToolPlan,navigationGate,navigationAction} from './modules/navigation-tools.js';
 import {changeSpareOutfit,spareNeedsMoney} from './modules/spare-outfit.js';
@@ -750,6 +751,8 @@ function actObserved(s) {
   if(!rescueTarget(s,{log,failQuest})||!intentionTarget(s)||!lodgingTarget(s)||!aidTarget(s)||!serviceTarget(s,context(s,'work-orders'))||!propertyAidTarget(s,context(s,'property-aid'))||!propertyGiftTarget(s,context(s,'property-gifts'))||!propertyContractTarget(s,context(s,'property-contracts'))||!propertyTarget(s,context(s,'property')))return s;
   if(!itemRepairTarget(s,context(s,'item-wear'))||!refitTarget(s)||!workshopWorkTarget(s,{...context(s,'workshop-interiors'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
+  if(clothingPriority(s))return s;
+  if(!urgent)clothingPlan(s,context(s,'practical-clothing'));
   if(changeSpareOutfit(s,context(s,'spare-outfit')))return s;
   preparePlan(s,context(s,'preparation'));
   const g = h.goal;
@@ -823,6 +826,7 @@ function actObserved(s) {
   else if(g.kind==='propertyContract')propertyContractAction(s,context(s,'property-contracts'));
   else if(g.kind==='propertyRepair')repairProperty(s,context(s,'property'));
   else if(g.kind==='craftStudy')craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))});
+  else if(['clothingBuy','clothingDress','clothingSell'].includes(g.kind))clothingAction(s,context(s,'practical-clothing'));
   else if(g.kind==='navReturn')finishNavigationReturn(s,context(s,'navigation-memory'));
   else if(g.kind.startsWith('rope'))navigationAction(s,context(s,'navigation-tools'));
   else if(['forgeSupply','forgeWork','forgeLearn','forgeBuy'].includes(g.kind))forgeAction(s,{...context(s,'forging'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))});

@@ -1,3 +1,4 @@
+import {npcClothingTurn} from './clothing-actors.js';
 import {navigationNPCStep} from './navigation-tools.js';
 import {fieldCraftEnabled} from './field-craft-state.js';
 import {fieldCraftTask,fieldCraftAction} from './field-craft-actors.js';
@@ -271,6 +272,7 @@ export function peopleTick(s,ctx){
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}
     bindNPCDeedTask(s,p);
+    if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task.kind)){fieldCraftAction(s,p,p.agenda.task,ctx);continue;}
     if(['creditTalk','creditWork'].includes(p.agenda.task.kind)){npcCreditAction(s,p,ctx);continue;}
