@@ -1,3 +1,4 @@
+import {petPack,petNear,packPetTrace} from './pack-pet-state.js';
 import {offerInvitation,declineInvitation,startInvitation} from './invitation-rhythm.js';
 import {shareMoneyCacheAddresses} from './money-caches.js';
 import {shareRouteMapReports} from './route-maps.js';
@@ -84,6 +85,7 @@ export function socialTick(s,ctx){
 }
 export function hurtCompanion(s,c,damage,ctx,source=null){
   const h=s.hero,p=s.people[c.person];
+  if(petPack(c)&&!petNear(s,c,12)&&source!=='pack-starvation')return 0;
   if(damage<=0||c.hp<=0||!h.companions.includes(c)||p&&!p.alive)return 0;
   const previousHp=c.hp;c.hp=Math.max(0,c.hp-damage);
   const previousPersonHealth=p?.health;
@@ -96,10 +98,10 @@ export function hurtCompanion(s,c,damage,ctx,source=null){
     if(!c.uid)throw new Error('У попутчика отсутствует текущая личность');
     h.companions=h.companions.filter(other=>other!==c);h.social.lostCompanions++;
     if(p){p.alive=false;p.died=s.tick;p.status='dead';p.health=0;}
-    const memorial={id:'memorial-'+c.uid,kind:'grave',name:c.name,x:h.x-areaOffset(s.areas[h.area],4)};
+    const memorial=petPack(c)?packPetTrace(s,c,'dead'):{id:'memorial-'+c.uid,kind:'grave',name:c.name,x:h.x-areaOffset(s.areas[h.area],4)};
     const marked=markActorDeath(s,memorial,companionKey(c),companionShape(c));
     if(source&&!marked)actorFact(s,'death',companionKey(c));
-    s.areas[h.area].objects.push(memorial);recordCompanionRemains(s,c,memorial);
+    if(!petPack(c))s.areas[h.area].objects.push(memorial);recordCompanionRemains(s,c,memorial,{transit:petPack(c)?null:h.transit});
     h.mind.stress=Math.min(100,h.mind.stress+18);ctx.log(s,`${c.name} погибает рядом с героем. Отряд и память дороги меняются.`,'loss');
   }
   return previousHp-c.hp;
@@ -116,6 +118,7 @@ export function partyHurt(s,damage,ctx,excluded=[]){
 export function partyRest(s){
   if(!enabled(s,'companions'))return;
   for(const c of s.hero.companions){
+    if(petPack(c)&&!petNear(s,c,12))continue;
     const person=s.people[c.person];if(enabled(s,'npc-party-needs')&&person&&!person.alive)continue;
     c.hp=Math.min(c.maxHp,c.hp+5);if(!person){if(enabled(s,'pet-training')&&c.petTraining)c.petTraining.energy=Math.min(100,c.petTraining.energy+8);continue;}
     person.health=Math.ceil((person.maxHealth||100)*c.hp/c.maxHp);
@@ -127,7 +130,8 @@ export function partyRest(s){
 }
 export function releaseParty(s,ctx){
   const h=s.hero,a=s.areas[h.area];
-  for(const c of h.companions){
+  for(const c of [...h.companions]){
+    if(petPack(c)){packPetTrace(s,c,'owner-lost');h.companions=h.companions.filter(v=>v!==c);continue;}
     if(c.person&&s.people[c.person]?.alive){const p=s.people[c.person];p.status='resident';p.area=a.id;a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);if(!a.objects.some(o=>o.person===p.id))a.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:Math.max(areaOffset(a,8),Math.min(100-areaOffset(a,8),h.x-areaOffset(a,10)))});}
     else if(!c.person&&c.hp>0)a.objects.push({id:'waiting-'+c.uid,kind:'encounter',encounter:'familiar',icon:'pet',name:c.name,x:Math.max(areaOffset(a,8),Math.min(100-areaOffset(a,8),h.x-areaOffset(a,12))),resolved:false,existingPet:{...c,previousOwner:h.lineage,loyalty:Math.max(25,c.loyalty-20)}});
   }

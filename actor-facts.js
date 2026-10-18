@@ -52,12 +52,13 @@ export class ActorTracks{
     }
     if(!s.hero.transit)for(const other of Object.values(s.actorStates||{}))if(other!==s.hero&&selfDrivenActor(s,other)&&!other.transit&&other.area===s.hero.area){
       add(other.lineage,other.x,other.facing,other.lastAction==='rest');
-      for(const c of other.companions||[])add(companionKey(c),other.x,other.facing,other.lastAction==='rest');
+      for(const c of other.companions||[]){const b=c.packCargo?.body;if(b&&b.area!==s.hero.area)continue;add(companionKey(c),b?.x??other.x,other.facing,other.lastAction==='rest');}
     }
     for(const c of s.hero.companions||[]){
+      const b=c.packCargo?.body;if(b&&b.area!==s.hero.area)continue;
       const key=companionKey(c),attack=facts.find(f=>f.kind==='attack'&&f.actor===key);
       const target=attack&&s.areas[s.hero.area].objects.find(o=>o.id===attack.target);
-      add(key,s.hero.x,target?Math.sign(target.x-s.hero.x)||s.hero.facing:s.hero.facing,s.hero.lastAction==='rest');
+      add(key,b?.x??s.hero.x,target?Math.sign(target.x-s.hero.x)||s.hero.facing:s.hero.facing,s.hero.lastAction==='rest');
     }
     this.tick=s.tick;this.identity=identity;this.tracks=next;return true;
   }

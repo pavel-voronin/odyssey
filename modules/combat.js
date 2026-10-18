@@ -1,3 +1,4 @@
+import {cacheItems} from './item-originals.js';
 import {partyAvailable} from './party-needs.js';
 import {aggregatePartyAttack} from './party-combat-state.js';
 import {braceDamage} from './brace.js';
@@ -53,6 +54,7 @@ export function combatResponse(s, enemy, raw, ctx) {
 
 export function afterVictory(s, enemy, ctx) {
   const h = s.hero;
+  if(enemy.items?.length){cacheItems(s,enemy.items,{area:h.area,x:enemy.x,leftBy:h.lineage,name:'Перехваченная поклажа'});enemy.items=[];}
   if (enemy.stolen) { h.gold += enemy.stolen; enemy.stolen = 0; }
   advanceCareer(s,3,ctx);
   enchantedVictory(s,enemy,ctx);

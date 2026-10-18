@@ -1,3 +1,5 @@
+import {cacheItems} from './modules/item-originals.js';
+import {packPetPlan,packPetAction,packPetCare,advancePackPets,waitingPackPetsTick} from './modules/pack-pets.js';
 import {clothingPlan,clothingPriority,clothingAction} from './modules/clothing-retail.js';
 import {observeNavigationBlockers,navigationHoldKnownBlocker,navigationReturnTarget,finishNavigationReturn} from './modules/navigation-memory.js';
 import {initializeDescent,navigationToolPlan,navigationGate,navigationAction} from './modules/navigation-tools.js';
@@ -588,8 +590,10 @@ function npcVictory(s,a,enemy,p){
  enemy.hp=0;enemy.alive=false;enemy.defeatedBy=p.id;const text=p.name+' побеждает '+enemy.baseName+' на дороге. Это поступок другого человека.';if(enabled(s,'npc-watch-needs'))watchNote(s,p,text,{log},'orders');else{s.society.events.unshift({tick:s.tick,area:a.id,text,kind:'orders'});s.changes.push({tick:s.tick,text});if(s.hero.area===a.id)log(s,text,'orders');}
  recordRemains(s,enemy,{kind:'enemy',id:enemy.id,area:a.id,x:enemy.x,shape:enemyShape(enemy),cause:{person:p.id},facing:Number.isFinite(p.x)?p.x<enemy.x?-1:1:undefined});
  dropRescuePurse(s,a,enemy);
+ if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
+  waitingPackPetsTick(s);
   leverTeamTick(s,context(s,'mechanisms'));
   biomaterialTick(s);
   goodsTick(s);
@@ -658,7 +662,7 @@ export function advanceWorld(s) {
   observeRouteMap(view,s.people[h.lineage]);
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
-  try{actObserved(view);}finally{pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  try{actObserved(view);}finally{advancePackPets(view,{...context(view,'pack-pets'),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
@@ -752,6 +756,8 @@ function actObserved(s) {
   if(!itemRepairTarget(s,context(s,'item-wear'))||!refitTarget(s)||!workshopWorkTarget(s,{...context(s,'workshop-interiors'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(clothingPriority(s))return s;
+  if(!urgent&&packPetCare(s,context(s,'pack-pets')))return s;
+  if(!urgent)packPetPlan(s,context(s,'pack-pets'));
   if(!urgent)clothingPlan(s,context(s,'practical-clothing'));
   if(changeSpareOutfit(s,context(s,'spare-outfit')))return s;
   preparePlan(s,context(s,'preparation'));
@@ -826,6 +832,7 @@ function actObserved(s) {
   else if(g.kind==='propertyContract')propertyContractAction(s,context(s,'property-contracts'));
   else if(g.kind==='propertyRepair')repairProperty(s,context(s,'property'));
   else if(g.kind==='craftStudy')craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))});
+  else if(['petPackFit','petPackLoad','petPackUnload'].includes(g.kind))packPetAction(s,context(s,'pack-pets'));
   else if(['clothingBuy','clothingDress','clothingSell'].includes(g.kind))clothingAction(s,context(s,'practical-clothing'));
   else if(g.kind==='navReturn')finishNavigationReturn(s,context(s,'navigation-memory'));
   else if(g.kind.startsWith('rope'))navigationAction(s,context(s,'navigation-tools'));

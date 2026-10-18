@@ -65,7 +65,7 @@ export function recordCompanionRemains(s,c,anchor,{transit=s.hero.transit}={}){
   if(!active(s))return null;
   const h=s.hero,p=c.person&&s.people[c.person];
   if(p)return recordPersonRemains(s,p,{area:h.area,x:anchor?.x??h.x,transit,anchor});
-  return recordRemains(s,c,{kind:'companion',id:c.uid,area:h.area,x:anchor?.x??h.x,
+  return recordRemains(s,c,{kind:'companion',id:c.uid,area:c.packCargo?.body.area||h.area,x:anchor?.x??h.x,
     transit,anchor,shape:c.id==='mushroom'?'fungus':c.id==='moth'?'ghost':c.id});
 }
 export function recordHeroRemains(s,h,grave,marker,cache,cause){
