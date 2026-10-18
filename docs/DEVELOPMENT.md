@@ -2494,3 +2494,14 @@ Pages215: Actions39171086522 success, HTML HTTP200/build8c4b183; commit652c3b5c7
 Pages216: Actions39172270940 success, HTML HTTP200/build5257429; commit96f70e4c199b3a72954b120eedb2660d66c7ceb0.
 
 Опубликовано https://odyssey.kolpaque.dev:03949fe750032eb9;438 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.
+
+<a id="stage-218"></a>
+## Этап218 · граница V-08.4 · фиксированная стоянка
+
+В текущих item/C-01 нет отдельной переносимой палатки/лагерного комплекта. По явному условию карточки перенос pocket отложен: не создана бесплатная палатка/переноска людей или вещей. V-08.4 целиком не завершена. Исправлено старое сообщение personal-mode выхода: путник уходит, стоянка/костёр/оставленные вещи остаются; прежнее «лагерь свёрнут» ложно описывало действие. Фиксированный V-08.3 продолжает работать.
+
+Код modules/fieldcamp.js, одна строка. Изолированная проверка только fieldcamp:4actual ticks, тот же camp-ID/fire и точный save/restore; без записи одноразового теста для текста. Build/PARTIAL smoke1/1 exit0,628мс, artifacts/checks/ac5436b267817ca8.log, revision3113a0a5692bc82f. Deploy передаёт явно test/smoke.test.js и переиспользует тот же результат; целевой короткий выход проверен отдельно. Browser не нужен для изменения фразы; full/SOAK/длинные жизни не запускались.
+
+Pages217: Actions39173292451 success, HTML HTTP200/build03949fe; commit350a4dbb89935c4e3aed16c61698217ee6c5e3a7.
+
+Опубликовано https://odyssey.kolpaque.dev:3113a0a5692bc82f;438 public payload-хешей/HTTPS подтверждены; проверки переиспользованы.

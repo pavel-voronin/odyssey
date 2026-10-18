@@ -70,7 +70,7 @@ export function leaveCamp(s,ctx){
   if(!a.temporaryCamp.site&&!enabled(s,'camp-sites')){
     const entry=a.temporaryCamp.returns?.[h.lineage];if(a.temporaryCamp.mode!=='personal'||!entry)return false;
     for(const id of [h.lineage,...h.companions.filter(c=>c.person).map(c=>c.person)])delete a.temporaryCamp.returns[id];
-    h.x=entry.parentX;ctx.enter(s,parent.id);h.campReturn=null;h.goal=null;h.lastAction='walk';ctx.log(s,'Походный лагерь свёрнут. Путь продолжается с прежнего места.','rest');return true;
+    h.x=entry.parentX;ctx.enter(s,parent.id);h.campReturn=null;h.goal=null;h.lastAction='walk';ctx.log(s,'Путник вышел из лагеря. Стоянка, костёр и оставленные вещи остаются на месте.','rest');return true;
   }
   reconcileCampSite(s,a);const passage=campPassage(s,a.id,parent.id);if(!passage?.allowed)return false;
   // Leaving reveals only the real passage used by this body.
