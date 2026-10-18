@@ -1,3 +1,4 @@
+import {verdictReviewNPCAction,verdictReviewOn} from './verdict-review.js';
 import {boardingPetCare,petBoardingNPCAction} from './pet-boarding-actors.js';
 import {npcPetCare} from './pet-transfer-actors.js';
 import {npcClothingTurn} from './clothing-actors.js';
@@ -258,6 +259,7 @@ export function peopleTick(s,ctx){
     const materialTrip=npcMaterialDeliveryPlan(s,p);
     if(!materialTrip)npcDeedsTick(s,p,ctx);
     if(p.caseReports?.length)announceCaseWitness(s,p);
+    if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
     if(p.agenda.task?.kind==='caseRecordStudy'&&!enabled(s,'verdict-knowledge'))continue;
     if(p.agenda.task?.kind==='mentorLesson'&&(!mentorEnabled(s)||s.tick>p.personalJourney?.abandonAfter)){mentorLessonAction(s,p,ctx);continue;}
     if(p.agenda.task?.kind==='itemSalvage'&&!enabled(s,'item-originals'))p.agenda.task=null;
@@ -278,6 +280,7 @@ export function peopleTick(s,ctx){
     bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(verdictReviewNPCAction(s,p))continue;
     if(petBoardingNPCAction(s,p,ctx))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task.kind)){fieldCraftAction(s,p,p.agenda.task,ctx);continue;}
     if(['creditTalk','creditWork'].includes(p.agenda.task.kind)){npcCreditAction(s,p,ctx);continue;}

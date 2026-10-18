@@ -1,3 +1,4 @@
+import {verdictReviewPlan,verdictReviewAction} from './modules/verdict-review.js';
 import {shipRecoveryAction} from './modules/ship-recovery.js';
 import {petRouteDeferred,knownPetRoute,petPassageEntered} from './modules/pet-passage-state.js';import {petPassagePlan,petRetrievalPlan,petPassagePath,petBoardingAction,petBoardingTarget} from './modules/pet-boarding.js';import {petBoardingWorldTick} from './modules/pet-boarding-actors.js';
 import {petTransferPlan,petTransferAction} from './modules/pet-transfer.js';import {npcPetsTick} from './modules/pet-transfer-actors.js';
@@ -360,6 +361,7 @@ function plan(s) {
   if(!q&&workshopDisputePlan(s,context(s,'workshop-dispute')))return;
   if(!q&&principlePlan(s,context(s,'principles')))return;
   if(!q&&verdictInquiryPlan(s,context(s,'verdict-knowledge')))return;
+  if(!q&&verdictReviewPlan(s,context(s,'verdict-review')))return;
   if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
   if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
   if(!q&&forgePlan(s,context(s,'forging')))return;
@@ -858,6 +860,7 @@ function actObserved(s) {
   else if(g.kind==='principleReflect')reflectPrinciple(s,context(s,'principles'));
   else if(g.kind==='rescueHear')hearCaptive(s,context(s,'dungeon-rescue'));
   else if(['rescueApproach','rescueFree','rescueEscort'].includes(g.kind))rescueAction(s,context(s,'dungeon-rescue'));
+  else if(['verdictPetition','verdictReview'].includes(g.kind))verdictReviewAction(s,context(s,'verdict-review'));
   else if(['verdictRecord','verdictWitness'].includes(g.kind))verdictInquiryAction(s,context(s,'verdict-knowledge'));
   else if(g.kind==='serviceAccept')acceptService(s,context(s,'work-orders'));
   else if(g.kind==='workshopTalk')workshopDisputeAction(s,context(s,'workshop-dispute'));
