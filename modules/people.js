@@ -1,3 +1,5 @@
+import {observeShortcutPerson} from './shortcut-observation.js';
+import {isShortcut} from './shortcut-state.js';
 import {pactLeaderTurn} from './branch-pacts.js';
 import {feastNPCTurn,feastNPCAction} from './feast-actions.js';
 import {migrationKnowledgeOn} from './migration-memory.js';
@@ -18,7 +20,7 @@ import {creditEnabled,creditStatus,creditSupplierTurn} from './provision-credit.
 import {npcCreditTask,npcCreditAction} from './provision-credit-actors.js';
 import {freightKeeperTurn,releaseDeadFreightCustody} from './freight-custody.js';
 import {merchantEnabled} from './merchant-policy.js';
-import {areaScale,areaStep} from '../geometry.js';
+import {areaScale,areaStep,physicalDistance} from '../geometry.js';
 import {npcMoneyCachePlan,takeBuriedMoney} from './money-caches.js';
 import {observeRouteMap,npcRouteMapPlan,npcRouteMapAction} from './route-maps.js';
 import {npcMapCopyPlan,mapCopyAction} from './map-copies.js';
@@ -160,10 +162,10 @@ function moveTask(s,p,ctx){
   if(t.kind==='creditTalk'&&p.area===t.target&&s.people[t.person]?.area===p.area)t.x=s.people[t.person].x;
   if(enabled(s,'npc-contacts')&&t.kind==='visit'&&p.area===t.target){const body=localContact(s,t.person,p.area);if(body)t.x=body.x;}
   const escape=rescueEscapeRoute(s,p,t),known=enabled(s,'npc-knowledge')&&(t.knownNavigation||t.migration&&migrationKnowledgeOn(s));
-  const original=escape||(known?npcKnownRoute(p,p.area,t.target,knownNPCHazards(s,p)):ctx.route(s,p.area,t.target)),path=fordDetour(s,p,t,t.target,original);if(!path.length){p.agenda.task=null;if(known||escape)p.agenda.due=s.tick+96;if(escape)p.rescueFlight.blocked={tick:s.tick,kind:'exit'};p.status=t.migration||escape?'wandering':'resident';return false;}
+  const original=escape||(known?npcKnownRoute(p,p.area,t.target,knownNPCHazards(s,p)):ctx.route(s,p.area,t.target,p)),path=fordDetour(s,p,t,t.target,original);if(!path.length){p.agenda.task=null;if(known||escape)p.agenda.due=s.tick+96;if(escape)p.rescueFlight.blocked={tick:s.tick,kind:'exit'};p.status=t.migration||escape?'wandering':'resident';return false;}
   let x=t.x,next=null;
   if(path.length>1){next=path[1];x=Number(next.slice(1))>Number(p.area.slice(1))?100:0;}
-  const passage=next&&interiorPassage(s,p.area,next,p.id);if(passage){x=passage.x;if(!passage.allowed){p.agenda.task=null;p.agenda.due=s.tick+48;return false;}}
+  const passage=next&&interiorPassage(s,p.area,next,p.id);if(passage){x=passage.x;if(!passage.allowed&&(!isShortcut(s,p.area,next)||physicalDistance(s.areas[p.area],p.x,passage.x)<=30)){p.agenda.task=null;p.agenda.due=s.tick+48;return false;}}
   if(known&&next&&!roadStillPresent(s,p.area,next)){
     forgetNPCRoad(p,p.area,next);p.agenda.task=null;p.agenda.due=s.tick+96;p.status='resident';return false;
   }
@@ -251,7 +253,7 @@ export function peopleTick(s,ctx){
     if(enabled(s,'npc-travel')&&p.journeyReleasedAt===s.tick)continue;
     if(!npcAction(s,p,controller))continue;
     rememberPracticalRole(s,p);
-    observeNPCPlace(s,p);
+    observeNPCPlace(s,p);observeShortcutPerson(s,p);
     observeRouteMap(s,p);
     observeBestiaryTraces(s,p,ctx);
     observeMarket(s,p.id);

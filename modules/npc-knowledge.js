@@ -1,3 +1,4 @@
+import {layoutStair} from './shortcut-state.js';
 import {observeMigrationPlace} from './migration-memory.js';
 import {enabled} from '../rules.js';
 import {campPassage,physicalDistance} from '../geometry.js';
@@ -32,7 +33,7 @@ export function npcKnownRoute(p,from,to,avoided=[]){
   if(from===to)return [from];const roads=p.navigation?.roads||[],queue=[[from]],seen=new Set([from]);
   for(let i=0;i<queue.length;i++){
     const path=queue[i],last=path.at(-1);
-    for(const e of roads){const next=e.from===last?e.to:e.to===last?e.from:null;if(!next||seen.has(next)||avoided.includes(next))continue;
+    for(const e of roads){const next=e.from===last?e.to:e.to===last?e.from:null;if(!next||seen.has(next)||avoided.includes(next)||e.layoutGate&&p.mechanisms?.known.find(n=>n.key===e.layoutGate)?.state!=='open')continue;
       const result=[...path,next];if(next===to)return result;seen.add(next);queue.push(result);
     }
   }
@@ -49,5 +50,5 @@ export function rememberNPCHazard(s,p){const place=p.navigation?.places.find(e=>
 export function forgetNPCRoad(p,from,to){if(p.navigation)p.navigation.roads=p.navigation.roads.filter(e=>e.key!==key(from,to));}
 export function roadStillPresent(s,from,to){
   const a=s.areas[from],b=s.areas[to],edge=s.edges[key(from,to)];
-  return Boolean(a?.links.includes(to)&&b&&['road','door',undefined].includes(edge?.mode)&&a.era===b.era&&a.realm===b.realm&&(!b.temporaryCamp||b.temporaryCamp.site?.version===1));
+  return Boolean(a?.links.includes(to)&&b&&(['road','door',undefined].includes(edge?.mode)||layoutStair(s,from,to))&&a.era===b.era&&a.realm===b.realm&&(!b.temporaryCamp||b.temporaryCamp.site?.version===1));
 }

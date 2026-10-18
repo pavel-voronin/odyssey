@@ -1,3 +1,4 @@
+import {knownShortcutBlocked,isShortcut} from './modules/shortcut-state.js';
 import {observeDelveLayout,recordLayoutCollection} from './modules/delve-layout.js';
 import {layoutAction,layoutOn} from './modules/delve-layout-plan.js';
 import {findWaystone} from './modules/waystones.js';
@@ -284,19 +285,19 @@ function enter(s, id) {
   for(const id of a.population||[])meetLegacy(s,id,context(s,'life'));
 }
 const navigationCache=new WeakMap();
-function navigation(s,from){
+function navigation(s,from,person=null){
   const revision=`${s.graphRevision||0}:${s.nextArea}:${Object.keys(s.areas).length}:${enabled(s,'mechanisms')}`;
   let cache=navigationCache.get(s);
   if(!cache||cache.revision!==revision){cache={revision,trees:new Map()};navigationCache.set(s,cache);}
-  if(cache.trees.has(from))return cache.trees.get(from);
+  if(!person&&cache.trees.has(from))return cache.trees.get(from);
   const queue=[from],parents={[from]:null},distances={[from]:0};
-  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[])if(!(id in parents)&&!grateClosed(s,queue[i],id)&&!liftBlocked(s,queue[i],id)&&campLink(s,queue[i],id)&&(!s.areas[queue[i]]?.temporaryCamp||queue[i]===from)){parents[id]=queue[i];distances[id]=distances[queue[i]]+1;queue.push(id);}
-  const tree={parents,distances};if(cache.trees.size>6)cache.trees.clear();cache.trees.set(from,tree);return tree;
+  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[])if(!(id in parents)&&!(person&&isShortcut(s,queue[i],id)?knownShortcutBlocked(s,person,queue[i],id):grateClosed(s,queue[i],id))&&!liftBlocked(s,queue[i],id)&&campLink(s,queue[i],id)&&(!s.areas[queue[i]]?.temporaryCamp||queue[i]===from)){parents[id]=queue[i];distances[id]=distances[queue[i]]+1;queue.push(id);}
+  const tree={parents,distances};if(cache.trees.size>6)cache.trees.clear();if(!person)cache.trees.set(from,tree);return tree;
 }
-export function route(s,from,to){
+export function route(s,from,to,person=null){
   countMarket(s,'route');
   if(!s.areas[from]||!s.areas[to])return [];
-  const {parents}=navigation(s,from);if(!(to in parents))return [];
+  const {parents}=navigation(s,from,person);if(!(to in parents))return [];
   const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();
 }
 export function knownRoute(s,from,to){
@@ -304,7 +305,7 @@ export function knownRoute(s,from,to){
   if(!s.hero.atlas||!s.areas[from]||!s.areas[to]||from!==to&&petRouteDeferred(s,to))return [];
   const blockedFords=new Set(fordBlocked(s,s.hero));
   if(from!==to&&!knownArea(s,to))return [];const membership=s.hero.atlas.known.length>3?routeMembership(s):null,queue=[from],parents={[from]:null};
-  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){if(id in parents||knownLiftBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownGrateBlocked(s,s.people[s.hero.lineage],queue[i],id)||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;parents[id]=queue[i];queue.push(id);}
+  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){if(id in parents||knownShortcutBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownLiftBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownGrateBlocked(s,s.people[s.hero.lineage],queue[i],id)||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;parents[id]=queue[i];queue.push(id);}
   if(!(to in parents))return [];const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();
 }
 
