@@ -1144,3 +1144,5 @@ PERSON-01.3 выполнена212/0acef62ee151fd0a базово: новый cano
 U-04.1 /213 выполнена: точный19200-тик интервал мира, один250/20мс packet executor с офлайном, stable observation; смерть не завершает год/не создаёт наследника. Код playback/tick-batch/clock/app; PARTIAL и публикацияe3bf8fb350e113c7 — DEVELOPMENT#stage-213. U-04.2/полнота OBS-01.4 остаются отдельно.
 
 U-04.2 /214 выполнена: cancel/stale-prefix/смена/импорт, сохранённый прежний офлайн-долг без долга за вычисление, строгий сохранённый remaining без auto-resume. Код playback/year-clock/clock/save-schema/app; PARTIAL и публикацияacff01d58a25be01 — DEVELOPMENT#stage-214. Полный просмотр до смерти/техническая граница остаются OBS-01.4-rest.
+
+OBS-01.4-rest /215 выполнена: отдельный просмотр до действительной смерти через общий run/world-step/clock;10лет — конечный технический предел попытки с «Жизнь продолжается», без финала/автосмены. Код playback/year-clock/playback-view/app/save-schema; PARTIAL и публикация8c4b183802c544bf — DEVELOPMENT#stage-215. Настоящее возвращение проверяется с будущим N-01, не подменяется искусственным действием.

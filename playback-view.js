@@ -1,0 +1,1 @@
+export function savedRunNotice(r){return r.status==='death'?'Наблюдение завершено: смерть':r.remaining?`Прогон остановлен · осталось ${r.remaining.toLocaleString('ru-RU')} тиков`:r.endTick-r.startTick===192000?'Жизнь продолжается · можно наблюдать дальше':'Год прожит';}

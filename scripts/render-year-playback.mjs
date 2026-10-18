@@ -9,7 +9,20 @@ const data=[yearFixture(),yearFixture({periodic:true}),yearFixture({death:true})
 const server=createServer(async(req,res)=>{try{if(req.url==='/__time'){res.end(String(performance.now()));return;}const p=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!p.startsWith(root+path.sep))throw Error('Outside');res.setHeader('Content-Type',p.endsWith('.js')?'text/javascript; charset=utf-8':p.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(await readFile(p));}catch{res.statusCode=404;res.end();}});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;
 const controls=process.argv.includes('--controls');
-const script=controls?`<script type="module">
+const deathView=process.argv.includes('--death-view');
+const script=deathView?`<script type="module">
+try{
+ const {restore}=await import('/engine.js'),{SAVE_KEY,clockRecord}=await import('/save-schema.js'),{createClock}=await import('/clock.js');const data=${JSON.stringify(data)};let wall=100000;Date.now=()=>wall;
+ const frames=[],pumps=[];window.setTimeout=fn=>{if(String(fn).includes('fastLifeFrame'))frames.push(fn);else if(fn.name==='pumpTime')pumps.push(fn);return 1;};
+ localStorage.setItem(SAVE_KEY,data[2]);localStorage.setItem(SAVE_KEY+'-clock',JSON.stringify(clockRecord(restore(data[2]),createClock(wall))));localStorage.setItem(SAVE_KEY+'-onboarding',JSON.stringify({done:true}));await import('/app.js');
+ document.getElementById('menu').click();wall=104000;document.getElementById('run-until-death').click();
+ const first=restore(localStorage.getItem(SAVE_KEY)),clock=JSON.parse(localStorage.getItem(SAVE_KEY+'-clock'));if(first.tick!==2||first.hero.alive||first.lives.length!==1||!document.getElementById('life-summary').open||clock.yearRun.status!=='death')throw Error('Wrong actual death boundary');
+ for(const fn of frames.splice(0))fn();if(restore(localStorage.getItem(SAVE_KEY)).tick!==2)throw Error('Stale life callback');
+ pumps.shift()();const final=restore(localStorage.getItem(SAVE_KEY));if(final.tick!==6||final.generation!==1||final.observation.person!==first.observation.person||final.lives.length!==1)throw Error('World stopped or successor appeared');
+ document.getElementById('close-life-summary').click();document.getElementById('menu').click();document.getElementById('run-until-death').click();if(restore(localStorage.getItem(SAVE_KEY)).tick!==6)throw Error('Dead viewing added tick');document.getElementById('menu').click();
+ const p=document.createElement('pre');p.id='result';p.hidden=true;p.textContent=JSON.stringify({ticks:6,death:2,oldOfflineSeconds:4,samePerson:true,scope:'PARTIAL actual desktop UI; no life/year simulation beyond 6 ticks',overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth)});document.body.append(p);
+}catch(e){const p=document.createElement('pre');p.id='result';p.textContent=JSON.stringify({error:e.stack});document.body.append(p);}
+</script>`:controls?`<script type="module">
 try{
  const {restore,serialize}=await import('/engine.js'),{SAVE_KEY,clockRecord}=await import('/save-schema.js'),{createClock}=await import('/clock.js');const data=${JSON.stringify(data)};
  const realNow=()=>{const r=new XMLHttpRequest();r.open('GET','/__time',false);r.send();return Number(r.responseText);};
@@ -57,4 +70,4 @@ try{
 let html=await readFile('index.html','utf8');html=html.replace('<head>','<head><base href="/">').replace('<script type="module" src="app.js"></script>',script);await writeFile(path.join(temp,'year-playback.html'),html);
 const png=path.join(temp,'year-playback.png'),args=['--headless=new','--disable-gpu','--no-first-run','--force-device-scale-factor=1','--user-data-dir='+path.join(temp,'year-playback-browser'),'--window-size=500,900','--virtual-time-budget=2000','--screenshot='+png,'--dump-dom',origin+'/tmp/year-playback.html'];
 const r=await new Promise(resolve=>{const child=spawn(process.env.ODYSSEY_BROWSER||'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args,{windowsHide:true});let stdout='',stderr='';const timer=setTimeout(()=>child.kill(),20000);child.stdout.on('data',d=>stdout+=d);child.stderr.on('data',d=>stderr+=d);child.on('close',status=>{clearTimeout(timer);resolve({stdout,stderr,status});});});await new Promise(r=>server.close(r));
-await writeFile(path.join(temp,'year-playback-dom.html'),r.stdout);const m=r.stdout.match(/<pre id="result"[^>]*>([^<]+)<\/pre>/);if(r.status!==0||!m)throw Error('Browser failure '+r.stderr.slice(-200));const result=JSON.parse(m[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));if(result.error||result.ticks!==(controls?13:8)||result.overflow)throw Error(JSON.stringify(result));console.log(JSON.stringify({...result,image:png}));
+await writeFile(path.join(temp,'year-playback-dom.html'),r.stdout);const m=r.stdout.match(/<pre id="result"[^>]*>([^<]+)<\/pre>/);if(r.status!==0||!m)throw Error('Browser failure '+r.stderr.slice(-200));const result=JSON.parse(m[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));if(result.error||result.ticks!==(deathView?6:controls?13:8)||result.overflow)throw Error(JSON.stringify(result));console.log(JSON.stringify({...result,image:png}));

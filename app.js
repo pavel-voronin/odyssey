@@ -88,6 +88,7 @@ import {lootNotice,lootNoticeText,lootEventKey} from './loot-notice.js';
 import {deathSheet} from './death-sheet.js';
 import {runWorldBatch,requestYearCancel,lifeFinished,advanceLife} from './playback.js';
 import {beginYearRun,updateYearClock,endYearRun} from './year-clock.js';
+import {savedRunNotice} from './playback-view.js';
 import {beginGesture,moveGesture,isTap} from './gestures.js';
 import {bindFreshAction,bindFreshChoice} from './fresh-action.js';
 import {rememberObservers,observerChoices,observerRequest,commitObserverRequest} from './observer-choice.js';
@@ -110,7 +111,7 @@ try { if(!firstVisit)savedClock=currentClock(JSON.parse(localStorage.getItem(SAV
 const clock = createClock(savedClock?.anchor,savedClock?.idleUntil,savedClock?.stopped,savedClock?.yearRun);
 if(!savedClock)restartClock(clock,Date.now());
 const pendingInputs=[];
-let fastRun=null,fastNotice=clock.yearRun&&clock.yearRun.person===state.observation.person?(clock.yearRun.remaining?`Прогон остановлен · осталось ${clock.yearRun.remaining.toLocaleString('ru-RU')} тиков`:'Год прожит'):'',lifeReview=false,logLife=null,pendingNextStory=null;
+let fastRun=null,fastNotice=clock.yearRun&&clock.yearRun.person===state.observation.person?savedRunNotice(clock.yearRun):'',lifeReview=false,logLife=null,pendingNextStory=null;
 const speechMemory=createSpeech();
 let effectIdentity='';
 function renderEffects(){
@@ -364,7 +365,8 @@ function render(automatic=false,batching=false) {
   if(automatic&&$('sheet').open&&tab==='bag'){const petPack=$('detail-panel').querySelector('.pack-pet-live');if(petPack)petPack.outerHTML=packPetHTML(state,escape);const clothes=$('detail-panel').querySelector('.clothing-live');if(clothes)clothes.outerHTML=clothingHTML(state,escape);const memory=$('detail-panel').querySelector('.navigation-memory-live');if(memory)memory.outerHTML=navigationMemoryHTML(state,escape);const rope=$('detail-panel').querySelector('.navigation-tool-live');if(rope)rope.outerHTML=navigationToolHTML(state,escape);const wardrobe=$('detail-panel').querySelector('.spare-outfit-live');if(wardrobe)wardrobe.outerHTML=spareOutfitHTML(state,escape);const pack=$('detail-panel').querySelector('.pack-live');if(pack)pack.outerHTML=containerHTML(state);const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
   $('scene').setAttribute('aria-label', `${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
   $('run-life').textContent=fastRun?'Остановить прогон':'Прожить год';
-  document.querySelector('.tap-hint').textContent=fastRun?`Год: ${fastRun.committed} / 19 200 · клик — стоп`:fastNotice||(lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с');
+  $('run-until-death').textContent=fastRun?'Остановить прогон':'Наблюдать до смерти · до 10 лет';
+  document.querySelector('.tap-hint').textContent=fastRun?(fastRun.untilDeath?'До смерти · клик — стоп':`Год: ${fastRun.committed} / 19 200 · клик — стоп`):fastNotice||(lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с');
 }
 function persist() {
   if(fastRun)updateYearClock(clock,fastRun,Date.now());
@@ -500,13 +502,15 @@ function fastLifeFrame(run=fastRun){
   if(!run||run!==fastRun)return;
   if($('sheet').open||$('settings-dialog').open||$('reset-dialog').open||$('observer-dialog').open){setTimeout(()=>fastLifeFrame(run),100);return;}
   const result=runWorldBatch(state,run);updateYearClock(clock,run,Date.now());
-  if(result.finished||result.interrupted){releaseFast();fastNotice=result.finished?'Год прожит':`Прогон остановлен · осталось ${result.remaining.toLocaleString('ru-RU')} тиков`;persist();render();if(lifeFinished(state)&&state.observation.lastSummary!==summaryKey())showLifeSummary();return;}
+  if(result.finished||result.interrupted){releaseFast();fastNotice=result.finished?savedRunNotice(clock.yearRun):`Прогон остановлен · осталось ${result.remaining.toLocaleString('ru-RU')} тиков`;persist();render();if(lifeFinished(state)&&state.observation.lastSummary!==summaryKey())showLifeSummary();return;}
   persist();render();setTimeout(()=>fastLifeFrame(run),0);
 }
-$('run-life').addEventListener('click',()=>{
+function startFast(untilDeath=false){
   $('settings-dialog').close();if(fastRun){stopFast();return;}if(pendingNextStory)return;
-  $('life-summary').close();lifeReview=false;releaseHold();pendingInputs.length=0;fastNotice='';fastRun=beginYearRun(state,clock,Date.now());render();fastLifeFrame();
-});
+  $('life-summary').close();lifeReview=false;releaseHold();pendingInputs.length=0;fastNotice='';fastRun=beginYearRun(state,clock,Date.now(),{untilDeath});render();fastLifeFrame();
+}
+$('run-life').addEventListener('click',()=>startFast());
+$('run-until-death').addEventListener('click',()=>startFast(true));
 $('sound').addEventListener('click', () => { soundEnabled = !soundEnabled; $('sound').classList.toggle('enabled', soundEnabled); $('sound').textContent = soundEnabled ? 'Звук: вкл.' : 'Звук: выкл.'; $('sound').setAttribute('aria-label', soundEnabled ? 'Выключить звук' : 'Включить звук'); $('sound').setAttribute('aria-pressed', String(soundEnabled)); chime(); });
 $('reset').addEventListener('click', () => { $('settings-dialog').close(); $('reset-dialog').showModal(); });
 $('cancel-reset').addEventListener('click', () => $('reset-dialog').close());
