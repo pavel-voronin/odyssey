@@ -1,3 +1,4 @@
+import {containersOn,packView,fitsPack} from './container-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {rootWorld} from '../world-ref.js';
@@ -14,8 +15,8 @@ export function presentItem(input,id){
  return null;
 }
 export function itemLocation(s,item,holder){
- if(!item||!originalsOn(s)&&!item.physical&&!item.durability)return;
- item.physical={version:1,holder:{...holder},movedAt:s.tick};
+ if(!item||!originalsOn(s)&&!item.physical&&!item.durability&&!containersOn(s))return;
+ let container;if(containersOn(s)){if(holder.kind==='person'){const h=s.hero.lineage===holder.id?s.hero:s.actorStates?.[holder.id];container=Object.values(h?.equipment||{}).includes(item)?'equipment/'+holder.id:'pack/'+holder.id;}else if(holder.kind==='cache')container='cache/'+holder.area+'/'+holder.object;else if(holder.kind==='merchant')container='merchant/'+holder.id;}item.physical={version:1,holder:{...holder,...(container?{container}:{})},movedAt:s.tick};
 }
 export function actorItemLocation(s,item,actor=s.hero.lineage){itemLocation(s,item,{kind:'person',id:actor});}
 export function consumeOriginal(s,item,{area,object,reason}){
@@ -29,22 +30,23 @@ export function cacheItems(s,items,{area=s.hero.area,x=s.hero.x,leftBy=s.hero.li
  o.taken=false;return o;
 }
 export function cacheCollectible(s,o){
- if(!originalsOn(s)&&o.itemOriginals!==1)return !o.taken&&(enabled(s,'equipment')||o.gold>0);
+ if(!containersOn(s)&&!originalsOn(s)&&o.itemOriginals!==1)return !o.taken&&(enabled(s,'equipment')||o.gold>0);
  if(o.taken)return false;if(o.gold>0)return true;if(!enabled(s,'equipment'))return false;
- return Boolean(o.items?.length&&s.hero.bag.length<ITEM_CAPACITY);
+ return Boolean(o.items?.some(item=>containersOn(s)?fitsPack(s,s.hero.lineage,{items:[...s.hero.bag,item]}):s.hero.bag.length<ITEM_CAPACITY));
 }
 export function npcLooseItems(s,p){const h=s.actorStates?.[p.id];return h?.bag||(p.looseItems ||= []);}
 export function npcCachePlan(s,p){
  if(!originalsOn(s)||p.role==='ребёнок'||p.ailment||p.health<(p.maxHealth||100)*.85||p.needs?.sleeping||p.needs?.energy<35||p.needs?.hunger>55)return null;
  if(p.agenda.job!=='merchant'&&!(p.agenda.wealth<10&&p.agenda.duty<.5))return null;
- const bag=s.actorStates?.[p.id]?.bag||p.looseItems||[];if(bag.length>=ITEM_CAPACITY)return null;
- const a=s.areas[p.area],cache=a?.objects.find(o=>o.itemOriginals===1&&!o.taken&&o.items?.some(i=>i.value>0)&&physicalDistance(a,p.x,o.x)<=18);
+ const bag=s.actorStates?.[p.id]?.bag||p.looseItems||[];if(containersOn(s)?packView(s,p.id).free<=0:bag.length>=ITEM_CAPACITY)return null;
+ const a=s.areas[p.area],cache=a?.objects.find(o=>o.itemOriginals===1&&!o.taken&&o.items?.some(i=>i.value>0&&(!containersOn(s)||fitsPack(s,p.id,{items:[...bag,i]})))&&physicalDistance(a,p.x,o.x)<=18);
  return cache?{kind:'itemSalvage',target:a.id,x:cache.x,object:cache.id,remaining:1}:null;
 }
 export function npcTakeCache(s,p,t){
  if(!originalsOn(s))return 0;const a=s.areas[p.area],o=a?.objects.find(o=>o.id===t.object);if(!o||o.itemOriginals!==1||o.taken||p.area!==t.target||physicalDistance(a,p.x,o.x)>1)return 0;
- const bag=npcLooseItems(s,p),count=Math.min(ITEM_CAPACITY-bag.length,o.items.length);if(count<=0)return 0;
- for(const item of o.items.splice(0,count)){bag.push(item);actorItemLocation(s,item,p.id);item.history ||= [];item.history.push({tick:s.tick,text:`Подобрано: ${p.name}.`});}
+ const bag=npcLooseItems(s,p),picked=[];for(const item of o.items){if(containersOn(s)?fitsPack(s,p.id,{items:[...bag,...picked,item]}):bag.length+picked.length<ITEM_CAPACITY)picked.push(item);}const count=picked.length;if(!count)return 0;
+ for(const item of picked){o.items.splice(o.items.indexOf(item),1);}
+ for(const item of picked){bag.push(item);actorItemLocation(s,item,p.id);item.history ||= [];item.history.push({tick:s.tick,text:`Подобрано: ${p.name}.`});}
  o.taken=o.items.length===0&&!(o.gold>0);return count;
 }
 export function releaseLooseItems(s,p){

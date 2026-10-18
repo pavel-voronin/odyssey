@@ -65,6 +65,14 @@ const actorDomains={
 
 // This validates one present contract. It cannot construct a world, award an
 // item, infer a death date or interpret an older file as a partially new one.
+function validatePackLocations(s){
+ const seen=new Map(),actors=new Map(Object.entries(s.actorStates));actors.set(s.hero.lineage,s.hero);
+ function item(i,container,holder){if(!i?.id)return;const tagged=own(i.physical?.holder||{},'container'),previous=seen.get(i.id);if(previous&&(tagged||previous.tagged))fail('container.duplicate.'+i.id);seen.set(i.id,{tagged:tagged||previous?.tagged});if(tagged&&(i.physical.holder.container!==container||Object.entries(holder).some(([k,v])=>i.physical.holder[k]!==v)))fail('container.location.'+i.id);}
+ for(const [id,h]of actors){for(const i of h.bag)item(i,'pack/'+id,{kind:'person',id});for(const i of Object.values(h.equipment).filter(Boolean))item(i,'equipment/'+id,{kind:'person',id});}
+ for(const p of Object.values(s.people))if(!actors.has(p.id))for(const i of p.looseItems||p.legacy?.keepsakes||[])item(i,'pack/'+p.id,{kind:'person',id:p.id});
+ for(const a of Object.values(s.areas))for(const o of a.objects)for(const i of o.items||[])item(i,'cache/'+a.id+'/'+o.id,{kind:'cache',area:a.id,object:o.id});
+ for(const i of s.merchant.items||[])item(i,'merchant/merchant',{kind:'merchant',id:'merchant'});
+}
 export function validateSave(s){
  const mapMaterialIds=new Set(),physicalMapIds=new Set();
  const liftPartIds=new Set();
@@ -89,6 +97,7 @@ export function validateSave(s){
  fields(s.society,['events','journeys','orders','nextEvent','nextEnemy'],'society');
  fields(s.logistics,['convoys','nextConvoy','nextDispatch','deliveries','losses','history'],'logistics');
  array(s.society.journeys,'society.journeys');array(s.logistics.convoys,'logistics.convoys');
+ validatePackLocations(s);
  for(const j of s.society.journeys){fields(j,['version','movement','person','from','to','reason'],'journey');if(!['timed','physical'].includes(j.movement)||own(j,'journeyVersion')||!s.people[j.person]||!s.areas[j.from]||!s.areas[j.to])fail('journey.movement');if(j.movement==='timed')integer(j.arrival,'journey.arrival');else{fields(j,['path','index','started','lastTick','elapsed'],'journey.physical');array(j.path,'journey.path');}}
  const merchantOwners=new Set();for(const c of s.logistics.convoys){fields(c,['version','movement','id','person','source','to','sourceName','targetName','path','index','food','medicine','sightings'],'convoy');if(!['timed','physical'].includes(c.movement)||own(c,'freightVersion')||!s.people[c.person])fail('convoy.movement');if(c.disruption){const d=c.disruption,key='convoy.disruption';fields(d,['version','originalTo','events'],key);array(d.events,key);if(d.version!==1||!s.areas[d.originalTo]||d.events.length<1||d.events.length>4)fail(key);for(const e of d.events){fields(e,['tick','area','person','originalTo','cause','choice','reason'],key);integer(e.tick,key+'.tick');if(e.tick>s.tick||!s.areas[e.area]||e.person!==c.person||e.originalTo!==d.originalTo||!['blocked-road','blocked-gate','market-gone','keeper-declined','return-blocked','ambush'].includes(e.cause)||!['buyer','custody','return','stranded','shed-return'].includes(e.choice)||typeof e.reason!=='string'||e.choice==='buyer'&&(!s.areas[e.to]||!Array.isArray(e.path))||e.choice==='custody'&&!s.people[e.keeper])fail(key);}}
  if(c.escaped){const e=c.escaped;fields(e,['enemy','area','at'],'convoy.escaped');integer(e.at,'convoy.escaped.at');if(e.at>s.tick||!s.areas[e.area]?.objects.some(o=>o.id===e.enemy)||!c.disruption?.events.some(v=>v.cause==='ambush'&&v.enemy===e.enemy&&v.tick===e.at))fail('convoy.escaped');}

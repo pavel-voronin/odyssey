@@ -1,3 +1,5 @@
+import {containersOn} from './container-state.js';
+import {loadPackCargo,spillPackCargo} from './container-cargo.js';
 import {knownArea} from '../actor-atlas.js';
 import {goodsEnabled,productionSources,goodsWorkReceipt,completeGoodsWork} from './goods.js';
 import {planSongWork,songAction} from './hall-activities.js';
@@ -82,7 +84,7 @@ export function workTick(s,ctx){
     h.counters.peacefulWork=(h.counters.peacefulWork||0)+1;h.mind.stress=Math.max(0,h.mind.stress-8);
     ctx.log(s,`${job.name}: закончено. Оплата ◈${pay}. ${harvest?harvest.quantity?'Собрано порций: '+harvest.quantity+'.':'Доступный урожай уже собран. За пустой заказ плата не начислена.':job.text}`,'work');
     civicWork(s,job.id,ctx,workArea);
-    if(moduleRandom(s,'work')<.3){h.inventory.herbs++;ctx.log(s,'За работу добавляют пучок лечебных трав.','reward');}
+    if(moduleRandom(s,'work')<.3){if(containersOn(s)){const cargo={medicine:1};loadPackCargo(s,cargo);spillPackCargo(s,cargo);}else h.inventory.herbs++;ctx.log(s,'За работу добавляют пучок лечебных трав.','reward');}
   }
 }
 export function leisureTick(s,ctx){

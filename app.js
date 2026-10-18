@@ -1,3 +1,4 @@
+import {containerHTML} from './container-sheet.js';
 import {calendarCaption,calendarSceneCaption,calendarDetailsHTML,refreshCalendarDetails} from './historical-calendar-sheet.js';
 import {knownArea,visitedArea} from './actor-atlas.js';
 import {verdictKnowledgeHTML} from './verdict-sheet.js';
@@ -139,7 +140,7 @@ function detail() {
   const h = state.hero;
   $('sheet').querySelector('h2').textContent=(tab==='rules'?'Центр управления':tab==='log'?'Дневник':'Лист приключения')+' · '+calendarCaption(state);
   if(tab==='skills'){renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape),{force:true});return;}
-  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+npc+(tab==='bag'?materialCargoHTML(state,h,escape):'');return;}
+  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+npc+(tab==='bag'?containerHTML(state)+materialCargoHTML(state,h,escape):'');return;}
   if (tab === 'hero') {
     const traits = [h.personality.courage > .65 ? 'Смелый' : 'Осторожный', h.personality.curiosity > .65 ? 'Любопытный' : 'Вдумчивый', h.personality.sociability > .65 ? 'Общительный' : 'Немногословный', h.personality.generosity > .6 ? 'Отзывчивый' : 'Практичный'];
     const p = profession(h.profession), d = destiny(h.destiny.id);
@@ -199,7 +200,7 @@ function enrichSheet(){
   if(tab==='quests'&&state.hero.actorMode!=='npc')$('detail-panel').insertAdjacentHTML('afterbegin',materialDeliveriesHTML(state,state.people[state.hero.lineage],escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',weaponStylesHTML(state,escape)+collectionHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
-  if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',localFoodBagHTML(state,escape));
+  if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',itemCustodyHTML(state,escape));
   if(tab==='quests'){
@@ -328,7 +329,7 @@ function render(automatic=false,batching=false) {
     refreshCalendarDetails($('detail-panel'),calendarDetailsHTML(state,escape));
   } scene.update(state);renderEffects();
   if(automatic&&$('sheet').open&&tab==='skills')renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape));
-  if(automatic&&$('sheet').open&&tab==='bag'){const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
+  if(automatic&&$('sheet').open&&tab==='bag'){const pack=$('detail-panel').querySelector('.pack-live');if(pack)pack.outerHTML=containerHTML(state);const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
   $('scene').setAttribute('aria-label', `${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);
   $('run-life').textContent=fastRun?'Остановить прогон':lifeFinished(state)?'Итоги этой жизни':'Прожить жизнь до конца';
   document.querySelector('.tap-hint').textContent=fastRun?'Прогон · клик — стоп':lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с';

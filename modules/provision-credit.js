@@ -1,3 +1,4 @@
+import {stackRoom} from './container-state.js';
 import {enabled} from '../rules.js';
 import {goodsEnabled,takeGoods,productionSources,goodsWorkReceipt,completeGoodsWork} from './goods.js';
 import {marketWallet,marketNeed,quoteMarket} from './market.js';
@@ -40,6 +41,7 @@ export function decideCredit(s,p,ctx){
  const small=curiosity>.65&&generosity<.5,term=small?q.terms.find(t=>t.quantity===1):q.terms[0];
  if(declines||!term){end(s,p,'refused','Получатель не принимает новые условия: собственное дело или меньшая партия важнее.',ctx);return true;}
  if(!k?.alive||b.area!==q.area||k.area!==q.area||physicalDistance(a,b.x,k.x)>1||s.tick>q.until||!a.civic||a.civic.food<marketNeed(a,'food').reserve+term.quantity){end(s,p,'refused','К моменту согласия поставщик или доступный запас изменился; выдачи нет.',ctx);return true;}
+ if(stackRoom(s,p.id,'food',term.quantity)<term.quantity){end(s,p,'refused','В рюкзаке нет места: припасы и новое обязательство не приняты.',ctx);return true;}
  const before=a.civic.food;if(takeGoods(s,a,'food',term.quantity,{flow:'exported',reason:'provision-credit',actor:p.id})!==term.quantity)return false;
  Object.assign(q,{status:'accepted',accepted:s.tick,quantity:term.quantity,required:term.required,transfer:{at:s.tick,from:q.owner,to:p.id,before,after:a.civic.food,quantity:term.quantity},task:{kind:'provisionWork',remaining:term.required}});p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food+=term.quantity;
  note(s,p,`${p.name} принимает ${term.quantity} порц. за ${term.required} будущих действий на угодьях. Кладовая ${before} → ${a.civic.food}; денег и готовой отработки не выдано.`,ctx);return true;

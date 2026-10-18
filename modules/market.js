@@ -1,3 +1,4 @@
+import {stackRoom} from './container-state.js';
 import {enabled} from '../rules.js';
 import {goodsEnabled,takeGoods,putGoods,GOODS_CAPACITY} from './goods.js';
 import {selfDrivenActor,setActorMoney} from '../actor-projection.js';
@@ -57,6 +58,8 @@ export function tradeGoods(s,a,id,kind,side,quantity,{trade=null}={}){
  const cargo=kind==='food'?p?.roadSupplies:p?.marketCargo,available=cargo?.[kind]||0;
  if(!p?.alive||active&&h.transit||area!==a?.id||physicalDistance(a,active?h.x:p.x,kind==='tools'?58:42)>18)return {quantity:0,total:0,reason:'absent'};
  if(trade===null)trade=canBargain(s,id);
+ if(!Number.isSafeInteger(quantity)||quantity<1||quantity>1000)return {quantity:0,total:0,reason:'request'};
+ if(side==='buy'){quantity=Math.min(quantity,stackRoom(s,id,kind,quantity));if(!quantity)return {quantity:0,total:0,reason:'capacity'};}
  const money=marketWallet(s,id),q=quoteMarket(s,a,kind,side,quantity,{trade,gold:money,goods:available});
  if(!q.quantity)return q;
  if(side==='buy'){

@@ -1,3 +1,5 @@
+import {containersOn} from './container-state.js';
+import {loadPackCargo,spillPackCargo} from './container-cargo.js';
 import {invitationAllowed,startInvitation} from './invitation-rhythm.js';
 import {revealArea} from '../actor-atlas.js';
 import {enabled,moduleRandom} from '../rules.js';
@@ -54,7 +56,7 @@ export function delvePlan(s,ctx){
   const treasure=room.objects.find(o=>['relic','loot'].includes(o.kind)&&!o.taken);
   if(treasure){ctx.goal(s,'collect',room.id,treasure.x,'Открыть сокровищницу','Зал очищен. Добыча остаётся настоящей вещью этого мира.',{object:treasure.id,delve:true});return true;}
   if(!room.dungeon.cleared){
-    room.dungeon.cleared=true;d.cleared++;h.gold+=8+room.dungeon.floor*5;h.inventory.rations+=2;ctx.gainXp(s,10);receiveItem(s,ctx,room.dungeon.floor===d.floors?3:1);
+    room.dungeon.cleared=true;d.cleared++;h.gold+=8+room.dungeon.floor*5;if(containersOn(s)){const cargo={food:8};loadPackCargo(s,cargo);spillPackCargo(s,cargo);}else h.inventory.rations+=2;ctx.gainXp(s,10);receiveItem(s,ctx,room.dungeon.floor===d.floors?3:1);
     room.objects.push({id:room.id+'-safe-rest',kind:'rest',name:'Очищенный привал',x:68});
     ctx.log(s,`Зал ${room.dungeon.floor} очищен. Герой забирает добычу; павшие стражи больше не вернутся.`,'treasure');
   }

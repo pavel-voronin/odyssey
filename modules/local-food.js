@@ -1,3 +1,4 @@
+import {stackRoom} from './container-state.js';
 import {enabled} from '../rules.js';
 import {worldDate} from '../calendar.js';
 import {weatherAt} from './weather.js';
@@ -50,7 +51,7 @@ function harvestLocalFood(s,p,a,h=null){
  const source=foodSourceState(s,a),area=h?.area||p.area,x=h?.x??p.x;
  if(!source?.available||area!==a.id||Math.abs(x-source.x)*areaScale(a)>=2)return null;
  const capability=foodCapability(s,p,source.kind,h);if(!capability.allowed||p.localFood?.lastHarvest===s.tick)return null;
- const quantity=takeForage(a,Math.min(3,source.stock));if(!quantity)return null;
+ const quantity=takeForage(a,stackRoom(s,p.id,source.kind,Math.min(3,source.stock)));if(!quantity)return null;
  const q=foodStores(p);q.stock[source.kind]=(q.stock[source.kind]||0)+quantity;q.obtained[source.kind]=(q.obtained[source.kind]||0)+quantity;q.lastHarvest=s.tick;
  q.methods[source.kind] ||= {id:capability.method,source:h?'profession/'+h.profession:'occupation/'+p.agenda.job,recordedAt:s.tick};
  const receipt={id:p.id+'/harvest/'+s.tick,tick:s.tick,area:a.id,source:source.id,kind:source.kind,quantity,owner:p.id,tool:capability.tool};q.history.push(receipt);if(q.history.length>16)q.history.shift();return receipt;

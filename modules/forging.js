@@ -1,3 +1,4 @@
+import {fitsAcquisition,fitsPack} from './container-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {setActorMoney} from '../actor-projection.js';
@@ -68,7 +69,7 @@ export function workKnife(s,p,ctx){
  o.status='completed';o.finished=s.tick;o.item=o.id+'/knife';for(const m of o.materials){m.state='consumed';if(m.original){const original=m.original;consumeOriginal(s,original,{area:o.area,object:o.id,reason:'working-knife-material'});s.itemArchive ||= {};s.itemArchive[original.id]=JSON.parse(JSON.stringify(original));delete m.original;}}
  const item=makeKnife(s,p,o);const q=state(p);q.active=null;q.after=s.tick+960;
  if(h)ctx.receiveItem(s,ctx,null,item,{crafted:true});
- else {const bag=npcLooseItems(s,p);if(bag.length<ITEM_CAPACITY){bag.push(item);actorItemLocation(s,item,p.id);}else cacheItems(s,[item],{area:p.area,x:p.x,leftBy:p.id,name:'Изделие у верстака'});}
+ else {const bag=npcLooseItems(s,p);if(fitsPack(s,p.id,{items:[...bag,item]})&&bag.length<ITEM_CAPACITY){bag.push(item);actorItemLocation(s,item,p.id);}else cacheItems(s,[item],{area:p.area,x:p.x,leftBy:p.id,name:'Изделие у верстака'});}
  recordToolUse(s,site.area,site.object,p.id,ctx);
  announce(s,p,ctx,`${p.name} заканчивает рабочий нож. Это его собственное изделие, а не случайная находка.`);
  if(!h)q.offer={item:item.id,price:item.value,area:p.area,at:s.tick};
@@ -89,7 +90,7 @@ export function learnKnife(s,p,t,ctx){
 export function buyKnife(s,p,seller,ctx){
  if(!seller)return false;
  const offer=state(seller)?.offer,item=offer&&collectionItems(s,seller.id).find(i=>i.id===offer.item),bag=body(s,seller)?.bag||seller.looseItems;
- if(!forgingEnabled(s)||s.hero.lineage!==p.id||!activeBody(s,p)||!healthy(s,p)||!seller.alive||seller.needs?.sleeping||seller.agenda?.task||npcController(s,seller)!=='personal'||!canStartNPCActivity(s,seller)||!near(s,p,seller.area,seller.x)||!item||!itemWorking(item)||!bag?.includes(item)||purse(s,p)<offer.price||seller.forgeTeachingTick>=s.tick||!npcAction(s,seller,'personal','forge-sale'))return false;
+ if(!forgingEnabled(s)||s.hero.lineage!==p.id||!activeBody(s,p)||!healthy(s,p)||!seller.alive||seller.needs?.sleeping||seller.agenda?.task||npcController(s,seller)!=='personal'||!canStartNPCActivity(s,seller)||!near(s,p,seller.area,seller.x)||!item||!itemWorking(item)||!bag?.includes(item)||!fitsAcquisition(s,item)||purse(s,p)<offer.price||seller.forgeTeachingTick>=s.tick||!npcAction(s,seller,'personal','forge-sale'))return false;
  bag.splice(bag.indexOf(item),1);setActorMoney(s,p,purse(s,p)-offer.price);setActorMoney(s,seller,purse(s,seller)+offer.price);seller.forgeTeachingTick=s.tick;delete seller.forging.offer;
  item.history.push({tick:s.tick,text:`Продано: ${seller.name} → ${p.name}, ◈${offer.price}.`});
  ctx.receiveItem(s,ctx,null,item,{purchased:true});rest(s,p,960);return true;

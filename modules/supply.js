@@ -1,3 +1,6 @@
+import {physicalDistance} from '../geometry.js';
+import {containersOn,stackRoom} from './container-state.js';
+import {loadPackCargo} from './container-cargo.js';
 import {heroCreditPlan} from './provision-credit-actors.js';
 import {merchantDispatch} from './merchant-freight.js';
 import {canBargain} from './skill-branches.js';
@@ -78,9 +81,10 @@ export function buyFood(s,ctx){
   const h=s.hero,a=s.areas[h.area],price=foodPrice(s);
   if(denyService(s,ctx,'food')){h.goal=null;h.memory.foodAfter=s.tick+96;return true;}
   if(marketEnabled(s)){
+    if(containersOn(s)&&!stackRoom(s,h.lineage,'food',1)&&!h.transit&&physicalDistance(a,h.x,42)<=1){const q=quoteMarket(s,a,'food','buy',partyMealSize(s),{trade:canBargain(s,h.lineage,profile(h).skill==='trade'),gold:h.gold});if(q.quantity&&takeGoods(s,a,'food',q.quantity,{flow:'consumed',reason:'hero-on-site-meal',actor:h.lineage})===q.quantity){h.gold-=q.total;a.civic.treasury=(a.civic.treasury||0)+q.total;h.hunger=Math.max(5,h.hunger-65);h.counters.meals++;h.lastAction='eat';h.goal=null;feedParty(s,q.quantity-1);ctx.log(s,'Рюкзак заполнен: герой покупает еду и ест на месте, не выбрасывая поклажу.','food');return true;}}
     const deal=tradeGoods(s,a,h.lineage,'food','buy',4,{trade:canBargain(s,h.lineage,profile(h).skill==='trade')});
     h.goal=null;
-    if(!deal.quantity){h.memory.foodAfter=s.tick+24;ctx.log(s,deal.reason==='money'?'На еду не хватает монет. Нужен заработок или съедобные растения.':'Поселение бережёт последний запас. Герою нужен другой источник еды.','food');return true;}
+    if(!deal.quantity){h.memory.foodAfter=s.tick+24;ctx.log(s,deal.reason==='capacity'?'В рюкзаке нет места для новой еды. Нужно освободить поклажу.':deal.reason==='money'?'На еду не хватает монет. Нужен заработок или съедобные растения.':'Поселение бережёт последний запас. Герою нужен другой источник еды.','food');return true;}
     const portions=consumeTravelMeal(s.people[h.lineage],h.inventory,partyMealSize(s));
     h.hunger=Math.max(5,h.hunger-65);h.counters.meals++;h.lastAction='eat';feedParty(s,portions-1);
     ctx.log(s,`Куплено ${deal.quantity} порц. за ◈${deal.total}; съедено ${portions}. Остаток остаётся в сумке.`,'food');return true;
@@ -90,7 +94,7 @@ export function buyFood(s,ctx){
   if(h.gold>=price){h.gold-=price;if(goodsEnabled(s)||enabled(s,'service-access'))a.civic.treasury=(Number.isFinite(a.civic.treasury)?a.civic.treasury:0)+price;}else {h.energy=Math.max(0,h.energy-5);moral(s,1);}
   h.hunger=5;h.counters.meals++;h.lastAction='eat';h.goal=null;
   if(goodsEnabled(s)){const p=s.people[h.lineage];p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food=(p.roadSupplies.food||0)+4;const portions=consumeTravelMeal(p,h.inventory,partyMealSize(s));feedParty(s,portions-1);}else feedParty(s);
-  if(a.civic.food>=8&&h.gold>=price){h.gold-=price;if(goodsEnabled(s)||enabled(s,'service-access'))a.civic.treasury=(Number.isFinite(a.civic.treasury)?a.civic.treasury:0)+price;takeGoods(s,a,'food',4,{flow:'exported',reason:'hero-ration',actor:h.lineage});h.inventory.rations++;}
+  if(a.civic.food>=8&&h.gold>=price&&stackRoom(s,h.lineage,'rations',1)>=1){h.gold-=price;if(goodsEnabled(s)||enabled(s,'service-access'))a.civic.treasury=(Number.isFinite(a.civic.treasury)?a.civic.treasury:0)+price;takeGoods(s,a,'food',4,{flow:'exported',reason:'hero-ration',actor:h.lineage});h.inventory.rations++;}
   ctx.log(s,`Герой получает еду из кладовой. Запас поселения: ${a.civic.food} / 100; дорожных пайков: ${h.inventory.rations}.`,'food');return true;
 }
 export function forageTick(s,ctx){
@@ -102,8 +106,8 @@ export function forageTick(s,ctx){
   g.remaining--;h.energy=Math.max(0,h.energy-1);h.lastAction='collect';
   if(g.remaining>0)return;
   const available=a.forage?.stock||0;
-  if(available>0){const found=takeForage(a,3);h.inventory.rations+=found;h.counters.forage++;ctx.log(s,`${a.forage.kind}: получено пайков — ${found}. Растениям нужно время, чтобы восстановиться.`,'food');}
-  else if(g.search&&moduleRandom(s,'supply')<.35){h.inventory.rations++;h.counters.forage++;ctx.log(s,'В расщелине найдены съедобные коренья. Один паёк — результат поисков, не бесконечная кладовая.','food');}
+  if(available>0){const found=takeForage(a,stackRoom(s,h.lineage,'rations',3));h.inventory.rations+=found;h.counters.forage++;ctx.log(s,`${a.forage.kind}: получено пайков — ${found}. Растениям нужно время, чтобы восстановиться.`,'food');}
+  else if(g.search&&stackRoom(s,h.lineage,'rations',1)&&moduleRandom(s,'supply')<.35){h.inventory.rations++;h.counters.forage++;ctx.log(s,'В расщелине найдены съедобные коренья. Один паёк — результат поисков, не бесконечная кладовая.','food');}
   else {h.memory.foodAfter=s.tick+24;ctx.log(s,'Поиски еды ничего не дали. Герой запоминает нехватку и проверит другое место.','food');}
   h.goal=null;
 }
@@ -196,5 +200,5 @@ export function launchConvoy(s,source,destination,ctx){
   report(s,`${source.name} отправляет припасы в ${destination.name}. Они вычтены из исходной кладовой и пока находятся в дороге.`,ctx,c,source);
   return c;
 }
-export function recoverCargo(s,o,ctx){if(!enabled(s,'supply')||o.taken)return;o.taken=true;s.hero.inventory.rations+=Math.floor(o.food/4);s.hero.inventory.herbs+=o.medicine;if(goodsEnabled(s)){const p=s.people[s.hero.lineage];p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food=(p.roadSupplies.food||0)+o.food%4;o.food=0;o.medicine=0;}if(o.tools){const p=s.people[s.hero.lineage];p.marketCargo ||= {tools:0};p.marketCargo.tools+=o.tools;o.tools=0;}ctx.log(s,'Найден потерянный груз каравана. Еда и лечебные средства теперь в сумке героя.','food');}
+export function recoverCargo(s,o,ctx){if(!enabled(s,'supply')||o.taken)return;if(containersOn(s)){if(s.hero.transit||!s.areas[s.hero.area]?.objects.includes(o)||physicalDistance(s.areas[s.hero.area],s.hero.x,o.x)>1)return;const accepted=loadPackCargo(s,o);o.taken=!['food','medicine','tools'].some(k=>o[k]>0);if(Object.values(accepted).some(n=>n>0))ctx.log(s,'Часть припасов перенесена в рюкзак. Непоместившийся остаток сохраняется здесь.','food');return;}o.taken=true;s.hero.inventory.rations+=Math.floor(o.food/4);s.hero.inventory.herbs+=o.medicine;if(goodsEnabled(s)){const p=s.people[s.hero.lineage];p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food=(p.roadSupplies.food||0)+o.food%4;o.food=0;o.medicine=0;}if(o.tools){const p=s.people[s.hero.lineage];p.marketCargo ||= {tools:0};p.marketCargo.tools+=o.tools;o.tools=0;}ctx.log(s,'Найден потерянный груз каравана. Еда и лечебные средства теперь в сумке героя.','food');}
 export function spoilRation(s){if(!enabled(s,'supply')||s.hero.inventory.rations<=0)return false;s.hero.inventory.rations--;return true;}

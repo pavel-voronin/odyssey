@@ -1,3 +1,4 @@
+import {containersOn,packView} from './container-state.js';
 import {takeGoods} from './goods.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
@@ -38,6 +39,7 @@ export function materialSource(s,c,ctx){
 export function buyServiceTool(s,c,ctx){
  const h=s.hero,g=h.goal,a=s.areas[h.area],o=s.areas[c?.area]?.objects.find(o=>o.id===c?.property);
  if(!['work-materials','work-orders','work','property','property-damage'].every(id=>enabled(s,id))||!c||c.status!=='active'||c.helper!==h.lineage||!h.alive||h.transit||g?.kind!=='serviceSupply'||g.service!==c.id||g.area!==h.area||c.supplySource!==h.area||Math.abs(h.x-42)*areaScale(s.areas[h.area])>1||!s.people[c.client]?.alive||!o||o.owner!==c.client||o.state!=='burned'||o.damagedAt!==c.damageAt||o.repair?.materials||c.materialSpent||c.toolPurchase||c.escrow<TOOL_PRICE+c.fee||s.tick>c.deadline)return false;
+ if(containersOn(s)&&packView(s).free<1){h.goal=null;ctx.log(s,'Инструмент пока не куплен: в рюкзаке нет места. Резерв заказа сохранён.','work');return false;}
  if(!(a.civic?.tools>=1)||!actualService(s,a,'warehouse').available){
   rememberService(s,a,'warehouse');
   observeMaterials(s);const k=h.workMaterials?.known[h.area];if(k)k.avoidUntil=s.tick+240;h.goal=null;

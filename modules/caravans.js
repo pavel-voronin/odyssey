@@ -1,3 +1,5 @@
+import {containersOn} from './container-state.js';
+import {loadPackCargo,spillPackCargo} from './container-cargo.js';
 import {knownArea} from '../actor-atlas.js';
 import {enabled,moduleRandom} from '../rules.js';
 import {isTown,profile,repute,moral} from './common.js';
@@ -49,7 +51,8 @@ export function caravanRaid(s,ctx){
   if(!enabled(s,'caravans')||!c||p.area!==h.area){h.goal=null;return;}
   h.energy=Math.max(0,h.energy-3);h.lastAction='attack';if(--g.remaining>0)return;
   const damage=Math.max(1,4-armorCoverage(h)),hpBefore=h.hp;h.hp=Math.max(0,h.hp-damage);if(h.hp===0){ctx.die(s,{name:p.name+' защитил свой груз'},{kind:'caravan',damage,hpBefore});return;}
-  h.inventory.rations+=Math.floor(c.food/4);h.inventory.herbs+=c.medicine;const carrier=s.people[h.lineage];if(c.tools){carrier.marketCargo ||= {tools:0};carrier.marketCargo.tools+=c.tools;c.tools=0;}if(c.demand&&c.food%4){carrier.roadSupplies ||= {food:0,medicine:0};carrier.roadSupplies.food+=c.food%4;}p.health=Math.max(1,p.health-25);p.status='resident';
+  if(containersOn(s)){loadPackCargo(s,c);spillPackCargo(s,c);}
+  else {h.inventory.rations+=Math.floor(c.food/4);h.inventory.herbs+=c.medicine;const carrier=s.people[h.lineage];if(c.tools){carrier.marketCargo ||= {tools:0};carrier.marketCargo.tools+=c.tools;c.tools=0;}if(c.demand&&c.food%4){carrier.roadSupplies ||= {food:0,medicine:0};carrier.roadSupplies.food+=c.food%4;}}p.health=Math.max(1,p.health-25);p.status='resident';
   const a=s.areas[p.area];a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);
   if(c.movement==='physical'){p.freightReleasedAt=s.tick;p.agenda.task=null;p.agenda.due=s.tick+8;p.x=h.x;if(!a.objects.some(o=>o.kind==='resident'&&o.person===p.id))a.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x});}
   s.logistics.losses++;convoyHistory(s,c,'robbed');s.logistics.convoys=s.logistics.convoys.filter(o=>o!==c);h.goal=null;h.memory.caravanAfter=s.tick+350;

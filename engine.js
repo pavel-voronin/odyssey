@@ -1,3 +1,5 @@
+import {containersOn,packView,stackRoom} from './modules/container-state.js';
+import {canLoadPackCargo} from './modules/container-cargo.js';
 import {recordRemains,recordHeroRemains} from './modules/remains.js';
 import {biomaterialTick} from './modules/biomaterial-state.js';
 import {biomaterialPlan,biomaterialAction} from './modules/biomaterials.js';
@@ -441,16 +443,17 @@ function trade(s) {
   if (enabled(s, 'equipment')) sellBag(s, context(s, 'loot'));
   if (h.inventory.relics) { const count = h.inventory.relics; h.gold += count * 18; h.inventory.relics = 0; log(s, `Сава покупает древние находки за ${count * 18} монет.`, 'trade'); }
   if(enabled(s,'finances')){buyUpgrade(s,context(s,'finances'));h.goal=null;return;}
+  if(containersOn(s)&&packView(s).excess){h.goal=null;return;}
   const price = equipmentPrice(s,'weapon');
   if (h.weapon < 3 && h.gold >= price&&consumeMerchantGood(s,'weapon')) { h.gold -= price; h.weapon++;causalPurchase(s,'weapon',price);log(s, `Накопленные деньги превращаются в ${['', 'железный меч', 'стальной меч', 'меч мастера'][h.weapon]}. Следующий бой будет легче.`, 'trade'); }
   else if (!hasArmor(h) && h.gold >= 22&&consumeMerchantGood(s,'armor')) { h.gold -= 22; h.armor = 1; log(s, 'Сава продаёт кожаную броню. Теперь удары причиняют меньше вреда.', 'trade'); }
-  else if (!h.inventory.potions && h.gold >= 7&&consumeMerchantGood(s,'potion')) { h.gold -= 7; h.inventory.potions++; log(s, 'Герой покупает лечебное зелье на случай тяжёлого боя.', 'trade'); }
+  else if (!h.inventory.potions && h.gold >= 7&&stackRoom(s,h.lineage,'potions',1)>=1&&consumeMerchantGood(s,'potion')) { h.gold -= 7; h.inventory.potions++; log(s, 'Герой покупает лечебное зелье на случай тяжёлого боя.', 'trade'); }
   h.goal = null;
 }
 function collect(s, object) {
   if(object.kind==='supplyCache'){recoverCargo(s,object,context(s,'supply'));s.hero.goal=null;s.hero.lastAction='collect';return;}
   const h = s.hero,a=s.areas[h.area];
-  if (object.kind === 'herb' && object.count > 0&&scentPlantKnown(s,h,a,object)&&physicalDistance(a,h.x,object.x)<=9) { object.count--; h.inventory.herbs++; log(s, 'Лунная трава найдена. Её можно отдать лекарю или приложить к ране.', 'loot'); }
+  if (object.kind === 'herb' && object.count > 0&&stackRoom(s,h.lineage,'herbs',1)>0&&scentPlantKnown(s,h,a,object)&&physicalDistance(a,h.x,object.x)<=9) { object.count--; h.inventory.herbs++; log(s, 'Лунная трава найдена. Её можно отдать лекарю или приложить к ране.', 'loot'); }
   if (object.kind === 'loot' && !object.taken) { object.taken = true; h.gold += object.gold; log(s, `В забытом кошеле ${object.gold} монет. На дороге стало чуть меньше тайн.`, 'loot'); }
   if(object.kind==='heirloom'&&!object.taken)recoverHeirloom(s,object,context(s,'loot')); 
   if (object.kind === 'relic' && !object.taken) { object.taken = true; h.inventory.relics++; h.counters.relics++; gainXp(s, 10); log(s, 'Найден осколок древнего света.', 'loot'); if (enabled(s, 'equipment')) receiveItem(s, context(s, 'loot'), 2); }
@@ -859,7 +862,7 @@ function actObserved(s) {
   else if (g.kind === 'expand') expand(s);
   else if (g.kind === 'hunt') { h.combat = g.object; fight(s, a.objects.find(o => o.id === g.object)); }
   else {
-    const item = a.objects.find(o => (['loot','relic'].includes(o.kind)||o.kind==='heirloom'&&cacheCollectible(s,o)||o.kind==='supplyCache'&&enabled(s,'supply')) && !o.taken || o.kind === 'herb' && o.count > 0&&scentPlantKnown(s,h,a,o));
+    const item = a.objects.find(o => (['loot','relic'].includes(o.kind)||o.kind==='heirloom'&&cacheCollectible(s,o)||o.kind==='supplyCache'&&enabled(s,'supply')&&canLoadPackCargo(s,o)) && !o.taken || o.kind === 'herb' && o.count > 0&&stackRoom(s,h.lineage,'herbs',1)>0&&scentPlantKnown(s,h,a,o));
     if (item) goal(s, 'collect', a.id, item.x, `Подобрать: ${item.name}`, 'Полезные находки пригодятся в следующем приключении.', { object: item.id });
     else { h.goal = null; log(s, `${a.name} изучено. Герой запоминает путь и смотрит дальше.`, 'discover'); }
   }

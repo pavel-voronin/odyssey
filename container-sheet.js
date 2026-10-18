@@ -1,0 +1,2 @@
+import {containersOn,packView} from './modules/container-state.js';
+export function containerHTML(s){if(!containersOn(s))return '';const p=packView(s);return '<div class="pack-live"><p class="detail-label">РЮКЗАК</p><div class="fact"><span>Занято единиц</span><b>'+p.used+' / '+p.capacity+'</b></div><p class="empty">Оружие — 2, одежда — 3, мелкая вещь — 1. Паёк/рыба/зелье — 1; 4 порции еды, травы или лекарства — 1.</p>'+(p.excess?'<p class="empty">Избыток '+p.excess+' сохранён. Новые покупки подождут освобождения места.</p>':'')+'</div>';}

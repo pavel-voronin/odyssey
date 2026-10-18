@@ -1,3 +1,4 @@
+import {containersOn,packView,stackRoom} from './container-state.js';
 import {marketEnabled,quoteMarket} from './market.js';
 import {marketKnowledgeEnabled} from './market-knowledge.js';
 import {foodBudgetMarket} from './market-food.js';
@@ -42,10 +43,10 @@ export function maySpend(s,kind,price,ctx,{urgent=false}={}){
 export function needsIncome(s,ctx){return enabled(s,'finances')&&moneyBudget(s,ctx).targetNeed>0;}
 export function nextPurchase(s,ctx,area=s.hero.area){
   if(!knownArea(s,area))return null;
-  const h=s.hero,kinds=[];
+  const h=s.hero,kinds=[];if(containersOn(s)&&packView(s).excess)return null;
   if(!h.inventory.potions&&h.hp<h.maxHp*.45)kinds.push('potion');
   if(h.weapon<3)kinds.push('weapon');if(!hasArmor(h))kinds.push('armor');if(!h.inventory.potions&&!kinds.includes('potion'))kinds.push('potion');
-  for(const kind of kinds){if(!knownServiceAllows(s,s.areas[area],'merchant',{purchase:kind}))continue;const price=equipmentPrice(s,kind,area);if(maySpend(s,kind,price,ctx,{urgent:kind==='potion'&&h.hp<h.maxHp*.45}))return{kind,price,area};}
+  for(const kind of kinds){if(kind==='potion'&&stackRoom(s,h.lineage,'potions',1)<1)continue;if(!knownServiceAllows(s,s.areas[area],'merchant',{purchase:kind}))continue;const price=equipmentPrice(s,kind,area);if(maySpend(s,kind,price,ctx,{urgent:kind==='potion'&&h.hp<h.maxHp*.45}))return{kind,price,area};}
   return null;
 }
 export function buyUpgrade(s,ctx){

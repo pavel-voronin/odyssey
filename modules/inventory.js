@@ -1,3 +1,5 @@
+import {physicalDistance} from '../geometry.js';
+import {containersOn,packView,fitsPack,itemUnits} from './container-state.js';
 import { PROFESSIONS, DESTINIES, HABITS, CONDITIONS, ENEMY_SPECIES, ENEMY_POWERS, ITEM_BASES, ITEM_ORIGINS, ITEM_EPITHETS, ENCOUNTERS, PETS, FACTIONS, profession, destiny } from '../content.js';
 import { enabled } from '../rules.js';
 import { choose, clamp, hasHabit, hasCondition, profile, activePower, moral, repute } from './common.js';
@@ -29,14 +31,18 @@ export function makeItem(s, ctx, rarity = null) {
 
 export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=false,purchased=false} = {}) {
   if (!enabled(s, 'equipment')) return null;
-  if(existing&&(originalsOn(s)||existing.physical||existing.durability)){const present=presentItem(s,existing.id);if(present)return present.kind==='person'&&present.id===s.hero.lineage?present.item:null;if(existing===s.itemArchive?.[existing.id])return null;}
+  if(existing&&(containersOn(s)||originalsOn(s)||existing.physical||existing.durability)){const present=presentItem(s,existing.id);if(present)return present.kind==='person'&&present.id===s.hero.lineage?present.item:null;if(existing===s.itemArchive?.[existing.id])return null;}
   const h = s.hero, item = existing || makeItem(s, ctx, rarity), equipped = h.equipment[item.slot];
   itemBearer(s,item);
   actorItemLocation(s,item);
   item.history ||= [];item.history.push({tick:s.tick,text:`${crafted?'Принято из собственного заказа':purchased?'Куплено':'Найдено'}: ${h.name} ${h.family||''}.`});
   const canUse = itemWorking(item)&&!['workPart','bioMaterial'].includes(item.kind)&&(!enabled(s,'enchantments')||item.modifier !== 'curse' || hasHabit(h, 'gambler') || h.alignment < -20);
   const weight = value => itemWorking(value)?(armorChoice(s,value,ctx)?.value??value.power) + (value.stat === 'magic' && profile(h).skill === 'magic' ? 2 : 0)+enchantmentPreference(h,value)+weaponAcquisitionValue(s,value):0;
-  const used=canUse && (!equipped ? !armorChoice(s,item,ctx)||weight(item)>0 : weight(item) > weight(equipped)),meaning=crafted||purchased?undefined:beginLootResult(s,item,used?equipped:null);
+  let used=canUse && (!equipped ? !armorChoice(s,item,ctx)||weight(item)>0 : weight(item) > weight(equipped));if(containersOn(s)){
+    if(used&&equipped&&!fitsPack(s,h.lineage,{items:[...h.bag,equipped]}))used=false;
+    if(!used&&!fitsPack(s,h.lineage,{items:[...h.bag,item]})){const meaning=crafted||purchased?undefined:beginLootResult(s,item);cacheItems(s,[item]);recordLootDiscard(s,[item]);ctx.log(s,'В рюкзаке нет места: '+item.name+'. Оригинал остаётся в доступной поклаже.','loot',h.area,{meaning});settleLootResults(s);return item;}
+  }
+  const meaning=crafted||purchased?undefined:beginLootResult(s,item,used?equipped:null);
   if(meaning&&armorEffect(s,item)){meaning.item.armorEffect=armorEffect(s,item);meaning.result.choiceReason=armorChoice(s,item,ctx).reason;}
   if (used) {
     if (equipped) h.bag.push(equipped);
@@ -46,8 +52,9 @@ export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=fal
   } else {
     h.bag.push(item); ctx.log(s, `${crafted?'Изделие':purchased?'Покупка':'Находка'} отправляется в сумку: ${item.name}.`, 'loot',h.area,{meaning});
   }
+  actorItemLocation(s,item);if(equipped&&used)actorItemLocation(s,equipped);
   observeOwnCollection(s,ctx);
-  if (h.bag.length > 24) {
+  if (!containersOn(s)&&h.bag.length > 24) {
     const wanted=collectionKeep(s);
     h.bag.sort((a, b) => Number(Boolean(wanted?.has(b.id)))-Number(Boolean(wanted?.has(a.id)))||itemWorth(b)-itemWorth(a));
     const abandoned = h.bag.splice(24);
@@ -61,12 +68,12 @@ export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=fal
 }
 
 export function recoverHeirloom(s,object,ctx){
-  if(object.taken)return;
+  if(object.taken||containersOn(s)&&(s.hero.transit||!s.areas[s.hero.area]?.objects.includes(object)||physicalDistance(s.areas[s.hero.area],s.hero.x,object.x)>1))return;
   s.hero.gold+=object.gold||0;object.gold=0;
   if(enabled(s,'equipment')){
     const physical=originalsOn(s)||object.itemOriginals===1;
-    const items=object.items.splice(0,physical?Math.max(0,ITEM_CAPACITY-s.hero.bag.length):object.items.length);
-    for(const item of items)receiveItem(s,ctx,null,item);
+    if(containersOn(s)){for(const item of [...object.items]){if(!fitsPack(s,s.hero.lineage,{items:[...s.hero.bag,item]}))continue;object.items.splice(object.items.indexOf(item),1);receiveItem(s,ctx,null,item);}}
+    else {const items=object.items.splice(0,physical?Math.max(0,ITEM_CAPACITY-s.hero.bag.length):object.items.length);for(const item of items)receiveItem(s,ctx,null,item);}
   }
   object.taken=object.items.length===0;
   ctx.log(s,`Найдена поклажа прежнего путника: ${object.name}. Вещи продолжают историю.`,'heritage');
@@ -74,12 +81,13 @@ export function recoverHeirloom(s,object,ctx){
 
 export function sellBag(s, ctx) {
   const h = s.hero;
+  if(containersOn(s)&&(h.transit||h.area!==s.merchant.area||physicalDistance(s.areas[h.area],h.x,58)>1))return;
   if (!h.bag.length || hasHabit(h, 'hoarder') && h.bag.length < 18||enchantmentStrength(h,'greed')&&h.bag.length<12) return;
   const collection=collectionKeep(s),keep=collection?h.bag.filter(i=>collection.has(i.id)):hasHabit(h, 'collector') ? h.bag.filter(i => i.rarity >= 2) : [];
   s.merchant.items ||= [];
-  const physical=originalsOn(s)||s.merchant.itemOriginalsVersion===1||h.bag.some(i=>i.physical?.version===1||i.durability);
+  const physical=containersOn(s)||originalsOn(s)||s.merchant.itemOriginalsVersion===1||h.bag.some(i=>i.physical?.version===1||i.durability);
   const candidates=h.bag.filter(i => !keep.includes(i)&&i.kind!=='bioMaterial');
-  const sold = physical?candidates.slice(0,Math.max(0,ITEM_CAPACITY-s.merchant.items.length)):candidates;
+  let sold;if(containersOn(s)){let occupied=s.merchant.items.reduce((n,i)=>n+itemUnits(i),0);sold=candidates.filter(i=>{const units=itemUnits(i);if(occupied+units>ITEM_CAPACITY)return false;occupied+=units;return true;});}else sold=physical?candidates.slice(0,Math.max(0,ITEM_CAPACITY-s.merchant.items.length)):candidates;
   if(!sold.length&&physical){if(candidates.length&&h.itemBuyerFull!==s.merchant.items.length){h.itemBuyerFull=s.merchant.items.length;ctx.log(s,'У Савы нет места для новых вещей. Непроданные находки остаются в сумке.','trade');}return;}
   const income = sold.reduce((n, i) => n + itemWorth(i), 0) * (profile(h).skill === 'trade' ? 1 : .7);
   s.itemArchive ||= {};s.merchant.items ||= [];
