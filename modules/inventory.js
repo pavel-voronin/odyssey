@@ -39,7 +39,7 @@ export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=fal
   itemBearer(s,item);
   actorItemLocation(s,item);
   item.history ||= [];item.history.push({tick:s.tick,text:`${crafted?'Принято из собственного заказа':purchased?'Куплено':'Найдено'}: ${h.name} ${h.family||''}.`});
-  const canUse = itemWorking(item)&&!['workPart','bioMaterial','fieldTool'].includes(item.kind)&&(!enabled(s,'enchantments')||item.modifier !== 'curse' || hasHabit(h, 'gambler') || h.alignment < -20);
+  const canUse = itemWorking(item)&&!['workPart','bioMaterial','fieldTool','textCopy','writingPaper'].includes(item.kind)&&(!enabled(s,'enchantments')||item.modifier !== 'curse' || hasHabit(h, 'gambler') || h.alignment < -20);
   const weight = value => itemWorking(value)?(armorChoice(s,value,ctx)?.value??value.power) + (value.stat === 'magic' && profile(h).skill === 'magic' ? 2 : 0)+enchantmentPreference(h,value)+weaponAcquisitionValue(s,value):0;
   let used=canUse && (!equipped ? !armorChoice(s,item,ctx)||weight(item)>0 : weight(item) > weight(equipped));if(containersOn(s)){
     if(used&&equipped&&!fitsPack(s,h.lineage,{items:[...h.bag,equipped]}))used=false;
@@ -90,7 +90,7 @@ export function sellBag(s, ctx) {
   s.merchant.items ||= [];
   const physical=containersOn(s)||originalsOn(s)||s.merchant.itemOriginalsVersion===1||h.bag.some(i=>i.physical?.version===1||i.durability);
   const reserve=spareNeedsMoney(s,ctx)?null:reserveArmor(s);
-  const candidates=h.bag.filter(i => !keep.includes(i)&&i!==reserve&&i.kind!=='bioMaterial'&&(!practicalClothingOn(s)||!clothingKind(i))&&(!navigationToolsOn(s)||!isRopeItem(i)));
+  const candidates=h.bag.filter(i => !keep.includes(i)&&i!==reserve&&i.kind!=='bioMaterial'&&i.kind!=='textCopy'&&i.kind!=='writingPaper'&&(!practicalClothingOn(s)||!clothingKind(i))&&(!navigationToolsOn(s)||!isRopeItem(i)));
   let sold;if(containersOn(s)){let occupied=s.merchant.items.reduce((n,i)=>n+itemUnits(i),0);sold=candidates.filter(i=>{const units=itemUnits(i);if(occupied+units>ITEM_CAPACITY)return false;occupied+=units;return true;});}else sold=physical?candidates.slice(0,Math.max(0,ITEM_CAPACITY-s.merchant.items.length)):candidates;
   if(!sold.length&&physical){if(candidates.length&&h.itemBuyerFull!==s.merchant.items.length){h.itemBuyerFull=s.merchant.items.length;ctx.log(s,'У Савы нет места для новых вещей. Непроданные находки остаются в сумке.','trade');}return;}
   const income = sold.reduce((n, i) => n + itemWorth(i), 0) * (profile(h).skill === 'trade' ? 1 : .7);

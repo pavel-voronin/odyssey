@@ -1,3 +1,5 @@
+import {textsOn} from './text-state.js';
+import {textNPCTask,textNPCAction} from './text-actions.js';
 import {homeBuildingOn,homeBuildingNPCTask,homeBuildingNPCAction} from './home-building.js';
 import {verdictReviewNPCAction,verdictReviewOn} from './verdict-review.js';
 import {boardingPetCare,petBoardingNPCAction} from './pet-boarding-actors.js';
@@ -110,6 +112,7 @@ function plan(s,p,ctx){
   const appointment=npcDeedAllows(s,p,'commission')&&npcRefitPlan(s,p);if(appointment){m.task=appointment;return;}
   const salvage=npcCachePlan(s,p);if(salvage){m.task=salvage;return;}
   if(caseRecordStudyPlan(s,p))return;
+  const text=textNPCTask(s,p);if(text){m.task=text;return;}
   if(m.visits<3&&m.sociability>.7&&s.tick>(m.lastVisit||0)+768){
     const memory=enabled(s,'npc-contacts')?knownRelatives(s,p,ctx)[0]:null;
     const relative=enabled(s,'npc-contacts')?null:Object.values(s.people).find(other=>other.id!==p.id&&other.alive&&other.area&&other.area!==p.area&&isTown(s.areas[other.area])&&(other.parents.includes(p.id)||p.parents.includes(other.id)||p.parents.some(id=>other.parents.includes(id)))&&ctx.route(s,p.area,other.area).length<=3&&safePath(s,ctx.route(s,p.area,other.area),p));
@@ -262,6 +265,7 @@ export function peopleTick(s,ctx){
     if(!materialTrip)npcDeedsTick(s,p,ctx);
     if(p.caseReports?.length)announceCaseWitness(s,p);
     if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
+    if(['textPaper','textWrite','textCopy','textRead'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
     if(['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(p.agenda.task?.kind)&&!homeBuildingOn(s))continue;
     if(p.agenda.task?.kind==='caseRecordStudy'&&!enabled(s,'verdict-knowledge'))continue;
     if(p.agenda.task?.kind==='mentorLesson'&&(!mentorEnabled(s)||s.tick>p.personalJourney?.abandonAfter)){mentorLessonAction(s,p,ctx);continue;}
@@ -283,6 +287,7 @@ export function peopleTick(s,ctx){
     bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(textNPCAction(s,p))continue;
     if(homeBuildingNPCAction(s,p))continue;
     if(verdictReviewNPCAction(s,p))continue;
     if(petBoardingNPCAction(s,p,ctx))continue;

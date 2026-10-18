@@ -1,5 +1,6 @@
 export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится'};
 export const NPC_TASKS={
+ textPaper:'Приобретает бумагу',textWrite:'Записывает личное наблюдение',textCopy:'Переписывает тот же текст',textRead:'Читает собственный экземпляр',
  homeBuildSupply:'Приобретает материал для пристройки',homeBuildWait:'Ждёт исполнения строительного договора',homeBuildWork:'Работает на настоящей пристройке',
  petBoardWait:'Присматривает за оставленным псом',petMessage:'Несёт просьбу о возвращении пса',petReturn:'Приводит того же пса к хозяину',
  fieldCraftSupply:'Готовит дорожный набор',fieldCraftStudy:'Изучает походное обслуживание',fieldCraftService:'Обслуживает рабочий нож в дороге',
