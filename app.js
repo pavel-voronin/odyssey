@@ -129,8 +129,8 @@ function renderEffects(){
     chip.textContent=effect.icon;chip.dataset.phase=effect.phase;chip.dataset.positive=effect.positive;
     const text=effect.name+'. '+effect.text+(effect.until===null?'':` Осталось ${elapsedLabel(Math.max(0,effect.until-state.tick))}.`);chip.title=text;chip.setAttribute('aria-label',text);
     const activeView=scene.state===state&&scene.area===(h.transit?`travel:${h.transit.from}:${h.transit.to}`:h.area)&&scene.camera?.viewportWidth===world.clientWidth;
-    const camera=activeView?scene.camera:sceneCamera(state,h.transit?{id:'transit'}:state.areas[h.area],world.clientWidth);
-    const position=h.transit?50:h.x,point=scene.mode==='map'?{x:scene.mapMarker.x+(i-(effects.length-1)/2)*23,y:scene.mapMarker.y-32}:cameraPoint(camera,24+position/100*(camera.worldWidth-48)+heroStance(state).offsetX+(i-(effects.length-1)/2)*23,(activeView?scene.ground:world.clientHeight*.72)-72);
+    const camera=activeView?scene.camera:sceneCamera(state,h.transit?{id:'transit'}:state.areas[h.area],world.clientWidth,{height:world.clientHeight,ground:world.clientHeight*(state.rules?.['scene-planes']===false ? .72 : .76)});
+    const position=h.transit?50:h.x,bodyX=activeView&&Number.isFinite(scene.heroViewX)?scene.heroViewX:24+position/100*(camera.worldWidth-48)+heroStance(state).offsetX,point=scene.mode==='map'?{x:scene.mapMarker.x+(i-(effects.length-1)/2)*23,y:scene.mapMarker.y-32}:cameraPoint(camera,bodyX+(i-(effects.length-1)/2)*23,(activeView?scene.ground:world.clientHeight*.72)-72);
     const x=Math.max(8,Math.min(world.clientWidth-29,point.x));
     const available=Math.max(1,Math.floor((endY-startY+2)/23)),column=Math.floor(i/available),row=i%available;
     chip.style.left=(effect.phase==='fresh'?x:8+column*24)+'px';
