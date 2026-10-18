@@ -1,3 +1,4 @@
+import {drawDescent} from './navigation-tool-view.js';
 import {selfDrivenActor,actorPartyLeader} from './actor-projection.js';
 import {paintDistantTowers,paintLocalTower} from './landmark-view.js';
 import {paintFords} from './ford-view.js';
@@ -249,6 +250,7 @@ export class Scene {
         if(o.state==='burned'){c.fillStyle='#45423c';c.fillRect(x-14,ground-4,29,4);c.strokeStyle='#76644e';c.lineWidth=3;c.beginPath();c.moveTo(x-11,ground-2);c.lineTo(x+7,ground-10);c.moveTo(x-8,ground-9);c.lineTo(x+12,ground-2);c.stroke();}
         else{c.fillStyle='#97754b';c.fillRect(x-13,ground-15,26,4);c.fillRect(x-10,ground-11,3,11);c.fillRect(x+7,ground-11,3,11);c.fillStyle='#aeb4ad';c.fillRect(x-5,ground-21,11,6);c.fillRect(x-1,ground-15,4,2);}
       }
+      if(o.kind==='descent')drawDescent(c,o,x,screenX(o.descent.bottom),ground);
       if (o.kind === 'rest') {
         if (a.type === 'camp') this.fire(x, ground, s.tick);
         else { this.sign(x, ground, '✚'); }

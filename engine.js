@@ -1,3 +1,4 @@
+import {initializeDescent,navigationToolPlan,navigationGate,navigationAction} from './modules/navigation-tools.js';
 import {changeSpareOutfit,spareNeedsMoney} from './modules/spare-outfit.js';
 import {containersOn,packView,stackRoom} from './modules/container-state.js';
 import {canLoadPackCargo} from './modules/container-cargo.js';
@@ -194,7 +195,7 @@ function addArea(s, type, name, depth = 0,metadata={}) {
   civicArea(s,area);
   supplyArea(s,area);
   peopleArea(s,area);
-  migrationArea(area);initializeFacades(s);registerSpatialArea(s,area);return id;
+  initializeDescent(s,area);migrationArea(area);initializeFacades(s);registerSpatialArea(s,area);return id;
 }
 function createHero(s) {
   const village = Object.values(s.areas).find(a => isTown(a));
@@ -319,6 +320,7 @@ function plan(s) {
     const rest = refuge?.objects.find(o => o.kind === 'rest');
     goal(s, 'rest', refuge?.id||h.area, rest?.x??h.x, refuge?`Восстановиться: ${refuge.name}`:'Перевести дух на месте', h.hp < h.maxHp * .7 ? 'Раны важнее обещаний. Он ищет доступное место для восстановления.' : 'Усталость мешает сражаться и исследовать.'); return;
   }
+  if(navigationToolPlan(s,context(s,'navigation-tools')))return;
   noticeMoneyPriority(s,context(s,'finances'));
   if(hearCaptivePlan(s,context(s,'dungeon-rescue')))return;
   if(isDungeonRescue(q)){planQuest(s,q,context(s,'quests'));return;}
@@ -732,6 +734,7 @@ function actObserved(s) {
   if(!h.goal?.intention&&respondAid(s,context(s,'personal-aid')))return s;
   if(h.goal?.kind==='leisure'&&h.goal.signals!==undefined&&h.goal.signals!==quietSignals(s))h.goal=null;
   const urgent = groupNeed==='rest'||h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23;
+  if(!urgent&&h.hunger<=70)navigationToolPlan(s,context(s,'navigation-tools'));
   if(!urgent)actorMaterialDeliveryPlan(s,context(s,'material-delivery'));
   if(!h.goal||h.goal.kind==='provision')collectionPlan(s,context(s,'collections'),{urgentOnly:true});
   if(!urgent&&h.hunger<=75&&!h.goal?.intention)hearCaptivePlan(s,context(s,'dungeon-rescue'));
@@ -783,7 +786,7 @@ function actObserved(s) {
     h.combat = threat.id; h.lastAction = 'attack'; h.action = 'БОЙ'; h.intent = `Сражаться: ${threat.name}`; h.reason = 'Противник преградил путь. Герой готовится защищаться.';
     log(s, `${threat.name} преграждает дорогу. Начинается бой.`, 'combat'); return s;
   }
-  if (physicalDistance(a,h.x,target) > 1) { move(s, target); return s; }
+  if (physicalDistance(a,h.x,target) > 1) { if(navigationGate(s,target,context(s,'navigation-tools')))return s;move(s, target); return s; }
   if (next) { const from=h.area,passage=interiorPassage(s,from,next),arrivalX=passage?.arrival??(target===100?5:95);if(!passage&&heroFordGate(s,next,arrivalX,context(s,'fords')))return s;if(!passage&&beginTransit(s,next,arrivalX,context(s,'travel')))return s;h.x=arrivalX;enter(s,next);resumeFordTaskView(s);campCrossed(s,from,next,context(s,'fieldcamp'));h.lastAction='walk';return s; }
   if(g.kind==='routeWait'){h.lastAction='idle';if(s.tick>=g.until)h.goal=null;return s;}
   if (g.kind === 'rest') {
@@ -816,6 +819,7 @@ function actObserved(s) {
   else if(g.kind==='propertyContract')propertyContractAction(s,context(s,'property-contracts'));
   else if(g.kind==='propertyRepair')repairProperty(s,context(s,'property'));
   else if(g.kind==='craftStudy')craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))});
+  else if(g.kind.startsWith('rope'))navigationAction(s,context(s,'navigation-tools'));
   else if(['forgeSupply','forgeWork','forgeLearn','forgeBuy'].includes(g.kind))forgeAction(s,{...context(s,'forging'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))});
   else if(['refitMeet','refitMaterial','refitWork'].includes(g.kind))refitAction(s,context(s,'knife-refit'));
   else if(['itemRepairMeet','itemRepairMaterial','itemRepairWork','itemGearSwap'].includes(g.kind))itemRepairAction(s,context(s,'item-wear'));

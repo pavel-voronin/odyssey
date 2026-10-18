@@ -1,3 +1,4 @@
+import {navigationNPCStep} from './navigation-tools.js';
 import {fieldCraftEnabled} from './field-craft-state.js';
 import {fieldCraftTask,fieldCraftAction} from './field-craft-actors.js';
 import {creditEnabled,creditStatus,creditSupplierTurn} from './provision-credit.js';
@@ -159,7 +160,7 @@ function moveTask(s,p,ctx){
     tell(s,p,`${p.name} отказывается идти через живую угрозу и меняет план.`,ctx);p.agenda.task=null;p.agenda.due=s.tick+96;p.status=t.migration?'wandering':'resident';return false;
   }
   if(escape)p.rescueFlight.blocked=null;
-  if(Math.abs(p.x-x)*areaScale(s.areas[p.area])>1){p.x+=areaStep(s.areas[p.area],p.x,x,6);objectAt(s,p);return false;}
+  if(Math.abs(p.x-x)*areaScale(s.areas[p.area])>1){if(navigationNPCStep(s,p,x,ctx)){objectAt(s,p);return false;}p.x+=areaStep(s.areas[p.area],p.x,x,6);objectAt(s,p);return false;}
   if(next){const arrival=passage?.arrival??(x===100?5:95),r=passage?{status:'clear'}:npcFordGate(s,p,next,arrival,t,t.target,fordCargo);if(r.status==='clear')locate(s,p,next,arrival);else if(r.status==='arrived')locate(s,p,r.crossing.to,r.crossing.arrivalX);else if(r.status==='bypass')t.fordDetour={target:t.target,path:r.path};else if(['defer','unavailable','aborted'].includes(r.status)){p.agenda.task=null;p.agenda.due=s.tick+8;p.status=t.migration?'wandering':'resident';}return false;}
   return true;
 }
@@ -241,6 +242,7 @@ export function peopleTick(s,ctx){
     observeNPCContacts(s,p);
     observeMentors(s,p);
     observeFreightActor(s,p,p.area,true);
+    if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
     if(freightKeeperTurn(s,p))continue;
     if(creditSupplierTurn(s,p,ctx))continue;
