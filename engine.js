@@ -1,3 +1,5 @@
+import {patientPlan,patientClinicAction,patientsTick,syncPatient} from './modules/party-injuries.js';
+import {patientJourney} from './modules/patient-state.js';
 import {woundCareTurn} from './modules/wound-care.js';
 import {woundCombatChoice} from './modules/wound-combat.js';
 import {holdWoundRest} from './modules/wound-care-state.js';
@@ -642,9 +644,10 @@ function worldTick(s) {
    if(h){const view=actorView(s,h);h.hp=Math.max(0,h.hp-amount);if(h.hp===0)die(view,{kind:'condition',name:'Кровопотеря из незакрывшейся раны'});syncActiveActor(view);return;}
    const leader=detailedActors(s).find(h=>h.alive&&h.companions.some(c=>c.person===p.id)),c=leader?.companions.find(c=>c.person===p.id);
    p.health=Math.max(0,p.health-amount);
-   if(p.health===0){p.deathCause='Кровопотеря из незакрывшейся раны';if(c){const view=actorView(s,leader);hurtCompanion(view,c,c.hp,context(view,'local-wounds'),'bleeding');}else{p.alive=false;p.status='dead';p.died=s.tick;recordPersonRemains(s,p);}}
+   if(p.health===0){const passage=patientJourney(s,p);if(passage){p.deathJourney=passage;p.area=null;p.x=null;}p.deathCause='Кровопотеря из незакрывшейся раны';if(c){const view=actorView(s,leader);hurtCompanion(view,c,c.hp,context(view,'local-wounds'),'bleeding');}else{p.alive=false;p.status='dead';p.died=s.tick;recordPersonRemains(s,p);}}
    else if(c)c.hp=Math.max(1,Math.ceil(c.maxHp*p.health/(p.maxHealth||100)));
   }});
+  patientsTick(s,context(s,'injured-party'));
   waitingPackPetsTick(s);
   leverTeamTick(s,context(s,'mechanisms'));
   biomaterialTick(s);
@@ -720,7 +723,7 @@ export function advanceWorld(s) {
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
   const castsBefore=h.magic.casts;
-  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
@@ -786,6 +789,7 @@ function actObserved(s) {
     h.memory.shopAfter = s.tick + 240; h.goal = null;
     log(s, 'Поиски Савы затянулись. Герой откладывает покупку и возвращается к исследованию.', 'talk');
   }
+  if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
   if(poisonCareTick(s,context(s,'poison-care')))return s;
@@ -893,6 +897,7 @@ function actObserved(s) {
   else if (g.kind === 'brothLearn') brothLesson(s,context(s,'hearth-food'));
   else if (g.kind === 'forage') forageTick(s,context(s,'supply'));
   else if (g.kind === 'assist') assistanceAction(s,context(s,'intentions'));
+  else if(g.kind==='patientClinic')patientClinicAction(s,context(s,'injured-party'));
   else if (g.kind === 'work') workTick(s,context(s,'work'));
   else if(g.kind==='propertyAid')propertyAidAction(s,context(s,'property-aid'));
   else if(g.kind==='propertyGift')propertyGiftAction(s,context(s,'property-gifts'));

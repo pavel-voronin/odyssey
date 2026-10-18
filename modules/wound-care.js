@@ -1,3 +1,4 @@
+import {supportedPatient} from './patient-state.js';
 import {physicalDistance} from '../geometry.js';
 import {knownArea} from '../actor-atlas.js';
 import {enabled} from '../rules.js';
@@ -27,11 +28,11 @@ function applyDressing(s,p,w,by,method,kind,ctx){
  woundActivity(s,p,'body',by.id!==p.id);ctx?.log?.(s,`${by.name}: ${kind==='herbs'?'травяной компресс':'лекарственная повязка'} — ${w.label}. Израсходована одна единица материала; закрытие и функция ещё требуют времени.`,'heal');return true;
 }
 function safe(s,p,h=null){const area=s.areas[h?.area||p.area],x=h?.x??p.x;return !area?.objects.some(e=>e.kind==='enemy'&&e.alive&&!e.resolved&&physicalDistance(area,e.x,x)<=15&&(!h||!coverBlocks(s,e,h)));}
-function clinic(s,p,w,ctx){
- const h=woundActor(s,p),a=s.areas[h?.area||p.area],x=h?.x??p.x;if(!isTown(a)||physicalDistance(a,x,68)>2)return false;
+function clinic(s,p,w,ctx,payer=null){
+ const target=woundActor(s,p),h=payer||target,a=s.areas[target?.area||p.area],x=target?.x??p.x;if(!isTown(a)||physicalDistance(a,x,68)>2)return false;
  const provider=serviceStaff(s,a,'clinic').find(q=>q.id!==p.id&&physicalDistance(a,q.x,x)<=12&&!busy(s,q));
  if(!provider||!actualService(s,a,'clinic').available||!(a.civic?.medicine>=1)||!h||h.gold<2||!npcAction(s,provider,'personal','wound-treatment'))return false;
- a.civic.medicine--;h.gold-=2;provider.agenda.wealth+=2;return applyDressing(s,p,w,provider,'clinic','clinic',ctx);
+ a.civic.medicine--;h.gold-=2;provider.agenda.wealth+=2;if(w)return applyDressing(s,p,w,provider,'clinic','clinic',ctx);p.health=Math.min(p.maxHealth||100,p.health+25);provider.needs.energy=Math.max(0,provider.needs.energy-2);careState(provider).lastActionTick=s.tick;p.partyInjury.lastActionTick=s.tick;return true;
 }
 export function woundCareTurn(s,ctx){
  const h=s.hero,p=s.people[h.lineage],w=careIssue(s,p);if(!woundCareOn(s)||!h.alive||h.transit)return false;
@@ -59,3 +60,5 @@ export function woundNPCTurn(s,p,ctx){
  if(!goodDressing(w)&&material(p,null)&&dressWound(s,p,w,p,'self','medicine',s.hero.area===p.area?ctx:null))return true;
  if(seriousWound(s,p)){woundActivity(s,p,'body',true);p.needs.energy=Math.min(100,p.needs.energy+6);careState(p).lastActionTick=s.tick;decision(s,p,'rest','Повреждение требует отдыха.',null);return true;}return false;
 }
+
+export function clinicPatientCare(s,p,ctx){if(supportedPatient(s)!==p||s.hero.transit||p.partyInjury.lastActionTick===s.tick||p.woundCare?.lastActionTick===s.tick)return false;const issue=careIssue(s,p),w=issue&&!goodDressing(issue)?issue:null;if(!w&&p.health>=(p.maxHealth||100)*.75)return false;return clinic(s,p,w,ctx,s.hero);}

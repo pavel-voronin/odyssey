@@ -1,3 +1,4 @@
+import {paintPatient} from './patient-view.js';
 import {occupiedCover} from './modules/position-state.js';
 import {paintStoneCover,paintPositionRay} from './position-view.js';
 import {paintGuardianShield,paintGuardianNode} from './guardian-view.js';
@@ -238,11 +239,11 @@ export class Scene {
         const watchBody=s.rules?.['npc-watch-needs']!==false&&p&&['marching','guarding','returning'].includes(p.status)&&s.society.orders.some(order=>order.person===p.id);
         const partyBody=p&&(p.id===h.lineage||actorPartyLeader(s,p.id));
         const detailed=p&&s.actorStates?.[p.id]&&selfDrivenActor(s,p.id);
-        if((!p||!detailed)&&(!p||!partyBody&&p.alive&&!p.liftTransit&&p.area===a.id&&(['resident','guarding','wandering','lever-duty'].includes(p.status)||watchBody))){
+        if((!p||!detailed)&&(!p||!partyBody&&p.alive&&!p.liftTransit&&p.area===a.id&&(['resident','guarding','wandering','lever-duty','injury-wait'].includes(p.status)||watchBody))){
           const species=p&&s.rules?.lineage!==false?{...race(p.race),height:race(p.race).height*(p.role==='ребёнок'?.65:1)}:null;
           const look=p?looks(p,p.appearance):null;
           const track=this.actorPositions?.get(o.person),walking=track&&track.from!==track.to&&phase<1&&!this.reduced;
-          const px=walking?screenX(track.from+(track.to-track.from)*phase):x,rest=Boolean(p?.needs?.sleeping)&&(!watchBody||s.rules?.['npc-needs']!==false),kind=rest?'rest':p?.mechanismDuty?.stage==='holding'?'work':p?.agenda?.task?.kind||'idle';
+          const px=walking?screenX(track.from+(track.to-track.from)*phase):x,rest=p?.partyInjury?.stage==='waiting'||Boolean(p?.needs?.sleeping)&&(!watchBody||s.rules?.['npc-needs']!==false),kind=rest?'rest':p?.mechanismDuty?.stage==='holding'?'work':p?.agenda?.task?.kind||'idle';
           this.person(px,ground,look?.cloak||'#ac906b',false,walking?Math.sign(track.to-track.from):1,0,false,rest,look,species,{kind,progress:phase,walking,distance:track?Math.abs(track.to-track.from)*(w-48)/100:0});
           if(watchBody&&rest){c.fillStyle='#bcd18e';c.font='12px Georgia';c.fillText('z',px+12,ground-43);}
           if(p?.ailment){c.fillStyle='#db9982';c.font='11px monospace';c.fillText('!',x-3,ground-49);}
@@ -315,6 +316,7 @@ export class Scene {
         else if(companionShape(companion)&&s.rules?.['creature-motion']!==false){const shape=companionShape(companion);this.formedCreature(cx,ground,shape,creatureActionPose(shape,petTrack,phase,Math.abs(to-from)));}
         else this.creature(cx,ground,companion.id==='mushroom'?'fungus':companion.id==='moth'?'ghost':'pet',s.tick);
       }
+      paintPatient(this,s,other,px,ground,phase);
       c.fillStyle='#d7d9c4';c.font='10px Georgia';c.textAlign='center';c.fillText(other.name,px,ground-62,Math.min(120,w*.3));c.textAlign='left';
     }
     canvas.dataset.detailedActors=String(detailedDrawn);
@@ -337,6 +339,7 @@ export class Scene {
         else if(companionShape(companion)&&s.rules?.['creature-motion']!==false){const shape=companionShape(companion),track=this.beastTracks.tracks.get(companionKey(companion));this.formedCreature(cx,ground,shape,creatureActionPose(shape,track,phase,Math.abs((track?.to??h.x)-(track?.from??h.x))));}
         else this.creature(cx,ground,companion.id==='mushroom'?'fungus':companion.id==='moth'?'ghost':'pet',s.tick);
       }
+      paintPatient(this,s,h,hx,ground,phase);
       c.fillStyle='#c9c394';c.globalAlpha=.5;c.fillRect(hx-5,ground+3,10,1);c.globalAlpha=1;
       if (['heal', 'collect', 'attack','spell'].includes(h.lastAction) && actionPhase < 1) {
         c.globalAlpha = 1 - phase; c.fillStyle = h.lastAction === 'spell'?'#a4c4ed':h.lastAction === 'attack' ? '#eedeb0' : '#cce9a9'; c.font = '18px Georgia'; c.fillText(h.lastAction === 'heal' ? '+' : '✧', hx + 18, ground - 43 - phase * 18); c.globalAlpha = 1;

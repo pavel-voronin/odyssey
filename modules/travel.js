@@ -1,3 +1,4 @@
+import {supportedPatient} from './patient-state.js';
 import {initializeHistoricalCalendar} from './historical-calendar.js';
 import {startInvitation,exoticInvitationPenalty} from './invitation-rhythm.js';
 import {revealArea,hideNewArea} from '../actor-atlas.js';
@@ -95,6 +96,7 @@ export function expandRoutes(s,ctx){
 export function beginTransit(s,next,arrivalX,ctx){
   const h=s.hero,edge=s.edges?.[edgeKey(h.area,next)];
   if(h.transit)return true;
+  if(supportedPatient(s,h)&&(edge?.lift||['sea','portal','time'].includes(edge?.mode))){h.goal=null;ctx.log?.(s,'Этот переход не принимает человека на руках. Нужна отдельная безопасная перевозка.','plan');return true;}
   if(grateClosed(s,h.area,next)){h.goal=null;ctx.log?.(s,'Решётка закрыла проход. Нужен местный рычаг или обход.','plan');return true;}
   if(liftBlocked(s,h.area,next)){h.goal=null;return true;}
   const lift=enabled(s,'mechanisms')&&edge?.lift,mode=lift?'lift':edge?.mode;

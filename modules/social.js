@@ -1,3 +1,4 @@
+import {supportedPatient} from './patient-state.js';
 import {custodyTrace} from './pet-custody-state.js';
 import {petPack,petNear,packPetTrace} from './pack-pet-state.js';
 import {offerInvitation,declineInvitation,startInvitation} from './invitation-rhythm.js';
@@ -41,7 +42,7 @@ export function meetPerson(s,id,ctx,trust=1){
 export function recruitPerson(s,id,ctx,guaranteed=false){
   const h=s.hero,p=s.people?.[id];
   const learner=mentorEnabled(s)&&p?.personalJourney?.kind==='seekMentor'&&p.personalJourney.status==='active';
-  if(selfDrivenActor(s,p?.id)||!enabled(s,'companions')||!enabled(s,'relationships')||!p?.alive||p.role==='ребёнок'||p.status!=='resident'&&!(learner&&p.status==='wandering')||p.migration&&(s.migrations?.[p.migration]?.status==='active')||(p.rejoinAfter||0)>s.tick||p.area!==h.area||h.companions.length>=3)return false;
+  if(selfDrivenActor(s,p?.id)||!enabled(s,'companions')||!enabled(s,'relationships')||!p?.alive||p.role==='ребёнок'||p.status!=='resident'&&!(learner&&p.status==='wandering')||p.migration&&(s.migrations?.[p.migration]?.status==='active')||(p.rejoinAfter||0)>s.tick||p.area!==h.area||h.companions.length+(supportedPatient(s,h)?1:0)>=3)return false;
   const relation=h.relations[id];
   if(mentorEnabled(s)&&p.personalJourney?.kind==='seekMentor'&&mentorOfferExists(s,p))return false;
   if(!guaranteed&&(!relation||relation.trust<9))return false;
