@@ -1,3 +1,5 @@
+import {observeDelveLayout,recordLayoutCollection} from './modules/delve-layout.js';
+import {layoutAction,layoutOn} from './modules/delve-layout-plan.js';
 import {findWaystone} from './modules/waystones.js';
 import {waystonePlan,waystoneAction} from './modules/waystone-actions.js';
 import {pactTalkPlan,pactTalkAction} from './modules/branch-pacts.js';
@@ -190,6 +192,8 @@ function addArea(s, type, name, depth = 0,metadata={}) {
   const id = 'a' + s.nextArea++;
   const area = { id, type, name, depth, paletteVersion:2, links: [], visited: false, discovered: false, visits: 0, objects: [], expanded: false };
   if(enabled(s,'long-roads')&&type==='road'&&depth>=2&&depth%4===2){area.length=260;area.roadProfile='long-tract';}
+  const layoutShell=type==='dungeon'&&metadata.layoutRoom===true;
+  if(layoutShell)area.dungeon={root:metadata.layoutRoot||id,floor:metadata.layoutFloor||1,cleared:false,layoutShell:{version:1,created:s.tick,claimed:false}};
   annotateRegion(s,area,metadata);
   areaDanger(s,area,metadata);
   area.culture=metadata.culture||areaCulture(s,area);
@@ -204,7 +208,7 @@ function addArea(s, type, name, depth = 0,metadata={}) {
     area.objects.push({ id: id + '-guard', kind: 'enemy', name: 'Страж руин', x: 48, hp: 23 + depth * 3, maxHp: 23 + depth * 3, attack: 6 + Math.floor(depth / 2), alive: true, patrol: 0 });
     area.objects.push({ id: id + '-relic', kind: 'relic', name: 'Осколок древнего света', x: 77, taken: false });
   }
-  if(['cave','dungeon','sea','island','desert','mountain','dream','clockwork'].includes(type)){
+  if(!layoutShell&&['cave','dungeon','sea','island','desert','mountain','dream','clockwork'].includes(type)){
     const count=type==='dungeon'?2:1;
     for(let i=0;i<count;i++)area.objects.push({id:`${id}-threat${i}`,kind:'enemy',name:'Неизвестная угроза',x:count===1?50:35+i*36,hp:24+depth*2,maxHp:24+depth*2,attack:5+Math.floor(depth/3),alive:true,patrol:0});
     if(['cave','island','desert'].includes(type))area.objects.push({id:id+'-herb',kind:'herb',name:'Местная лечебная трава',x:26,count:2});
@@ -485,12 +489,13 @@ function trade(s) {
 }
 function collect(s, object) {
   if(object.kind==='supplyCache'){recoverCargo(s,object,context(s,'supply'));s.hero.goal=null;s.hero.lastAction='collect';return;}
-  const h = s.hero,a=s.areas[h.area];
+  const h = s.hero,a=s.areas[h.area],wasTaken=object.taken;
   if (object.kind === 'herb' && object.count > 0&&stackRoom(s,h.lineage,'herbs',1)>0&&scentPlantKnown(s,h,a,object)&&physicalDistance(a,h.x,object.x)<=9) { object.count--; h.inventory.herbs++; log(s, 'Лунная трава найдена. Её можно отдать лекарю или приложить к ране.', 'loot'); }
   if (object.kind === 'loot' && !object.taken) { object.taken = true; h.gold += object.gold; log(s, `В забытом кошеле ${object.gold} монет. На дороге стало чуть меньше тайн.`, 'loot'); }
   if(object.kind==='heirloom'&&!object.taken)recoverHeirloom(s,object,context(s,'loot')); 
   if (object.kind === 'relic' && !object.taken) { object.taken = true; h.inventory.relics++; h.counters.relics++; gainXp(s, 10); log(s, 'Найден осколок древнего света.', 'loot'); if (enabled(s, 'equipment')&&!findWaystone(s,object,context(s,'loot'))) receiveItem(s, context(s, 'loot'), 2); }
   h.lastAction = 'collect'; h.goal = null;
+  if(!wasTaken&&object.taken)recordLayoutCollection(s,object);
   temporalCollection(s,object,context(s,'epochs'));
 }
 function expand(s) {
@@ -625,7 +630,7 @@ function worldTick(s) {
   goodsTick(s);
   lodgingTick(s);
   hallActivitiesTick(s,context(s,'hall-activities'));
-  for(const h of detailedActors(s))if(selfDrivenActor(s,h)&&!h.transit)observeFreightActor(actorView(s,h),s.people[h.lineage],h.area);
+  for(const h of detailedActors(s))if(selfDrivenActor(s,h)&&!h.transit){const view=actorView(s,h);observeFreightActor(view,s.people[h.lineage],h.area);observeDelveLayout(view);}
   supplyTick(s,context(s,'supply'));
   societyTick(s,context(s,'society'));
   migrationsTick(s,context(s,'migrations'));
@@ -747,6 +752,8 @@ function actObserved(s) {
   if (traitsTick(s, context(s, 'body'))) return s;
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(transitTick(s,context(s,'travel')))return s;
+  if(h.delve&&s.areas[h.delve.root]?.dungeon?.layout&&!layoutOn(s))return s;
+  observeDelveLayout(s);
   observeTowers(s,context(s,'landmarks'));
   observeScentPlants(s);
   observeNavigationBlockers(s,context(s,'navigation-memory'));
@@ -915,6 +922,7 @@ function actObserved(s) {
   else if (g.kind === 'mapCopy') mapCopyAction(s,s.people[h.lineage],g,context(s,'route-maps'));
   else if (g.kind === 'studyCreature') studyBestiaryAction(s,context(s,'bestiary'));
   else if(g.kind==='sequenceAdvice'){askSequenceWitness(s,s.people[h.lineage],s.people[g.person],g.key,context(s,'mechanism-sequences'));h.goal=null;}
+  else if (['layoutMove','layoutSurvey','layoutWait'].includes(g.kind))layoutAction(s,context(s,'delve-layouts'));
   else if (g.kind === 'mechanism') mechanismAction(s,context(s,'mechanisms'));
   else if (g.kind === 'mechanismHold') leverHoldAction(s,context(s,'mechanisms'));
   else if (g.kind === 'liftWork') liftAction(s,context(s,'mechanisms'));

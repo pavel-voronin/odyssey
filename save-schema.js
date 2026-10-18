@@ -1,3 +1,4 @@
+import {validateDelveLayouts} from './modules/delve-layout-schema.js';
 import {validateWaystones} from './modules/waystone-schema.js';
 import {validateCommissions} from './modules/commission-schema.js';
 import {validateBranchPacts} from './modules/branch-pact-schema.js';
@@ -148,7 +149,7 @@ export function validateSave(s){
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

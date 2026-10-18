@@ -1,3 +1,5 @@
+import {layoutOn,createDelveLayout,layoutMemory} from './delve-layout.js';
+import {layoutPlan} from './delve-layout-plan.js';
 import {containersOn} from './container-state.js';
 import {loadPackCargo,spillPackCargo} from './container-cargo.js';
 import {invitationAllowed,startInvitation} from './invitation-rhythm.js';
@@ -15,7 +17,7 @@ export function delvePlan(s,ctx){
   if(!enabled(s,'delves'))return false;
   const h=s.hero,a=s.areas[h.area];
   if(h.delve)delveRecord(s);
-  if(h.delve&&s.tick-h.delve.started>1200){
+  if(h.delve&&!s.areas[h.delve.root]?.dungeon?.layout&&s.tick-h.delve.started>1200){
     ctx.log(s,'Поход затянулся. Герой оставляет подземелье другим искателям.','choice');
     finishDelve(s,'left');h.delve=null;h.memory.delveAfter=s.tick+500;
   }
@@ -31,19 +33,21 @@ export function delvePlan(s,ctx){
     if(!gate){
       if(a.delveGate)return false;
       const name=['Соляная гробница','Колодец колокольщика','Погреб последнего короля','Зубы подземного бога'][Math.floor(moduleRandom(s,'delves')*4)];
-      const id=ctx.addArea(s,'dungeon',name,Math.max(1,Math.min(5,a.depth+1)),{continent:a.continent,era:a.era});
-      gate=s.areas[id];gate.dungeon={root:id,floor:1,cleared:false};revealArea(s,gate);a.delveGate=id;ctx.connect(s,a.id,id,{mode:'stairs',duration:2});
-      seedDungeonCaptive(s,gate,a,ctx);
+      const id=ctx.addArea(s,'dungeon',name,Math.max(1,Math.min(5,a.depth+1)),{continent:a.continent,era:a.era,...(layoutOn(s)?{layoutRoom:true}:{})});
+      gate=s.areas[id];gate.dungeon={...gate.dungeon,root:id,floor:1,cleared:false};revealArea(s,gate);a.delveGate=id;ctx.connect(s,a.id,id,{mode:'stairs',duration:2});
+      seedDungeonCaptive(s,gate,a,ctx);createDelveLayout(s,gate,a,ctx);
       ctx.log(s,`В ${a.name} найден спуск: ${name}. Это отдельный поход за сокровищами, без поручителя.`,'discover');
     }
     const preparation=prepareDelveEntry(s,gate,prior,ctx);if(!preparation.ready)return preparation.preparing;
     h.delve={root:enabled(s,'delve-attempts')?(gate.dungeon.root||gate.id):gate.id,room:gate.id,started:s.tick,floors:prior?.floors||2+Math.floor(moduleRandom(s,'delves')*3),cleared:0};
+    if(gate.dungeon.layout){h.delve.floors=6;h.delve.layoutGainStart=layoutMemory(s,gate.id)?.gains.length||0;const m=layoutMemory(s,gate.id);if(m)m.returning=null;}
     startDelve(s,h.delve,reason);
     claimDelveOpportunity(s,gate.id,prior,reason);
     if(!continued)startInvitation(s,'delve',invitationKey);
     ctx.log(s,`${h.name} откладывает поручения и идёт в подземелье «${gate.name}». Вернуться живым важнее зачистки.${enabled(s,'delve-attempts')?' '+delveRecord(s).purpose.text+'.':''}`,'choice');
   }
   const d=h.delve,room=s.areas[d.room];
+  if(s.areas[d.root]?.dungeon?.layout)return layoutPlan(s,ctx);
   if(!reconsiderDelve(s,ctx))return Boolean(h.goal?.preparation);
   const enemy=room.objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved);
   if(enemy){
