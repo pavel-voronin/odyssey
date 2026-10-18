@@ -1,3 +1,5 @@
+import {migrationKnowledgeOn} from './migration-memory.js';
+import {exchangeMigrationNotes} from './migration-contact.js';
 import {rootWorld} from '../world-ref.js';
 import {selfDrivenActor} from '../actor-projection.js';
 import {physicalDistance} from '../geometry.js';
@@ -26,12 +28,12 @@ export function relayNews(s,from,to,id){
  return rememberNews(s,to,{...report,heardAt:s.tick,mode:'reported',via:[...report.via,{from:from.id,to:to.id,area:a.area,tick:s.tick}]});
 }
 export function carrierNewsContact(s,p,ctx={}){
- if(!newsOn(s)||!s.newsEvents||!available(s,p)||p.news?.lastExchangeTick===s.tick||!s.logistics.convoys.some(c=>c.person===p.id&&c.movement==='physical')||!localContact(s,p.id,p.area))return false;
+ if(!newsOn(s)||!s.newsEvents&&!migrationKnowledgeOn(s)||!available(s,p)||p.news?.lastExchangeTick===s.tick||!s.logistics.convoys.some(c=>c.person===p.id&&c.movement==='physical')||!localContact(s,p.id,p.area))return false;
  const locals=Object.values(s.people).filter(q=>q.id!==p.id&&available(s,q)).map(q=>({q,b:localContact(s,q.id,p.area)})).filter(({b})=>b&&physicalDistance(s.areas[p.area],p.x,b.x)<=12).sort((a,b)=>Math.abs(p.x-a.b.x)-Math.abs(p.x-b.b.x)||a.q.id.localeCompare(b.q.id));
- for(const {q}of locals){let learned=false,told=false;
+ for(const {q}of locals){const placeChanged=exchangeMigrationNotes(s,p,q);let learned=false,told=false;
   for(const r of Object.values(q.news?.known||{}).sort((a,b)=>b.revision-a.revision||b.occurred-a.occurred))if(relayNews(s,q,p,r.id)){learned=true;break;}
   for(const r of Object.values(p.news?.known||{}).sort((a,b)=>b.revision-a.revision||b.occurred-a.occurred))if(relayNews(s,p,q,r.id)){told=true;break;}
-  if(learned||told){newsMemory(p).lastExchangeTick=s.tick;const h=s.hero;if(q.id===h.lineage||p.id===h.lineage)ctx.log?.(s,told&&q.id===h.lineage?`${p.name} передаёт датированный рассказ о чужой помощи. Сведения получены со слов перевозчика.`:`${q.name} делится известным рассказом с перевозчиком ${p.name}.`,'talk');return true;}
+  if(learned||told||placeChanged){newsMemory(p).lastExchangeTick=s.tick;const h=s.hero;if(q.id===h.lineage||p.id===h.lineage)ctx.log?.(s,placeChanged&&!learned&&!told?`${p.name} и ${q.name} обмениваются датированными сведениями о знакомом поселении.`:told&&q.id===h.lineage?`${p.name} передаёт датированный рассказ о чужой помощи. Сведения получены со слов перевозчика.`:`${q.name} делится известным рассказом с перевозчиком ${p.name}.`,'talk');return true;}
  }
  return false;
 }

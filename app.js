@@ -1,3 +1,5 @@
+import {migrationKnowledgeOn} from './modules/migration-memory.js';
+import {migrationKnowledgeHTML} from './migration-knowledge-sheet.js';
 import {newsHTML} from './news-sheet.js';
 import {sequenceHTML} from './sequence-sheet.js';
 import {literacyHTML} from './literacy-sheet.js';
@@ -262,13 +264,13 @@ function enrichSheet(){
     if(h.commitments?.personal){const p=h.commitments.personal,cause=h.commitments.memories.find(m=>m.id===p.cause);$('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">ЛИЧНОЕ ДЕЛО</p><p class="empty">Более надёжное оружие · ${escape(({active:'в планах',done:'достигнуто',abandoned:'оставлено'})[p.status]||p.status)}.</p><p class="empty">${escape(cause?.cause||'Прежнее отступление заставило пересмотреть подготовку.')}</p>`);}
     if(h.planning.last){const p=h.planning.last;$('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">ОЦЕНКА СЛЕДУЮЩЕГО ДЕЛА</p><p class="empty">Путь: около ${elapsedLabel(p.ticks)}. Силы: ${p.energyCost}, с резервом ${p.energy}. Здоровье: ${p.health}. Мана: ${p.mana}.${p.prepared?' Выбран предварительный отдых.':''}</p>`);}
   }
-  if(tab==='map'){const a=state.areas[state.hero.area],departures=(a.exodus?.departures||[]).map(id=>state.migrations[id]).filter(Boolean);if(departures.length)$('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">СЛЕДЫ ПЕРЕСЕЛЕНИЙ</p>${departures.slice(-4).map(g=>`<details><summary>${escape(g.members.map(id=>state.people[id]?.name||id).join(', '))}</summary><p>Покинули место: ${escape(g.reason)}. Намеревались добраться до ${escape(state.areas[g.initialTarget||g.target]?.name||'другого города')}.</p></details>`).join('')}`);}
+  if(tab==='map'){const a=state.areas[state.hero.area],departures=(a.exodus?.departures||[]).map(id=>state.migrations[id]).filter(g=>g&&(!migrationKnowledgeOn(state)&&!g.knowledge&&!g.contactMemory||g.contactMemory?.contacts[state.hero.lineage]));if(departures.length)$('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">СЛЕДЫ ПЕРЕСЕЛЕНИЙ</p>${departures.slice(-4).map(g=>`<details><summary>${escape(g.members.map(id=>state.people[id]?.name||id).join(', '))}</summary><p>Покинули место: ${escape(g.reason)}. Намеревались добраться до ${escape(state.areas[g.initialTarget||g.target]?.name||'другого города')}.</p></details>`).join('')}`);}
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',`<div class="fact"><span>Дорожные пайки / добыча еды</span><b>${state.hero.inventory.rations} / ${state.hero.counters.forage}</b></div><div class="fact"><span>Открытые порции еды</span><b>${state.people[state.hero.lineage]?.roadSupplies?.food||0}</b></div>`);
   if(tab==='quests'){
     const cases=state.storyCases.filter(c=>c.owner===state.hero.lineage);
     const knownVerdicts=cases.map(c=>verdictKnowledgeHTML(state,c,escape,eventDate)).join('');
     if(knownVerdicts)$('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ПРОВЕРКА ПРЕЖНИХ ПРИГОВОРОВ</p>${knownVerdicts}`);
-    $('detail-panel').insertAdjacentHTML('beforeend',homeHTML(state,escape)+homeBuildingHTML(state,escape)+textHTML(state,escape)+literacyHTML(state,escape)+sequenceHTML(state,escape)+newsHTML(state,escape));
+    $('detail-panel').insertAdjacentHTML('beforeend',homeHTML(state,escape)+homeBuildingHTML(state,escape)+textHTML(state,escape)+literacyHTML(state,escape)+sequenceHTML(state,escape)+newsHTML(state,escape)+migrationKnowledgeHTML(state,escape));
     $('detail-panel').insertAdjacentHTML('beforeend',`<p class="detail-label">ДОЛГИЕ ИСТОРИИ</p>${cases.map(c=>`<details class="habit"><summary>${escape(STORY_NAMES[c.kind])} · ${escape(({active:'Продолжается',done:'Завершена',failed:'Не удалось',declined:'Отказался',abandoned:'Оставлена'})[c.status])}</summary><p>${escape(c.summary||({opening:'Необычное предложение',owed:'Долг: '+c.debt+' зол. к '+dateLabel(state,c.due),collection:'Долг пришёл за героем',evidence:'Сбор улик',trial:'Разбирательство',investigate:'Исследование'})[c.stage]||c.stage)}</p>${c.shipRecovery?`<p>${escape(shipRecoveryText(c))}</p>`:''}${c.choices.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}${c.effects.map(e=>`<p>${eventDate(e,true)} · ${escape(e.text)}</p>`).join('')}</details>`).join('')||'<p class="empty">Новые встречи ещё могут изменить эту жизнь.</p>'}`);
   }
   if(tab==='map'){

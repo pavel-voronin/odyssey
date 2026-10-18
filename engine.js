@@ -97,7 +97,7 @@ import {workshopDisputesTick,workshopDisputePlan,workshopDisputeAction} from './
 import {pairCampCare,pairCampWatch} from './modules/party-relations.js';
 import {pairDrill} from './modules/party-drill.js';
 import {pairCombatTick} from './modules/party-combination-state.js';
-import {initializeMigrations,migrationArea,migrationsTick} from './modules/migrations.js';
+import {initializeMigrations,migrationArea,migrationsTick,migrationContactTick} from './modules/migrations.js';
 import {equipmentPrice} from './modules/prices.js';
 import {initializeFinances,nextPurchase,buyUpgrade,noticeMoneyPriority,maySpend,moneyBudget} from './modules/finances.js';
 import {initializeInnerLife} from './modules/inner-life.js';
@@ -627,6 +627,7 @@ function worldTick(s) {
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   peopleTick(s,context(s,'people'));
+  migrationContactTick(s);
   npcPetsTick(s,context(s,'pet-transfer'));
   petBoardingWorldTick(s,context(s,'pet-passage'));
   propertyGiftsTick(s,context(s,'property-gifts'));

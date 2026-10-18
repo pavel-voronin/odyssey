@@ -1,3 +1,4 @@
+import {observeMigrationPlace} from './migration-memory.js';
 import {enabled} from '../rules.js';
 import {campPassage,physicalDistance} from '../geometry.js';
 export const NPC_PLACE_LIMIT=64,NPC_ROAD_LIMIT=96;
@@ -7,6 +8,7 @@ export function initializeNPCKnowledge(s,p){
 }
 export function observeNPCPlace(s,p){
   if(!enabled(s,'npc-knowledge')||!p.alive||!p.area||!s.areas[p.area])return;
+  observeMigrationPlace(s,p);
   initializeNPCKnowledge(s,p);const nav=p.navigation,a=s.areas[p.area];
   const remember=(area,local=false)=>{
     let entry=nav.places.find(e=>e.area===area.id);

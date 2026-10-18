@@ -1,3 +1,4 @@
+import {migrationKnowledgeOn} from './migration-memory.js';
 import {textValuesOn} from './text-values.js';
 import {literacyEnabled,literacyTeacherTurn,textBuyerTurn} from './literacy.js';
 import {literacyNPCTask,literacyNPCAction} from './literacy-actions.js';
@@ -156,7 +157,7 @@ function moveTask(s,p,ctx){
   if(t.kind==='askAid'&&!aidVisitTarget(s,p,t))return false;
   if(t.kind==='creditTalk'&&p.area===t.target&&s.people[t.person]?.area===p.area)t.x=s.people[t.person].x;
   if(enabled(s,'npc-contacts')&&t.kind==='visit'&&p.area===t.target){const body=localContact(s,t.person,p.area);if(body)t.x=body.x;}
-  const escape=rescueEscapeRoute(s,p,t),known=enabled(s,'npc-knowledge')&&t.knownNavigation;
+  const escape=rescueEscapeRoute(s,p,t),known=enabled(s,'npc-knowledge')&&(t.knownNavigation||t.migration&&migrationKnowledgeOn(s));
   const original=escape||(known?npcKnownRoute(p,p.area,t.target,knownNPCHazards(s,p)):ctx.route(s,p.area,t.target)),path=fordDetour(s,p,t,t.target,original);if(!path.length){p.agenda.task=null;if(known||escape)p.agenda.due=s.tick+96;if(escape)p.rescueFlight.blocked={tick:s.tick,kind:'exit'};p.status=t.migration||escape?'wandering':'resident';return false;}
   let x=t.x,next=null;
   if(path.length>1){next=path[1];x=Number(next.slice(1))>Number(p.area.slice(1))?100:0;}
@@ -220,7 +221,7 @@ function finish(s,p,ctx){
     if(marketEnabled(s)){const deal=tradeGoods(s,a,p.id,'tools','buy',1);if(deal.quantity){p.marketCargo.tools--;m.tools=1;tell(s,p,`${p.name} покупает инструмент за ◈${deal.total} на собственный заработок.`,ctx);}}
     else if(a.civic.tools>0&&m.wealth>=18){m.wealth-=18;a.civic.treasury+=18;takeGoods(s,a,'tools',1,{flow:'exported',reason:'personal-tool',actor:p.id});m.tools=1;tell(s,p,`${p.name} покупает инструменты на собственный заработок. Работа станет результативнее.`,ctx);}
   }else if(t.kind==='waitHarvest'){p.needs.energy=Math.min(100,p.needs.energy+8);m.task=null;m.due=s.tick+Math.max(8,Math.min(48,96-s.tick%96));return;}
-  else if(t.kind==='resettle'){migrationArrived(s,p);tell(s,p,`${p.name} добирается до ${a.name}. Теперь здесь его новый дом.`,ctx);}
+  else if(t.kind==='resettle'){if(!migrationArrived(s,p)){tell(s,p,`${p.name} проверяет старый адрес: условия не позволяют обосноваться. Семья ищет сведения и припасы.`,ctx);return;}tell(s,p,`${p.name} добирается до ${a.name}. Теперь здесь его новый дом.`,ctx);}
   else if(t.kind==='relocate'){p.status='resident';m.home=p.area;if(p.navigation)p.navigation.commute=null;
     tell(s,p,enabled(s,'npc-knowledge')&&t.knownNavigation&&!(a.civic?.treasury>=3)?`${p.name} приходит по старой записи о работе, но казна пуста. Придётся искать другое занятие.`:`${p.name} переезжает туда, где есть оплачиваемая работа.`,ctx);}
   else if(t.kind==='farm'&&a.civic){if(goodsEnabled(s)){const result=completeGoodsWork(s,a,t.goodsWork,{units:6+(m.tools?2:0)});paid=result.quantity>0;if(!paid)tell(s,p,`${p.name}: доступный урожай исчерпан. До восстановления угодий займусь другим делом.`,ctx);}else{a.civic.food=Math.min(100,a.civic.food+Math.round((6+(m.tools?2:0))*weatherAt(s,a).harvest));paid=true;}if(paid)m.work++;}
@@ -288,7 +289,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='rawGather'&&!goodsEnabled(s))continue;
     if(['creditTalk','creditWork'].includes(p.agenda.task?.kind)&&!creditEnabled(s))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task?.kind)&&!fieldCraftEnabled(s))continue;
-    if(p.agenda.task?.migration&&!enabled(s,'migrations'))continue;
+    if(p.agenda.task?.migration&&(!enabled(s,'migrations')||s.migrations[p.agenda.task.migration]?.knowledge&&!migrationKnowledgeOn(s)))continue;
     objectAt(s,p);
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}

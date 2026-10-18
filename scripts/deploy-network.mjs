@@ -1,5 +1,5 @@
 import {setTimeout as delay} from 'node:timers/promises';
-export async function verifyPublishedAssets(entries,verify,{concurrency=8,onChecked=()=>{}}={}){
+export async function verifyPublishedAssets(entries,verify,{concurrency=2,onChecked=()=>{}}={}){
  if(!Number.isInteger(concurrency)||concurrency<1)throw Error('Invalid verification concurrency');
  const files=entries.filter(([file])=>file!=='index.html');let checked=0;
  for(let offset=0;offset<files.length;offset+=concurrency)await Promise.all(files.slice(offset,offset+concurrency).map(async ([file,hash])=>{await verify(file,hash);onChecked(++checked,files.length);}));
