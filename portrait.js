@@ -1,10 +1,11 @@
+import {withLimbLook} from './modules/limb-state.js';
 import {heroAppearance} from './appearance.js';
 import {race} from './content.js';
 import {drawHead} from './actor-head.js';
 import {drawGarment} from './outfit.js';
 const painted=new WeakMap();
 export function portraitModel(s){
-  const h=s.hero,look=s.rules?.appearance===false?h.appearance:heroAppearance(s);
+  const h=s.hero,look=withLimbLook(s.people[h.lineage],s.rules?.appearance===false?h.appearance:heroAppearance(s));
   return {look:portraitLook(look),species:s.rules?.lineage===false?null:race(h.race),alive:h.alive};
 }
 const portraitLook=look=>Object.fromEntries(['skin','hair','hairStyle','hat','cloak','shoes','glasses','earring','scarf','scarfColor','capColor','coat','armored','trousers','garmentVersion','material','trim','plateColor','edgeColor','injuryMarks'].map(key=>[key,look?.[key]]));

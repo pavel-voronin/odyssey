@@ -1,3 +1,4 @@
+import {recordLimbLoss} from './limb-events.js';
 import {enabled} from '../rules.js';
 import {armorCoverage} from './armor.js';
 import {woundActor,woundParts} from './wound-state.js';
@@ -23,5 +24,5 @@ export function recordLocalWound(s,p,enemy,{before,after,maximum,area,controller
  if(w){w.effectBefore=w.lastHit===s.tick?w.effectBefore:w.severity/3*(1-w.function/100);w.severity=Math.min(3,w.severity+severity);w.closure=cut?0:100;w.function=Math.min(w.function,25);w.lastHit=s.tick;w.lastCause=cause;w.bleed=cut?8:0;if(w.dressing)w.dressing.remaining=0;}
  else {w={id:++state.serial,part,label,role,kind,severity,closure:cut?0:100,function:0,bleed:cut?8:0,lastHit:s.tick,effectBefore:0,firstCause:cause,lastCause:cause};state.active.push(w);}
  (s.woundClock ||= {version:1,active:[]}).active.includes(p.id)||s.woundClock.active.push(p.id);
- return w;
+ recordLimbLoss(s,p,w,cause);return w;
 }

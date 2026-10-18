@@ -1,11 +1,13 @@
+import {canHoldWeapon} from './limb-state.js';
 import {enabled} from '../rules.js';
 import {profile} from './common.js';
 import {itemWorking} from './item-condition.js';
 
 export const WEAPON_STYLES={quick:{name:'Короткий удар',energy:2},heavy:{name:'Подготовленный удар',energy:3}};
-export const weaponStylesOn=s=>enabled(s,'weapon-styles')&&enabled(s,'equipment')&&enabled(s,'identity');
+const rulesOn=s=>enabled(s,'weapon-styles')&&enabled(s,'equipment')&&enabled(s,'identity');
+export const weaponStylesOn=s=>rulesOn(s)&&canHoldWeapon(s.people[s.hero.lineage]);
 export function itemStyle(item){return itemWorking(item)&&item.weaponStyle?.version===1&&item.slot==='weapon'&&item.stat==='attack'&&({blade:'quick',axe:'heavy'}[item.base])===item.weaponStyle.id?item.weaponStyle.id:null;}
-export function markNewWeapon(s,item){if(weaponStylesOn(s)&&item.slot==='weapon'&&item.stat==='attack'&&['blade','axe'].includes(item.base))item.weaponStyle={version:1,id:item.base==='blade'?'quick':'heavy'};}
+export function markNewWeapon(s,item){if(rulesOn(s)&&item.slot==='weapon'&&item.stat==='attack'&&['blade','axe'].includes(item.base))item.weaponStyle={version:1,id:item.base==='blade'?'quick':'heavy'};}
 const person=s=>s.people[s.hero.lineage];
 export function weaponKnowledge(s,id=itemStyle(s.hero.equipment?.weapon)){
  return weaponStylesOn(s)&&id?person(s)?.weaponPractice?.methods?.[id]||null:null;
@@ -73,5 +75,5 @@ export function weaponAcquisitionValue(s,item){
 }
 export function weaponDescription(s,item){
  const id=itemStyle(item);if(!id)return '';
- return `${WEAPON_STYLES[id].name}: ${id==='quick'?'меньше урон, 2 силы за удар':'действие и 2 силы на подготовку, затем 3 силы на удар; враг отвечает во время подготовки'}.${weaponStylesOn(s)?weaponKnowledge(s,id)?' Приём знаком.':' Пока использует обычный удар; учится на настоящих попаданиях.':' Приёмы отключены.'}`;
+ return `${WEAPON_STYLES[id].name}: ${id==='quick'?'меньше урон, 2 силы за удар':'действие и 2 силы на подготовку, затем 3 силы на удар; враг отвечает во время подготовки'}.${!canHoldWeapon(person(s))?' Для приёма нужна рука; прежние знания сохранены.':weaponStylesOn(s)?weaponKnowledge(s,id)?' Приём знаком.':' Пока использует обычный удар; учится на настоящих попаданиях.':' Приёмы отключены.'}`;
 }

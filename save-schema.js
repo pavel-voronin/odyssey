@@ -1,3 +1,4 @@
+import {validateLimbLosses} from './modules/limb-schema.js';
 import {validatePatients} from './modules/patient-schema.js';
 import {validateWoundCare} from './modules/wound-care-schema.js';
 import {validateWounds} from './modules/wound-schema.js';
@@ -155,7 +156,7 @@ export function validateSave(s){
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

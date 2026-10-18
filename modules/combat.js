@@ -1,3 +1,4 @@
+import {weaponBody} from './limb-state.js';
 import {woundForce} from './wound-state.js';
 import {cacheItems} from './item-originals.js';
 import {partyAvailable} from './party-needs.js';
@@ -17,7 +18,7 @@ import {styleDamage,weaponStylesOn} from './weapon-styles.js';
 
 export function combatAttack(s, enemy, raw, ctx,style=null) {
   const h = s.hero, skill = profile(h).skill;
-  let damage = raw + profile(h).attack + itemBonus(h, 'attack') + (enabled(s, 'identity') ? Math.floor(stat(h,'might') / 3) : 0);
+  let damage = raw + profile(h).attack + itemBonus(weaponBody(s,h), 'attack') + (enabled(s, 'identity') ? Math.floor(stat(weaponBody(s,h),'might') / 3) : 0);
   if (skill === 'magic') damage += Math.floor(stat(h,'wit') / 2) + itemBonus(h, 'magic');
   if (skill === 'beast' && enemy.tags?.includes('beast')) damage += 3;
   if (skill === 'spirit' && enemy.tags?.includes('spirit')) damage += 4;

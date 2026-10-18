@@ -1,3 +1,4 @@
+import {limbWorkAllows} from './limb-state.js';
 import {woundForce,woundActivity} from './wound-state.js';
 import {containersOn} from './container-state.js';
 import {loadPackCargo,spillPackCargo} from './container-cargo.js';
@@ -45,6 +46,7 @@ export function planWork(s,ctx,{interest=false}={}){
   if(enabled(s,'districts')&&town.city){const district=Object.values(s.areas).find(a=>a.city===town.city&&a.services?.includes(p.skill));if(district)town=district;}
   let job=JOBS.find(j=>j.skills.includes(p.skill))||JOBS.find(j=>j.id==='dock');
   if(goodsEnabled(s)&&motive.kind==='need'&&town.civic.food<35&&productionSources(s,town).field.stock>0)job=JOBS.find(j=>j.id==='harvest');
+  if(!limbWorkAllows(s.people[h.lineage],job.id))job=JOBS.find(j=>j.id==='market');
   if(job.id==='song'){if(planSongWork(s,ctx,motive))return true;job=JOBS.find(j=>j.id==='dock');}
   if(job.id==='repair'&&enabled(s,'property')){
     const away=h.life.residence?.away;
@@ -53,13 +55,14 @@ export function planWork(s,ctx,{interest=false}={}){
     else if(motive.kind==='interest')return false;
     else job=JOBS.find(j=>j.id==='dock'); // Wage labour until a real workspace is known and accessible.
   }
+  if(!limbWorkAllows(s.people[h.lineage],job.id))job=JOBS.find(j=>j.id==='market');
   if(!knownServiceAllows(s,town,'employment',{job:job.id}))return false;
   ctx.goal(s,'work',town.id,42,job.name,motive.reason,{job:job.id,remaining:job.duration,motive:motive.kind});
   if(enabled(s,'work-loss')&&job.id==='repair'){const known=Object.entries(h.property.known).find(([,k])=>k.area===town.id&&k.state==='intact');if(known)h.goal.workplace={id:known[0],area:town.id,owner:known[1].owner};}return true;
 }
 export function workTick(s,ctx){
   const h=s.hero,g=h.goal,job=JOBS.find(j=>j.id===g.job);
-  if(!job||!enabled(s,'work')){h.goal=null;return;}
+  if(!job||!limbWorkAllows(s.people[h.lineage],job.id)||!enabled(s,'work')){h.goal=null;return;}
   if(job.id==='harvest'&&!goodsEnabled(s))return;
   if(job.id==='song'){songAction(s,ctx);return;}
   if(job.id==='repair'){

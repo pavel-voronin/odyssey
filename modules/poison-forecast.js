@@ -38,10 +38,9 @@ export function careArrival(s,target,x,ctx){
   const to=passage?passage.x:next?(Number(next.slice(1))>Number(a.id.slice(1))?100:0):x;
   // Remote weather is a conservative assumption, not hidden fresh observation.
   const weather=a.id===h.area?weatherAt(s,a):{speed:.6};
-  const stride=(h.conditions.some(c=>c.id==='frost')?4:6)*weather.speed;
-  if(!(stride>0))return null;
+  if(!(weather.speed>0))return null;
   const distance=Math.max(0,physicalDistance(a,from,to)-areaScale(a));
-  ticks+=mealWarmth(s)?foodWalkingTicks(s,distance,weather.speed,s.tick+ticks):Math.ceil(distance/stride);
+  ticks+=foodWalkingTicks(s,distance,weather.speed,s.tick+ticks);
   if(next){ticks++;from=passage?.arrival??(to===100?5:95);}
  }
  return {ticks:ticks+1,area:target,x,path,remoteWeatherEstimated:path.length>1};

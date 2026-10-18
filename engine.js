@@ -1,3 +1,5 @@
+import {adaptLimbPlan} from './modules/limb-plan.js';
+import {weaponBody} from './modules/limb-state.js';
 import {patientPlan,patientClinicAction,patientsTick,syncPatient} from './modules/party-injuries.js';
 import {patientJourney} from './modules/patient-state.js';
 import {woundCareTurn} from './modules/wound-care.js';
@@ -575,12 +577,12 @@ function fight(s, enemy) {
   if(technique?.id==='windup'&&beginWeapon(s,enemy,context(s,'combat'))){resolveCombatChoice(s,'windup',{energySpent:2,reason:technique.reason});enemyResponse(s,enemy);return;}
   const style=technique&&finishWeapon(s,enemy,technique.id==='release'?'heavy':technique.id)?technique.id==='release'?'heavy':technique.id:null;
   if(!style)cancelWeapon(s,'Выбран обычный удар.');
-  const raw = 4 + h.weapon * 3 + Math.floor(h.level / 2) + roll(s, 4);
+  const raw = 4 + weaponBody(s,h).weapon * 3 + Math.floor(h.level / 2) + roll(s, 4);
   const damage = combatAttack(s, enemy, raw, context(s, 'combat'),style);
   const energy=style?WEAPON_STYLES[style].energy:3;
   const enemyBefore=enemy.hp;enemy.hp -= damage; h.energy = Math.max(0, h.energy - energy); h.lastAction = 'attack';
   recordWeaponHit(s,enemy,damage,enemyBefore);
-  wearWeaponHit(s,enemy,damage,enemyBefore,context(s,'item-wear'));
+  if(weaponBody(s,h)===h)wearWeaponHit(s,enemy,damage,enemyBefore,context(s,'item-wear'));
   resolveCombatChoice(s,'attack',{damage,...(style?{weaponStyle:style,energySpent:energy,reason:technique.reason}:{})});
   actorFact(s,'attack','hero',enemy.id);
   if(enabled(s,'companions'))for(const c of h.companions)if(c.attack>0&&partyAvailable(s,c)&&(!partyCombatOn(s)||!c.person))actorFact(s,'attack',companionKey(c),enemy.id);
@@ -789,6 +791,7 @@ function actObserved(s) {
     h.memory.shopAfter = s.tick + 240; h.goal = null;
     log(s, 'Поиски Савы затянулись. Герой откладывает покупку и возвращается к исследованию.', 'talk');
   }
+  adaptLimbPlan(s,context(s,'limb-loss'));
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}

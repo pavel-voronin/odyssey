@@ -1,3 +1,4 @@
+import {limbCanCarry} from './limb-state.js';
 import {actorView} from '../actor-view.js';
 import {physicalDistance} from '../geometry.js';
 import {knownArea} from '../actor-atlas.js';
@@ -18,7 +19,7 @@ const ready=(s,p)=>p.health>=(p.maxHealth||100)*.4&&woundImpairment(s,p,'leg')<.
 function removeBody(s,p){for(const a of Object.values(s.areas)){a.objects=a.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);if(a.population)a.population=a.population.filter(id=>id!==p.id);}}
 function body(s,p){removeBody(s,p);const a=s.areas[p.area];if(!a)return;a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);a.objects.push({id:'injury-wait/'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x});}
 function note(s,h,p,stage){if(!h)return;const notes=h.patientNotes ||= {};notes[p.id]={person:p.id,name:p.name,area:p.area??p.partyInjury.station.area,x:p.x??p.partyInjury.station.x,seen:s.tick,stage};for(const id of Object.keys(notes).sort((a,b)=>notes[a].seen-notes[b].seen).slice(0,-8))delete notes[id];}
-function canSupport(s,h,p,c){return !supportedPatient(s,h)&&h.alive&&!h.transit&&h.energy>=40&&h.hp>=h.maxHp*.6&&stat(h,'might')>=6&&woundImpairment(s,s.people[h.lineage],'arm')<.5&&h.personality.generosity>=.45&&(h.relations[p.id]?.trust??0)>=0&&c.loyalty>=50&&packView(s,h.lineage).free>=8+packView(s,p.id).used;}
+function canSupport(s,h,p,c){return !supportedPatient(s,h)&&h.alive&&!h.transit&&h.energy>=40&&h.hp>=h.maxHp*.6&&limbCanCarry(s.people[h.lineage])&&stat(h,'might')>=6&&woundImpairment(s,s.people[h.lineage],'arm')<.5&&h.personality.generosity>=.45&&(h.relations[p.id]?.trust??0)>=0&&c.loyalty>=50&&packView(s,h.lineage).free>=8+packView(s,p.id).used;}
 function park(s,p,h,reason,leave=false){const d=p.partyInjury;if(h?.injuredPassenger===p.id)h.injuredPassenger=null;d.stage=leave?'left':'waiting';d.reason=reason;d.carrier=null;d.station={area:p.area,x:p.x};p.status=leave?'resident':'injury-wait';body(s,p);if(h?.alive&&h.area===p.area&&!h.transit&&physicalDistance(s.areas[p.area],h.x,p.x)<=30)note(s,h,p,d.stage);invalidateNPCControl(s);}
 export function beginPatientCare(s,c,ctx){
  const h=s.hero,p=s.people[c?.person];if(!injuredPartyOn(s)||!h.alive||h.transit||!p?.alive||!h.companions.includes(c)||!severe(s,p)||selfDrivenActor(s,p.id)||!npcAction(s,p,'party','injury'))return false;

@@ -1,3 +1,4 @@
+import {withLimbLook} from './modules/limb-state.js';
 import {paintPatient} from './patient-view.js';
 import {occupiedCover} from './modules/position-state.js';
 import {paintStoneCover,paintPositionRay} from './position-view.js';
@@ -125,7 +126,7 @@ export class Scene {
     const p=pair?pair[0].map((color,i)=>blendColor(color,pair[1][i],travel.mix.progress)):s.rules?.scenery===false?base:areaPalette(terrain),ground=this.composition?.actorGround??ht*.72,backGround=this.composition?.buildingGround??ground;
     const weather=weatherAt(s,a);
     const profile=s.rules?.['color-profile']===false||this.profileMode==='legacy'?null:sceneProfile(s,terrain,weather),pass=this.grade.begin(viewportWidth,ht,dpr,profile,this.profileMode);this.ctx=c=pass.context;
-    const view=travel?.mix?blendScenery(scenery(s.seed,travel.mix.from),scenery(s.seed,travel.mix.to),travel.mix.progress):scenery(s.seed,terrain,s.rules?.scenery!==false),looks=(actor,legacy)=>s.rules?.appearance===false?legacy:personAppearance(s,actor,legacy);
+    const view=travel?.mix?blendScenery(scenery(s.seed,travel.mix.from),scenery(s.seed,travel.mix.to),travel.mix.progress):scenery(s.seed,terrain,s.rules?.scenery!==false),looks=(actor,legacy)=>withLimbLook(actor,s.rules?.appearance===false?legacy:personAppearance(s,actor,legacy));
     const underground=['cave','dungeon','undercity'].includes(terrain.type)||terrain.realm==='underground',water=terrain.type==='sea';
     const animate=!this.reduced&&s.rules?.animation!==false;if(!animate)this.actionObserved=false;
     const phase=animate?Math.min(1,(now-this.started)/240):1,actionPhase=this.actionObserved?phase:1,fall=this.deathMotion.progress(now,animate);
@@ -306,7 +307,7 @@ export class Scene {
     let detailedDrawn=0;
     if(!h.transit)for(const other of Object.values(s.actorStates||{}))if(other!==h&&selfDrivenActor(s,other)&&!other.transit&&other.area===a.id){
       detailedDrawn++;const track=this.beastTracks.tracks.get(other.lineage),from=track?.from??other.x,to=track?.to??other.x,walking=animate&&from!==to&&phase<1,px=screenX(from+(to-from)*phase),direction=track?.direction||other.facing||1;
-      const look=s.rules?.appearance===false?{...other.appearance,prop:other.weapon>0?'blade':'none'}:heroAppearance({...s,hero:other});
+      const look=withLimbLook(s.people[other.lineage],s.rules?.appearance===false?{...other.appearance,prop:other.weapon>0?'blade':'none'}:heroAppearance({...s,hero:other}));
       this.person(px,ground,look?.cloak||'#a9c686',false,direction,0,Boolean(track?.attack)&&actionPhase<.8,other.lastAction==='rest'||Boolean(occupiedCover(s,other)),look,s.rules?.lineage===false?null:race(other.race),{kind:occupiedCover(s,other)?'rest':other.lastAction,progress:actionPhase,walking,distance:Math.abs(to-from)*(w-48)/100,hurt:Boolean(track?.hurt)&&actionPhase>.45&&actionPhase<.95});
       if(s.rules?.companions!==false)for(let i=0;i<other.companions.length;i++){
         const companion=other.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(companion.person===h.lineage||body&&body.area!==a.id)continue;const cx=body?screenX(body.x):px-direction*petPartyOffset(other.companions,i),petTrack=this.beastTracks.tracks.get(companionKey(companion));
@@ -326,7 +327,7 @@ export class Scene {
       const walking = h.lastAction === 'walk' && actionPhase < 1 && !this.reduced&&this.to!==this.from;
       const bob = 0;
       if (h.lastAction === 'rest') { c.fillStyle = '#bcd18e'; c.font = '12px Georgia'; c.fillText('z', hx + 16, ground - 43); }
-      const heroLook=s.rules?.appearance===false?h.appearance:heroAppearance(s);
+      const heroLook=withLimbLook(s.people[h.lineage],s.rules?.appearance===false?h.appearance:heroAppearance(s));
       this.person(hx, ground - bob, heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{kind:occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
       if(s.rules?.equipment!==false&&s.rules?.enchantments!==false&&h.equipment?.charm){const color=CHARM_LIGHT_COLORS[h.equipment.charm.modifier];if(color){c.fillStyle=color;c.shadowColor=color;c.shadowBlur=5;c.fillRect(hx+3,ground-24-bob,3,3);c.shadowBlur=0;}}
       if (s.rules?.companions !== false) for (let i=0;i<(h.companions?.length||0);i++) {
@@ -346,7 +347,7 @@ export class Scene {
       }
     }else{
       const body=s.rules?.remains===false?null:bodyRemains(s,h),p=body?.position;
-      const look=body?.death.appearance||(s.rules?.appearance===false?h.appearance:heroAppearance(s));
+      const look=withLimbLook(body?{race:body.death.race,anatomy:body.death.anatomy}:s.people[h.lineage],body?.death.appearance||(s.rules?.appearance===false?h.appearance:heroAppearance(s)));
       if(!body||!body.carrier&&p.kind==='area'&&p.area===a.id){
         c.save();c.translate(body?screenX(p.x):hx,ground);c.rotate((body?body.death.fallSide||1:(h.deathSnapshot?.x??h.x)>80?-1:1)*Math.PI*.5*fall);this.person(0,0,look?.cloak||'#8b8d73',body?Boolean(body.death.traveller):true,body?.facing||h.facing,0,false,false,look,body?corpseSpecies(s,body):s.rules?.lineage===false?null:race(h.race),{kind:'death',progress:fall});c.restore();
       }
@@ -556,6 +557,7 @@ export class Scene {
   }
   paintPerson(x, y, color, hero, direction, stride, attack = false, rest = false, appearance=null, species=null,pose={}) {
     const c=this.ctx,look=appearance||{},gait=pose.walking?walkPose(pose.progress,pose.distance):{feet:[{x:-4,y:0},{x:5,y:0}],bodyY:0,arm:0};
+    rest=rest||Boolean(look.missingLimbs?.leftLeg&&look.missingLimbs?.rightLeg);
     const crouch=pose.kind==='collect',guard=pose.kind==='guard',windup=pose.kind==='windup',lower=rest?10:crouch?7:guard?4:windup?2:0,working=['work','farm','medicine','tool','learn','factionDuty'].includes(pose.kind),t=pose.progress||0;
     c.save();c.translate(x,y);c.scale(direction*(species?.height||1)*(look.width||1),species?.height||1);
     if(this.state.rules?.['source-shadows']===false){c.fillStyle='#14241d';c.globalAlpha=.18;c.beginPath();c.moveTo(-7,0);c.lineTo(6,0);c.lineTo(9,2);c.lineTo(-9,2);c.fill();c.globalAlpha=1;}
@@ -563,6 +565,7 @@ export class Scene {
     const skin=pose.hurt?'#d2a18a':actorSkin(look,species);
     const feet=lower?[{x:-12,y:-lower},{x:13,y:-lower}]:gait.feet;
     for(let i=0;i<2;i++){
+      if(look.missingLimbs?.[i?'rightLeg':'leftLeg'])continue;
       const hip=i?3:-3,foot=feet[i];c.strokeStyle=look.trousers||'#283629';c.lineWidth=4;c.beginPath();c.moveTo(hip,-12+gait.bodyY);c.lineTo((hip+foot.x)/2+2,(-12+foot.y)/2-1);c.lineTo(foot.x,foot.y-1);c.stroke();
       c.fillStyle=look.shoes||'#3f382e';c.fillRect(foot.x-3,foot.y-3,7,3);
     }
@@ -583,8 +586,8 @@ export class Scene {
     else if(pose.kind==='talk')hand={x:14,y:-23-Math.sin(t*Math.PI)*4};
     else if(working)hand={x:13,y:-22-Math.sin(t*Math.PI*2)*4};
     if(pose.hurt)hand={x:6,y:-30};
-    c.strokeStyle=skin;c.lineWidth=3;c.beginPath();c.moveTo(-4,-26);c.lineTo(guard?5:-8-gait.arm,guard?-32:-18);c.moveTo(5,-26);c.lineTo(hand.x,hand.y);c.stroke();
-    const prop=look.prop||(hero&&this.state.hero.weapon>0?'blade':'none');
+    c.strokeStyle=skin;c.lineWidth=3;c.beginPath();if(look.missingLimbs?.rightArm&&!look.missingLimbs.leftArm)hand={x:-hand.x,y:hand.y};if(!look.missingLimbs?.leftArm){c.moveTo(-4,-26);c.lineTo(look.missingLimbs?.rightArm?hand.x:guard?5:-8-gait.arm,look.missingLimbs?.rightArm?hand.y:guard?-32:-18);}if(!look.missingLimbs?.rightArm){c.moveTo(5,-26);c.lineTo(hand.x,hand.y);}c.stroke();
+    const prop=look.missingLimbs?.leftArm&&look.missingLimbs?.rightArm?'none':look.prop||(hero&&this.state.hero.weapon>0?'blade':'none');
     c.save();
     if(windup){c.translate(hand.x-10,hand.y+17);c.translate(10,-17);c.rotate(-.6);c.translate(-10,17);}
     else if(lower){const base=['staff','spear','rake','hammer','axe'].includes(prop)?2:prop==='satchel'?5:prop==='lute'?8:prop==='book'?10:lower;c.translate(-3,base-lower);}

@@ -1,3 +1,4 @@
+import {adaptNPCWork} from './limb-state.js';
 import {woundNPCTurn} from './wound-care.js';
 import {woundStride,woundForce,woundActivity} from './wound-state.js';
 import {observeShortcutPerson} from './shortcut-observation.js';
@@ -302,7 +303,7 @@ export function peopleTick(s,ctx){
     objectAt(s,p);
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}
-    bindNPCDeedTask(s,p);
+    adaptNPCWork(s,p);bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
     if(feastNPCAction(s,p,ctx))continue;
