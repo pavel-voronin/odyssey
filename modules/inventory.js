@@ -1,3 +1,4 @@
+import {reserveArmor,refreshReserve,spareNeedsMoney} from './spare-outfit.js';
 import {physicalDistance} from '../geometry.js';
 import {containersOn,packView,fitsPack,itemUnits} from './container-state.js';
 import { PROFESSIONS, DESTINIES, HABITS, CONDITIONS, ENEMY_SPECIES, ENEMY_POWERS, ITEM_BASES, ITEM_ORIGINS, ITEM_EPITHETS, ENCOUNTERS, PETS, FACTIONS, profession, destiny } from '../content.js';
@@ -64,7 +65,7 @@ export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=fal
     recordLootDiscard(s,abandoned);
     ctx.log(s, physical.length?`Сумка переполнена. На дороге остаётся поклажа: ${physical.map(i=>i.name).join('; ')}.`:'Сумка переполнена. Даже скопидому приходится оставить часть поклажи на дороге.', 'loot');
   }
-  settleLootResults(s);refreshCollection(s,ctx);return item;
+  settleLootResults(s);refreshCollection(s,ctx);refreshReserve(s);return item;
 }
 
 export function recoverHeirloom(s,object,ctx){
@@ -82,11 +83,12 @@ export function recoverHeirloom(s,object,ctx){
 export function sellBag(s, ctx) {
   const h = s.hero;
   if(containersOn(s)&&(h.transit||h.area!==s.merchant.area||physicalDistance(s.areas[h.area],h.x,58)>1))return;
-  if (!h.bag.length || hasHabit(h, 'hoarder') && h.bag.length < 18||enchantmentStrength(h,'greed')&&h.bag.length<12) return;
+  if (!h.bag.length || !spareNeedsMoney(s,ctx)&&(hasHabit(h, 'hoarder') && h.bag.length < 18||enchantmentStrength(h,'greed')&&h.bag.length<12)) return;
   const collection=collectionKeep(s),keep=collection?h.bag.filter(i=>collection.has(i.id)):hasHabit(h, 'collector') ? h.bag.filter(i => i.rarity >= 2) : [];
   s.merchant.items ||= [];
   const physical=containersOn(s)||originalsOn(s)||s.merchant.itemOriginalsVersion===1||h.bag.some(i=>i.physical?.version===1||i.durability);
-  const candidates=h.bag.filter(i => !keep.includes(i)&&i.kind!=='bioMaterial');
+  const reserve=spareNeedsMoney(s,ctx)?null:reserveArmor(s);
+  const candidates=h.bag.filter(i => !keep.includes(i)&&i!==reserve&&i.kind!=='bioMaterial');
   let sold;if(containersOn(s)){let occupied=s.merchant.items.reduce((n,i)=>n+itemUnits(i),0);sold=candidates.filter(i=>{const units=itemUnits(i);if(occupied+units>ITEM_CAPACITY)return false;occupied+=units;return true;});}else sold=physical?candidates.slice(0,Math.max(0,ITEM_CAPACITY-s.merchant.items.length)):candidates;
   if(!sold.length&&physical){if(candidates.length&&h.itemBuyerFull!==s.merchant.items.length){h.itemBuyerFull=s.merchant.items.length;ctx.log(s,'У Савы нет места для новых вещей. Непроданные находки остаются в сумке.','trade');}return;}
   const income = sold.reduce((n, i) => n + itemWorth(i), 0) * (profile(h).skill === 'trade' ? 1 : .7);
@@ -97,5 +99,5 @@ export function sellBag(s, ctx) {
   if(!physical&&s.merchant.items.length>24)s.merchant.items.splice(0,s.merchant.items.length-24);
   h.gold += Math.floor(income); h.bag = h.bag.filter(item=>!sold.includes(item));
   if (sold.length) ctx.log(s, `Сава покупает ${sold.length} находок: ◈${Math.floor(income)}.`, 'trade',h.area,{meaning:lootSaleMeaning(s,sold,Math.floor(income))});
-  settleLootResults(s);
+  settleLootResults(s);refreshReserve(s);
 }

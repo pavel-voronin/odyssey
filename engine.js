@@ -1,3 +1,4 @@
+import {changeSpareOutfit,spareNeedsMoney} from './modules/spare-outfit.js';
 import {containersOn,packView,stackRoom} from './modules/container-state.js';
 import {canLoadPackCargo} from './modules/container-cargo.js';
 import {recordRemains,recordHeroRemains} from './modules/remains.js';
@@ -81,7 +82,7 @@ import {pairDrill} from './modules/party-drill.js';
 import {pairCombatTick} from './modules/party-combination-state.js';
 import {initializeMigrations,migrationArea,migrationsTick} from './modules/migrations.js';
 import {equipmentPrice} from './modules/prices.js';
-import {initializeFinances,nextPurchase,buyUpgrade,noticeMoneyPriority,maySpend} from './modules/finances.js';
+import {initializeFinances,nextPurchase,buyUpgrade,noticeMoneyPriority,maySpend,moneyBudget} from './modules/finances.js';
 import {initializeInnerLife} from './modules/inner-life.js';
 import {recoverHeirloom} from './modules/inventory.js';
 import {cacheCollectible,itemLocation} from './modules/item-originals.js';
@@ -150,7 +151,7 @@ export function random(s) {
   return s.rng / 4294967296;
 }
 const roll = (s, n) => Math.floor(random(s) * n);
-function context(s, stream) { return { fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
   if(observingBodyActive(s)||type==='death'||type==='retirement')rememberMoment(s,s.journal[0]);else s.journal[0].afterLife=true;
@@ -742,6 +743,7 @@ function actObserved(s) {
   if(!rescueTarget(s,{log,failQuest})||!intentionTarget(s)||!lodgingTarget(s)||!aidTarget(s)||!serviceTarget(s,context(s,'work-orders'))||!propertyAidTarget(s,context(s,'property-aid'))||!propertyGiftTarget(s,context(s,'property-gifts'))||!propertyContractTarget(s,context(s,'property-contracts'))||!propertyTarget(s,context(s,'property')))return s;
   if(!itemRepairTarget(s,context(s,'item-wear'))||!refitTarget(s)||!workshopWorkTarget(s,{...context(s,'workshop-interiors'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
+  if(changeSpareOutfit(s,context(s,'spare-outfit')))return s;
   preparePlan(s,context(s,'preparation'));
   const g = h.goal;
   if (!g) return s;
