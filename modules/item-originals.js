@@ -7,6 +7,7 @@ export function presentItem(input,id){
  const s=rootWorld(input),actors=new Map(Object.values(s.actorStates||{}).map(h=>[h.lineage,h]));actors.set(input.hero.lineage,input.hero);
  for(const h of actors.values())for(const item of [...h.bag,...Object.values(h.equipment).filter(Boolean)])if(item.id===id)return {item,kind:'person',id:h.lineage};
  for(const item of s.merchant.items||[])if(item.id===id)return {item,kind:'merchant',id:'merchant'};
+ for(const edge of Object.values(s.edges||{}))for(const item of edge.lift?.parts||[])if(item.id===id)return {item,kind:'mechanism',id:edge.lift.id};
  for(const p of Object.values(s.people))for(const order of Object.values(p.forging?.orders||{}))if(order.status==='working')for(const m of order.materials)if(m.state==='reserved'&&m.original?.id===id)return {item:m.original,kind:'forge-order',id:order.id};
  for(const a of Object.values(s.areas))for(const o of a.objects)for(const item of [...(o.items||[]),...(o.paymentItems||[])])if(item.id===id)return {item,kind:o.paymentItems?.includes(item)?'object':'cache',area:a.id,object:o.id};
  for(const p of Object.values(s.people)){const items=actors.has(p.id)?[]:[...(p.looseItems||[]),...(p.legacy?.keepsakes||[])];for(const item of items)if(item.id===id)return {item,kind:'person',id:p.id};}

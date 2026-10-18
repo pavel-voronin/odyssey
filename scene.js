@@ -14,6 +14,9 @@ import {SceneGrade,sceneProfile} from './color-profile.js';
 import {facadeLayout} from './facades.js';
 import {sceneComposition,surfaceShadow,surfaceShadowAlpha,projectedCaster} from './composition.js';
 import {actorSkin,drawHead} from './actor-head.js';
+import {creatureTraceVisible,drawCreatureTrace} from './creature-trace-view.js';
+import {drawMechanisms,drawLifts} from './mechanism-view.js';
+import {scentPlantKnown} from './modules/pet-scent-policy.js';
 import { race } from './content.js';
 import {calendar} from './calendar.js';
 import {appearance,heroAppearance,personAppearance} from './appearance.js';
@@ -183,9 +186,12 @@ export class Scene {
     const weatherMoving=this.precipitation(weather.id,a.id,view,w,ground,now,animate);
     if(weather.id==='fog'){c.fillStyle='#c0cac2';c.globalAlpha=.23;c.fillRect(0,ground*.4,w,ground*.6);c.globalAlpha=1;}
     if(weather.id==='heat'){c.fillStyle='#be9e6e';c.globalAlpha=.08;c.fillRect(0,0,w,ground);c.globalAlpha=1;}
+    drawMechanisms(c,s,a,screenX,ground);
+    drawLifts(c,s,a,screenX,ground);
     for (const o of a.objects) {
       const beastTrack=this.beastTracks.tracks.get(o.id),beastMotion=s.rules?.['creature-motion']!==false;
       const x = screenX(beastMotion&&beastTrack?beastTrack.from+(beastTrack.to-beastTrack.from)*phase:o.x);
+      if(creatureTraceVisible(s,a,o))drawCreatureTrace(c,x,ground,o.trace.group);
       if (o.kind === 'enemy' && o.alive) {
         c.save();if(s.rules?.mutations!==false&&o.mutation==='giant'){c.translate(x,ground);c.scale(1.15,1.15);c.translate(-x,-ground);}if(s.rules?.mutations!==false&&o.mutation==='phase')c.globalAlpha=.65;
         const elementColors={fire:'#c99362',frost:'#8cbac8',storm:'#a6a5d4',venom:'#9dbd79',arcane:'#bc8fb7',grave:'#94a49b'};if(s.rules?.elements!==false&&elementColors[o.element]){c.save();c.strokeStyle=elementColors[o.element];c.globalAlpha=.45;c.lineWidth=2;c.beginPath();c.ellipse(x,ground-17,18,23,0,0,7);c.stroke();c.restore();}
@@ -224,11 +230,11 @@ export class Scene {
         const watchBody=s.rules?.['npc-watch-needs']!==false&&p&&['marching','guarding','returning'].includes(p.status)&&s.society.orders.some(order=>order.person===p.id);
         const partyBody=p&&(p.id===h.lineage||actorPartyLeader(s,p.id));
         const detailed=p&&s.actorStates?.[p.id]&&selfDrivenActor(s,p.id);
-        if((!p||!detailed)&&(!p||!partyBody&&p.alive&&p.area===a.id&&(['resident','guarding','wandering'].includes(p.status)||watchBody))){
+        if((!p||!detailed)&&(!p||!partyBody&&p.alive&&!p.liftTransit&&p.area===a.id&&(['resident','guarding','wandering','lever-duty'].includes(p.status)||watchBody))){
           const species=p&&s.rules?.lineage!==false?{...race(p.race),height:race(p.race).height*(p.role==='ребёнок'?.65:1)}:null;
           const look=p?looks(p,p.appearance):null;
           const track=this.actorPositions?.get(o.person),walking=track&&track.from!==track.to&&phase<1&&!this.reduced;
-          const px=walking?screenX(track.from+(track.to-track.from)*phase):x,rest=Boolean(p?.needs?.sleeping)&&(!watchBody||s.rules?.['npc-needs']!==false),kind=rest?'rest':p?.agenda?.task?.kind||'idle';
+          const px=walking?screenX(track.from+(track.to-track.from)*phase):x,rest=Boolean(p?.needs?.sleeping)&&(!watchBody||s.rules?.['npc-needs']!==false),kind=rest?'rest':p?.mechanismDuty?.stage==='holding'?'work':p?.agenda?.task?.kind||'idle';
           this.person(px,ground,look?.cloak||'#ac906b',false,walking?Math.sign(track.to-track.from):1,0,false,rest,look,species,{kind,progress:phase,walking,distance:track?Math.abs(track.to-track.from)*(w-48)/100:0});
           if(watchBody&&rest){c.fillStyle='#bcd18e';c.font='12px Georgia';c.fillText('z',px+12,ground-43);}
           if(p?.ailment){c.fillStyle='#db9982';c.font='11px monospace';c.fillText('!',x-3,ground-49);}
@@ -247,7 +253,7 @@ export class Scene {
         if (a.type === 'camp') this.fire(x, ground, s.tick);
         else { this.sign(x, ground, '✚'); }
       }
-      if (o.kind === 'herb' && o.count > 0) {
+      if (o.kind === 'herb' && o.count > 0&&scentPlantKnown(s,h,a,o)) {
         c.strokeStyle = '#9db57e'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, ground); c.lineTo(x, ground - 14); c.stroke();
         c.fillStyle = '#c2d6a0'; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(x + (i % 2 ? 5 : -4), ground - 5 - i * 4, 5, 2.5, i % 2 ? -.6 : .6, 0, 7); c.fill(); }
       }

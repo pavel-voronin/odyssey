@@ -20,6 +20,7 @@ function relativeIds(s,p){
 export function initializeNPCContacts(s,p){initializeNPCKnowledge(s,p);p.navigation.contacts ??=[];}
 export function localContact(s,id,area){
   const p=s.people[id];if(!p?.alive)return null;
+  if(p.liftTransit)return null;
   const leader=actorPartyLeader(s,id),detailed=s.actorStates?.[id];
   if(leader)return !leader.transit&&leader.area===area?{person:p,area,x:leader.x}:null;
   if(selfDrivenActor(s,detailed))return !detailed.transit&&detailed.area===area&&p.status!=='captive'?{person:p,area,x:detailed.x}:null;
@@ -28,7 +29,7 @@ export function localContact(s,id,area){
   const carrier=p.status==='caravan'&&s.logistics?.convoys.some(c=>c.person===id&&(c.movement==='physical'||enabled(s,'npc-logistics')));
   const traveller=p.status==='travelling'&&s.society?.journeys.some(j=>j.person===id&&j.movement==='physical');
   const guard=enabled(s,'npc-watch-needs')&&s.society?.orders.some(o=>o.person===id);
-  return p.area===area&&(['resident','wandering','guarding'].includes(p.status)||carrier||traveller||guard)?{person:p,area,x:p.x??42}:null;
+  return p.area===area&&(['resident','wandering','guarding','lever-duty'].includes(p.status)||carrier||traveller||guard)?{person:p,area,x:p.x??42}:null;
 }
 export function observeNPCContacts(s,p){
   const leader=actorPartyLeader(s,p.id),area=leader?(leader.transit?null:leader.area):p.area;

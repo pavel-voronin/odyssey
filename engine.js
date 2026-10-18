@@ -9,6 +9,19 @@ import {actorView,actorJournal,bindObservedJournal} from './actor-view.js';
 import {initializeSpatial,registerSpatialArea} from './modules/spatial.js';
 import {goodsTick} from './modules/goods.js';
 import {craftStudyPlan,craftStudyAction} from './modules/craft-practice.js';
+import {moneyCachePlan,moneyCacheAction} from './modules/money-caches.js';
+import {openInheritance} from './modules/inheritance.js';
+import {observeRouteMap,routeMapPlan,routeMapAction} from './modules/route-maps.js';
+import {mapCopyPlan,mapCopyAction} from './modules/map-copies.js';
+import {recordLastingInjury} from './modules/injury-state.js';
+import {creatureTrace,observeBestiaryTraces,encounterBestiary,bestiaryCaution,studyBestiaryPlan,studyBestiaryAction} from './modules/bestiary.js';
+import {grateClosed,knownGrateBlocked} from './modules/mechanism-policy.js';
+import {blockedGratePlan,mechanismAction} from './modules/mechanisms.js';
+import {teamLeverPlan,leverHoldAction,leverTeamTick} from './modules/lever-team.js';
+import {liftBlocked,knownLiftBlocked} from './modules/lift-policy.js';
+import {blockedLiftPlan,liftAction} from './modules/lifts.js';
+import {petTrainingTick,dogTrainingPlan,dogLessonAction,dogSearchPlan,dogSearchAction,dogFeedAction} from './modules/pet-training.js';
+import {scentPlantKnown,observeScentPlants} from './modules/pet-scent-policy.js';
 import {forgePlan,forgeAction} from './modules/forging.js';
 import {refitPlan,refitTarget,refitAction} from './modules/knife-refit.js';
 import {wearWeaponHit,wearArmorHit} from './modules/item-condition.js';
@@ -156,7 +169,7 @@ function addArea(s, type, name, depth = 0,metadata={}) {
   if (isRefuge(area)) area.objects.push({ id: id + '-rest', kind: 'rest', name: isTown(area) ? 'Дом лекаря' : 'Костёр', x: 68 });
   if (type === 'forest') {
     for (let i = 0; i < 2; i++) area.objects.push({ id: id + '-wolf' + i, kind: 'enemy', name: 'Лесной волк', x: 36 + i * 40, hp: 14 + depth * 2, maxHp: 14 + depth * 2, attack: 4 + Math.floor(depth / 2), alive: true, patrol: i ? -1 : 1 });
-    area.objects.push({ id: id + '-herb', kind: 'herb', name: 'Лунная трава', x: 55, count: 2 });
+    area.objects.push({ id: id + '-herb', kind: 'herb', name: 'Лунная трава', x: 55, count: 2,...(enabled(s,'pet-training')?{scentCover:{version:1,created:s.tick}}:{}) });
   }
   if (type === 'road') area.objects.push({ id: id + '-cache', kind: 'loot', name: 'Забытый кошель', x: 58, gold: 3 + roll(s, 5), taken: false });
   if (type === 'ruins') {
@@ -240,12 +253,12 @@ function enter(s, id) {
 }
 const navigationCache=new WeakMap();
 function navigation(s,from){
-  const revision=`${s.graphRevision||0}:${s.nextArea}:${Object.keys(s.areas).length}`;
+  const revision=`${s.graphRevision||0}:${s.nextArea}:${Object.keys(s.areas).length}:${enabled(s,'mechanisms')}`;
   let cache=navigationCache.get(s);
   if(!cache||cache.revision!==revision){cache={revision,trees:new Map()};navigationCache.set(s,cache);}
   if(cache.trees.has(from))return cache.trees.get(from);
   const queue=[from],parents={[from]:null},distances={[from]:0};
-  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[])if(!(id in parents)&&campLink(s,queue[i],id)&&(!s.areas[queue[i]]?.temporaryCamp||queue[i]===from)){parents[id]=queue[i];distances[id]=distances[queue[i]]+1;queue.push(id);}
+  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[])if(!(id in parents)&&!grateClosed(s,queue[i],id)&&!liftBlocked(s,queue[i],id)&&campLink(s,queue[i],id)&&(!s.areas[queue[i]]?.temporaryCamp||queue[i]===from)){parents[id]=queue[i];distances[id]=distances[queue[i]]+1;queue.push(id);}
   const tree={parents,distances};if(cache.trees.size>6)cache.trees.clear();cache.trees.set(from,tree);return tree;
 }
 export function route(s,from,to){
@@ -259,7 +272,7 @@ export function knownRoute(s,from,to){
   if(!s.hero.atlas||!s.areas[from]||!s.areas[to])return [];
   const blockedFords=new Set(fordBlocked(s,s.hero));
   if(from!==to&&!knownArea(s,to))return [];const membership=s.hero.atlas.known.length>3?routeMembership(s):null,queue=[from],parents={[from]:null};
-  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){if(id in parents||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;parents[id]=queue[i];queue.push(id);}
+  for(let i=0;i<queue.length;i++)for(const id of s.areas[queue[i]]?.links||[]){if(id in parents||knownLiftBlocked(s,s.people[s.hero.lineage],queue[i],id)||knownGrateBlocked(s,s.people[s.hero.lineage],queue[i],id)||blockedFords.has(fordKey(queue[i],id))||!campLink(s,queue[i],id)||s.areas[queue[i]]?.temporaryCamp&&queue[i]!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(queue[i],id):knownRoad(s,queue[i],id))||areaAvoided(s,id))continue;parents[id]=queue[i];queue.push(id);}
   if(!(to in parents))return [];const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();
 }
 
@@ -307,6 +320,12 @@ function plan(s) {
   if(h.caravanJob&&caravanPlan(s,context(s,'caravans')))return;
   if(weatherShelter(s,context(s,'weather')))return;
   if(localNeedsPlan(s,context(s,'supply')))return;
+  if(dogSearchPlan(s,context(s,'pet-training')))return;
+  if(!q&&dogTrainingPlan(s,context(s,'pet-training')))return;
+  if(!q&&moneyCachePlan(s,context(s,'finances')))return;
+  if(!q&&routeMapPlan(s,context(s,'route-maps')))return;
+  if(!q&&mapCopyPlan(s,context(s,'route-maps')))return;
+  if(!q&&studyBestiaryPlan(s,context(s,'bestiary')))return;
   if(biomaterialPlan(s,context(s,'animal-materials')))return;
   if(itemRepairPlan(s,context(s,'item-wear')))return;
   if(!q&&cookingPlan(s,context(s,'hearth-food')))return;
@@ -422,8 +441,8 @@ function trade(s) {
 }
 function collect(s, object) {
   if(object.kind==='supplyCache'){recoverCargo(s,object,context(s,'supply'));s.hero.goal=null;s.hero.lastAction='collect';return;}
-  const h = s.hero;
-  if (object.kind === 'herb' && object.count > 0) { object.count--; h.inventory.herbs++; log(s, 'Лунная трава найдена. Её можно отдать лекарю или приложить к ране.', 'loot'); }
+  const h = s.hero,a=s.areas[h.area];
+  if (object.kind === 'herb' && object.count > 0&&scentPlantKnown(s,h,a,object)&&physicalDistance(a,h.x,object.x)<=9) { object.count--; h.inventory.herbs++; log(s, 'Лунная трава найдена. Её можно отдать лекарю или приложить к ране.', 'loot'); }
   if (object.kind === 'loot' && !object.taken) { object.taken = true; h.gold += object.gold; log(s, `В забытом кошеле ${object.gold} монет. На дороге стало чуть меньше тайн.`, 'loot'); }
   if(object.kind==='heirloom'&&!object.taken)recoverHeirloom(s,object,context(s,'loot')); 
   if (object.kind === 'relic' && !object.taken) { object.taken = true; h.inventory.relics++; h.counters.relics++; gainXp(s, 10); log(s, 'Найден осколок древнего света.', 'loot'); if (enabled(s, 'equipment')) receiveItem(s, context(s, 'loot'), 2); }
@@ -451,12 +470,14 @@ function die(s, enemy,details={}) {
   s.changes.push({ tick: s.tick, text: `${h.name} погиб в месте «${s.areas[h.area].name}».` });
   log(s, `${h.name} погибает. ${enemy.kind==='enemy'?'Противник: ':'Причина: '}${enemy.name}. Его след останется в этом мире.`, 'death',h.area,{meaning});
   archiveLife(s,'dead',enemy.name,{causeMeaning:meaning,deathReport:report});h.life.endedAt=s.tick;h.deathSnapshot={tick:s.tick,area:h.area,x:h.x};
+  openInheritance(s,h,s.areas[h.area].objects.find(o=>o.id==='heritage-'+s.generation),context(s,'finances'));
   if(body)h.deathSnapshot.remainsId=body.id;
   h.companions=[];h.bag=[];for(const key of Object.keys(h.equipment))h.equipment[key]=null;h.gold=0;for(const key of Object.keys(h.inventory))h.inventory[key]=0;syncActiveActor(s,true);
 }
 function fight(s, enemy) {
   const h = s.hero;
   if (!enemy?.alive) { cancelWeapon(s,'Противник больше не участвует в бою.');h.combat = null; h.goal = null; return; }
+  encounterBestiary(s,s.people[h.lineage],enemy);
   contactDelve(s,enemy);
   causalReturn(s,enemy);
   if(storyCombatChoice(s,enemy,context(s,'stories'))){cancelWeapon(s,'Выбрано другое действие.');observeRejected(s,s.areas[h.area]);return;}
@@ -518,6 +539,7 @@ function enemyResponse(s,enemy){
   if(!partyCombatPhase(s,enemy))return;
   const phase=enemy.battle?.intent||'idle';
   const raw=enemyReply(s,enemy,enemy.attack+roll(s,4),context(s,'combat'));
+  encounterBestiary(s,s.people[h.lineage],enemy);
   observeWeaponReply(s,enemy,phase);
   if(!raw){partyCoverDamage(s,enemy,0,{...context(s,'combat'),hurtCompanion});enemyRecovery(s,enemy,h.lastAction!=='windup'&&(profile(h).skill==='magic'||h.lastAction==='spell'));h.lastDamage=0;rememberCombatReply(s,enemy,0,phase);return;}
   const total=combatResponse(s,enemy,Math.max(1,raw-legacyArmorDefense(h)),context(s,'combat'));
@@ -525,6 +547,7 @@ function enemyResponse(s,enemy){
   actorFact(s,'attack',enemy.id,'hero');
   if(received>0)actorFact(s,'hurt','hero',enemy.id,received);
   partyHurt(s,received,context(s,'party-danger'),excluded);const hpBefore=h.hp;h.hp-=received;h.lastDamage=received;
+  recordLastingInjury(s,s.people[h.lineage],enemy,{before:hpBefore,after:h.hp,maximum:h.maxHp,area:h.area,controller:'actor'},context(s,'lasting-injuries'));
   wearArmorHit(s,enemy,received,hpBefore,context(s,'item-wear'));
   rememberCombatReply(s,enemy,received,phase);
   log(s,`${enemy.name} отвечает: −${received} HP.`,'combat',h.area,{meaning:eventMeaning(s,'strike',{actor:enemyReference(enemy),target:actorReference(h),amount:received})});if(h.hp<=0)die(s,enemy,{kind:'battle',damage:received,hpBefore});pairCombatTick(s);
@@ -551,6 +574,7 @@ function npcVictory(s,a,enemy,p){
  dropRescuePurse(s,a,enemy);
 }
 function worldTick(s) {
+  leverTeamTick(s,context(s,'mechanisms'));
   biomaterialTick(s);
   goodsTick(s);
   lodgingTick(s);
@@ -585,7 +609,7 @@ function worldTick(s) {
   const activeFights=new Set(Object.values(s.actorStates).filter(h=>selfDrivenActor(s,h)&&h.combat).map(h=>h.combat));
   for (const a of Object.values(s.areas)) for (const o of a.objects) {
     if (o.kind === 'enemy' && o.alive && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
-      o.x += areaOffset(a,o.patrol*1.4);
+      const beforeX=o.x;o.x += areaOffset(a,o.patrol*1.4);creatureTrace(s,a,o,beforeX);
       if (o.x < 29 || o.x > 83) o.patrol *= -1;
     }
   }
@@ -599,6 +623,7 @@ function archiveNPCObservers(s){for(const h of detailedActors(s))if(h.actorMode=
  cancelWeapon(view,'Смерть прекращает подготовку.');
  log(view,h.name+': '+cause+'.','death',p?.area??null,{tick:ended,recordedAt:late?s.tick:undefined});
  archiveLife(view,'dead',cause,{ended,recordedAt:late?s.tick:undefined,wealthBasis:late?'recorded-estate':undefined});
+ openInheritance(view,h,null,context(view,'finances'));
 }}
 export function advanceWorld(s) {
  if(rootWorld(s)!==s)throw new Error('Only the shared world advances time');
@@ -614,6 +639,7 @@ export function advanceWorld(s) {
   applyActorExternal(s,h);weaponTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
   if(!npcAction(s,s.people[h.lineage],'actor','decision'))continue;
   const view=actorView(s,h);observeLocalRoutes(view);observeCampSites(view);
+  observeRouteMap(view,s.people[h.lineage]);
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
   try{actObserved(view);}finally{pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
@@ -643,6 +669,7 @@ export function observeExistingPerson(s,person){
 }
 function actObserved(s) {
  const h=s.hero;
+  petTrainingTick(s);
   weaponTick(s);
   pairCombatTick(s);
   rememberPracticalRole(s,s.people[h.lineage],h);
@@ -669,6 +696,8 @@ function actObserved(s) {
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(transitTick(s,context(s,'travel')))return s;
   observeTowers(s,context(s,'landmarks'));
+  observeScentPlants(s);
+  observeBestiaryTraces(s,s.people[h.lineage],context(s,'bestiary'));
   observeMaterials(s);
   if(!enabled(s,'work-materials')&&h.goal?.kind==='serviceSupply')h.goal=null;
   if (h.goal?.kind === 'trade' && s.tick - (h.goal.started ?? s.tick) > 180) {
@@ -717,7 +746,7 @@ function actObserved(s) {
   if (h.area !== g.area) {
     const original=knownRoute(s,h.area,g.area),path=fordDetour(s,h,g,g.area,original);next=path[1];if(!next){h.goal=null;return s;}
     target = Number(next.slice(1)) > Number(h.area.slice(1)) ? 100 : 0;
-    const passage=interiorPassage(s,h.area,next);if(passage){target=passage.x;if(!passage.allowed){h.goal=null;h.tavernAfter=s.tick+240;log(s,'Дверь закрыта. Он возвращается к другим делам.','plan');return s;}}
+    const passage=interiorPassage(s,h.area,next);if(passage){target=passage.x;if(!passage.allowed){if(['mechanism','lift'].includes(passage.kind)){if(passage.kind==='lift'?blockedLiftPlan(s,next,context(s,'mechanisms')):teamLeverPlan(s,next,context(s,'mechanisms'))||blockedGratePlan(s,next,context(s,'mechanisms')))return s;if(physicalDistance(a,h.x,target)<=1){h.goal=null;return s;}}else{h.goal=null;h.tavernAfter=s.tick+240;log(s,'Дверь закрыта. Он возвращается к другим делам.','plan');return s;}}}
   }
   // Threats interact only on the single movement axis.
   const direction = Math.sign(target - h.x);
@@ -727,14 +756,15 @@ function actObserved(s) {
     if(storyCombatChoice(s,threat,context(s,'stories'))){observeRejected(s,a);return s;}
     if (enabled(s, 'encounters') && tryParley(s, threat, context(s, 'encounters'))) return s;
     const estimated = expectedLoss(s,threat);
-    if ((estimated > h.hp * (.8 + h.personality.courage * .5) && g.kind !== 'hunt') || fearResponse(s,threat)) {
+    const learnedCaution=bestiaryCaution(s,threat);
+    if ((estimated > h.hp * (.8 + h.personality.courage * .5) && g.kind !== 'hunt') || fearResponse(s,threat)||learnedCaution?.avoid) {
       storyThreatAvoided(s,threat,context(s,'stories'));
       h.memory.avoided[a.id] = s.tick + 70;
       if(estimated>h.hp*(.8+h.personality.courage*.5))rememberRejected(s,threat);
       pauseDelve(s,threat,'refused');
       const refuge = closest(s, area => !area.temporaryCamp && (isTown(area) || area.type === 'camp'));
-      if(refuge){goal(s, 'rest', refuge.id, 68, 'Отойти от опасного противника', `${threat.name} слишком силён для нынешнего снаряжения.`);
-      log(s, `${h.name} оценивает ${threat.name} и решает не рисковать. Нужно лучшее снаряжение.`, 'flee'); return s;}
+      if(refuge){goal(s, 'rest', refuge.id, 68, 'Отойти от опасного противника', learnedCaution?.avoid?learnedCaution.reason:`${threat.name} слишком силён для нынешнего снаряжения.`);
+      log(s, learnedCaution?.avoid?learnedCaution.reason:`${h.name} оценивает ${threat.name} и решает не рисковать. Нужно лучшее снаряжение.`, 'flee'); return s;}
       // With no known escape the real opponent still owns its ordinary fight.
     }
     h.combat = threat.id; h.lastAction = 'attack'; h.action = 'БОЙ'; h.intent = `Сражаться: ${threat.name}`; h.reason = 'Противник преградил путь. Герой готовится защищаться.';
@@ -800,6 +830,16 @@ function actObserved(s) {
   else if (g.kind === 'govern') governTick(s,context(s,'politics'));
   else if (g.kind === 'settle') settleLife(s,context(s,'life'));
   else if (g.kind === 'storyAction') storyAction(s,g.story,context(s,'stories'));
+  else if (g.kind === 'moneyCache') moneyCacheAction(s,context(s,'finances'));
+  else if (g.kind === 'routeMap') routeMapAction(s,context(s,'route-maps'));
+  else if (g.kind === 'mapCopy') mapCopyAction(s,s.people[h.lineage],g,context(s,'route-maps'));
+  else if (g.kind === 'studyCreature') studyBestiaryAction(s,context(s,'bestiary'));
+  else if (g.kind === 'mechanism') mechanismAction(s,context(s,'mechanisms'));
+  else if (g.kind === 'mechanismHold') leverHoldAction(s,context(s,'mechanisms'));
+  else if (g.kind === 'liftWork') liftAction(s,context(s,'mechanisms'));
+  else if (g.kind === 'dogLesson') dogLessonAction(s,context(s,'pet-training'));
+  else if (g.kind === 'dogSearch') dogSearchAction(s,context(s,'pet-training'));
+  else if (g.kind === 'dogFeed') dogFeedAction(s,context(s,'pet-training'));
   else if (g.kind === 'questAction') questAction(s,h.quests.find(q=>q.id===g.quest),context(s,'quests'));
   else if (g.kind === 'encounter') { const object = a.objects.find(o => o.id === g.object); if (object) encounter(s, object, context(s, 'encounters')); else h.goal = null; }
   else if (g.kind === 'turnin') completeQuest(s, h.quests.find(q => q.id === g.quest));
@@ -808,7 +848,7 @@ function actObserved(s) {
   else if (g.kind === 'expand') expand(s);
   else if (g.kind === 'hunt') { h.combat = g.object; fight(s, a.objects.find(o => o.id === g.object)); }
   else {
-    const item = a.objects.find(o => (['loot','relic'].includes(o.kind)||o.kind==='heirloom'&&cacheCollectible(s,o)||o.kind==='supplyCache'&&enabled(s,'supply')) && !o.taken || o.kind === 'herb' && o.count > 0);
+    const item = a.objects.find(o => (['loot','relic'].includes(o.kind)||o.kind==='heirloom'&&cacheCollectible(s,o)||o.kind==='supplyCache'&&enabled(s,'supply')) && !o.taken || o.kind === 'herb' && o.count > 0&&scentPlantKnown(s,h,a,o));
     if (item) goal(s, 'collect', a.id, item.x, `Подобрать: ${item.name}`, 'Полезные находки пригодятся в следующем приключении.', { object: item.id });
     else { h.goal = null; log(s, `${a.name} изучено. Герой запоминает путь и смотрит дальше.`, 'discover'); }
   }

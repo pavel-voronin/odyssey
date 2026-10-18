@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Odyssey — lasting injury component</title>
+<style>body{margin:24px;background:#17201c;color:#e5dfca;font:16px system-ui}main{display:flex;gap:24px;flex-wrap:wrap}canvas{image-rendering:pixelated;background:#26352d;border:1px solid #8c947b}p{max-width:260px}</style>
+<main id="cases"></main><script type="module">
+import {injuryFixture} from '../../scripts/injury-scenarios.mjs';
+import {heroAppearance} from '../../appearance.js';
+import {drawHead} from '../../actor-head.js';
+import {drawHeroPortrait} from '../../portrait.js';
+import {race} from '../../content.js';
+for(const [id,kind,label]of [['human','scar','Шрам на лице'],['myconid','burn','Ожог шляпки'],['automaton','burn','След на обшивке']]){
+ const {s}=injuryFixture({race:id,kind}),look=heroAppearance(s),card=document.createElement('section'),name=document.createElement('p');name.textContent=label;card.append(name);
+ for(const marked of [false,true]){const canvas=document.createElement('canvas');canvas.width=112;canvas.height=144;canvas.setAttribute('aria-label',label+(marked?' после':' до'));const c=canvas.getContext('2d');c.translate(56,160);c.scale(3,3);drawHead(c,{...look,injuryMarks:marked?look.injuryMarks:[]},race(id));card.append(canvas);}
+ const portrait=document.createElement('canvas');portrait.style.width='96px';portrait.style.height='102px';portrait.setAttribute('aria-label',label+' портрет');drawHeroPortrait(portrait,s);card.append(document.createElement('br'),portrait);document.querySelector('#cases').append(card);
+}
+</script>

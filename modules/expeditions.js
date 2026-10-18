@@ -4,15 +4,22 @@ import {stat,profile,moral,hasHabit} from './common.js';
 import {createPerson} from './lineage.js';
 import {receiveItem} from './inventory.js';
 import {storyObject,storyGoal,chronicleChoice,narrativeChange} from './story-common.js';
+import {expeditionNode,expeditionNodePlan,workExpeditionNode} from './expedition-specialists.js';
 export function start(s,c,ctx){
   const a=s.areas[c.source];c.variant=moduleRandom(s,'expeditions')<.5?'ship':'simulation';
   c.target=ctx.addArea(s,'clockwork',c.variant==='ship'?'Корабль, упавший из звёзд':'Комната, которая считает мир',a.depth+2,{continent:a.continent,era:a.era,realm:'clockwork'});
   ctx.connect(s,a.id,c.target,{mode:'portal',duration:3,cost:0});revealArea(s,c.target);
   c.console=storyObject(s,c,c.target,c.variant==='ship'?'Сердце звёздного корабля':'Пульт чужой симуляции',82);c.stage='investigate';
+  if(c.variant==='ship')c.accessNode=expeditionNode();
   ctx.log(s,c.variant==='ship'?'За камнями обнаружен проход в корабль без мачт. Его сердце просит свет, которого не бывает в масляных лампах.':'Сломанный механизм показывает этот самый мир — вместе с героем у пульта. На изображении он ещё не пришёл.','story');
 }
-export function plan(s,c,ctx){storyGoal(s,c,ctx,c.target,82,c.variant==='ship'?'Исследовать звёздный корабль':'Проверить, кто считает этот мир','Механизм реален: к нему ведёт новый путь, а охрана преграждает проход.');return true;}
+export function plan(s,c,ctx){
+  const node=expeditionNodePlan(s,c);
+  if(node){ctx.goal(s,'storyAction',c.target,node.x,node.route==='repair'?'Восстановить привод корабля':'Найти сервисный обход',node.route==='repair'?(node.actor===s.hero.lineage?'Освоенная подгонка позволяет починить узел самому.':`${s.people[node.actor].name} знает подгонку и может помочь, если сохранятся силы и время.`):'Согласного знающего спутника нет. Более долгий обход не требует чужой жертвы.',{story:c.id,nodeRoute:node.route,specialist:node.actor});return true;}
+  storyGoal(s,c,ctx,c.target,82,c.variant==='ship'?'Исследовать звёздный корабль':'Проверить, кто считает этот мир','Механизм реален: к нему ведёт новый путь, а охрана преграждает проход.');return true;
+}
 export function act(s,c,ctx){
+  if(workExpeditionNode(s,c,ctx))return;
   const h=s.hero,a=s.areas[c.target];h.goal=null;h.lastAction='collect';
   const clever=stat(h,'wit')>=4||['time','repair','magic','relic'].includes(profile(h).skill);
   const fuel=h.inventory.relics>0;

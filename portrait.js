@@ -7,7 +7,7 @@ export function portraitModel(s){
   const h=s.hero,look=s.rules?.appearance===false?h.appearance:heroAppearance(s);
   return {look:portraitLook(look),species:s.rules?.lineage===false?null:race(h.race),alive:h.alive};
 }
-const portraitLook=look=>Object.fromEntries(['skin','hair','hairStyle','hat','cloak','shoes','glasses','earring','scarf','scarfColor','capColor','coat','armored','trousers','garmentVersion','material','trim','plateColor','edgeColor'].map(key=>[key,look?.[key]]));
+const portraitLook=look=>Object.fromEntries(['skin','hair','hairStyle','hat','cloak','shoes','glasses','earring','scarf','scarfColor','capColor','coat','armored','trousers','garmentVersion','material','trim','plateColor','edgeColor','injuryMarks'].map(key=>[key,look?.[key]]));
 export function drawHeroPortrait(canvas,s){
   const model=portraitModel(s);
   canvas.setAttribute('aria-label',`Портрет: ${s.hero.name}${model.alive?'':'. История завершена'}`);canvas.classList.toggle('deceased',!model.alive);

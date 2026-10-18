@@ -9,6 +9,8 @@ import {observeFreightActor} from './freight-memory.js';
 import {canStartNPCActivity,npcAction,markNPCDeparture} from './npc-control.js';
 import {reserveRoadSupplies,roadNeeds} from './road-needs.js';
 import {recordDangerContact} from './danger-contact.js';
+import {recordLastingInjury} from './injury-state.js';
+import {encounterBestiary} from './bestiary.js';
 
 export function availablePublicTraveller(s,p,a){
   const rested=!enabled(s,'npc-needs')||!p?.needs?.sleeping&&(p?.needs?.energy??100)>=40&&(p?.needs?.hunger??0)<60;
@@ -67,16 +69,19 @@ export function advancePublicJourney(s,j,ctx){
   if(!npcAction(s,p,'journey'))return;
   j.lastTick=s.tick;j.elapsed++;
   if(p.status!=='travelling'||p.area!==j.path[j.index]){if(enabled(s,'npc-control'))finish(s,j,p,ctx,'stopped');return;}
-  if(!p.fordCrossing&&j.elapsed>720){finish(s,j,p,ctx,'stopped');return;}
-  if(!p.fordCrossing&&j.elapsed>480&&!j.returning){turnBack(s,j,p,ctx);return;}
+  if(!p.fordCrossing&&!p.liftTransit&&j.elapsed>720){finish(s,j,p,ctx,'stopped');return;}
+  if(!p.fordCrossing&&!p.liftTransit&&j.elapsed>480&&!j.returning){turnBack(s,j,p,ctx);return;}
   if(roadNeeds(s,p,ctx)){if(!p.alive)finish(s,j,p,ctx,'dead');return;}
-  if(p.fordCrossing){const r=npcFordGate(s,p,p.fordCrossing.to,p.fordCrossing.arrivalX,j,j.path.at(-1));if(r.status==='arrived'){p.area=r.crossing.to;p.x=r.crossing.arrivalX;j.index++;observe(s,p);configure(s,j,p);}else if(['aborted','unavailable'].includes(r.status))turnBack(s,j,p,ctx);return;}
+  if(p.fordCrossing||p.liftTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit).to,(p.fordCrossing||p.liftTransit).arrivalX,j,j.path.at(-1));if(r.status==='arrived'){p.area=r.crossing.to;p.x=r.crossing.arrivalX;j.index++;observe(s,p);configure(s,j,p);}else if(['aborted','unavailable'].includes(r.status))turnBack(s,j,p,ctx);return;}
   const camp=j.path[j.index+1]&&campPassage(s,p.area,j.path[j.index+1],p.id);if(camp&&!camp.allowed){turnBack(s,j,p,ctx);return;}
   if(camp&&j.endX!==camp.x){j.startX=p.x;j.endX=camp.x;j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,camp.x)/6));}
   j.remaining--;const oldX=p.x,progress=Math.max(0,Math.min(1,1-j.remaining/j.segmentTicks));p.x=j.startX+(j.endX-j.startX)*progress;
   const a=s.areas[p.area],enemy=a.objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&Math.abs(p.x-o.x)*areaScale(s.areas[p.area])<Math.abs(oldX-o.x)*areaScale(s.areas[p.area])&&o.x>=Math.min(oldX,p.x)-areaOffset(s.areas[p.area],8)&&o.x<=Math.max(oldX,p.x)+areaOffset(s.areas[p.area],8));
   if(enemy){
+    const before=p.health;
     p.x=Math.abs(oldX-enemy.x)*areaScale(s.areas[p.area])<=8?oldX:enemy.x-Math.sign(p.x-oldX)*areaOffset(s.areas[p.area],8);rememberNPCHazard(s,p);const damage=Math.max(1,enemy.attack||1);p.health=Math.max(0,p.health-damage);recordDangerContact(s,p,enemy,damage,'journey');
+    recordLastingInjury(s,p,enemy,{before,after:p.health,maximum:p.maxHealth||100,area:a.id,controller:'journey'},ctx);
+    if(p.health>0)encounterBestiary(s,p,enemy);
     if(!p.health){p.alive=false;p.status='dead';p.died=s.tick;p.deathCause=enemy.name||enemy.baseName||'Опасность на дороге';if(!a.objects.some(o=>o.id==='journey-grave-'+p.id))a.objects.push({id:'journey-grave-'+p.id,kind:'grave',name:p.name,x:p.x});recordPersonRemains(s,p);finish(s,j,p,ctx,'dead');}
     else turnBack(s,j,p,ctx);
     return;

@@ -16,4 +16,10 @@ export function drawHead(c,look={},species=null,color='#a9c686',skin=actorSkin(l
     if(species?.id==='dwarf'){c.fillStyle=look.hair||'#9b8764';c.fillRect(-4,-33,8,6);}
     if(species?.id==='dragonkin'){c.strokeStyle='#d2c098';c.lineWidth=2;c.beginPath();c.moveTo(-4,-42);c.lineTo(-8,-47);c.moveTo(4,-42);c.lineTo(7,-46);c.stroke();}
     if(species?.id==='myconid'){c.fillStyle=look.capColor||look.cloak||'#b0988f';c.beginPath();c.ellipse(0,-41,13,8,0,Math.PI,Math.PI*2);c.fill();}
+    for(const mark of look.injuryMarks||[]){
+      if(mark.part==='cap'&&species?.id!=='myconid'||mark.part==='plating'&&species?.id!=='automaton')continue;
+      const y=mark.part==='cap'?-44:-36;
+      if(mark.kind==='burn'){c.fillStyle=mark.part==='plating'?'#514b45':'#80534a';c.fillRect(-3,y,3,3);}
+      else {c.strokeStyle='#9f5149';c.lineWidth=.8;c.beginPath();c.moveTo(-2,y-1);c.lineTo(1,y+3);c.stroke();}
+    }
 }

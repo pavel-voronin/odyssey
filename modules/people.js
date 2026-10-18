@@ -1,4 +1,8 @@
 import {areaScale,areaStep} from '../geometry.js';
+import {npcMoneyCachePlan,takeBuriedMoney} from './money-caches.js';
+import {observeRouteMap,npcRouteMapPlan,npcRouteMapAction} from './route-maps.js';
+import {npcMapCopyPlan,mapCopyAction} from './map-copies.js';
+import {observeBestiaryTraces} from './bestiary.js';
 import {fordDetour,fordBlocked,fordKey} from './fords.js';
 import {npcFordGate} from './ford-actors.js';
 import {brothTeacherTurn} from './broth-teaching.js';
@@ -75,6 +79,9 @@ function plan(s,p,ctx){
     if(a.civic?.medicine>=2){begin(p,'recover',p.area,68);return;}
   }
   if(planAidRequest(s,p,ctx))return;
+  const moneyCache=npcMoneyCachePlan(s,p);if(moneyCache){m.task=moneyCache;return;}
+  const routeMap=npcRouteMapPlan(s,p);if(routeMap){m.task=routeMap;return;}
+  const mapCopy=npcMapCopyPlan(s,p);if(mapCopy){m.task=mapCopy;return;}
   if(npcDeedAllows(s,p,'learning')&&personalVisitPlan(s,p,ctx))return;
   if(npcLodgingPlan(s,p))return;
   if(npcTavernPlan(s,p))return;
@@ -116,7 +123,7 @@ function plan(s,p,ctx){
 }
 function moveTask(s,p,ctx){
   const migration=s.migrations?.[p.migration],fordCargo=migration?.status==='active'&&migration.carrier===p.id?{carrier:true,cargoFood:migration.cargo.food}:{};
-  if(p.fordCrossing){const r=npcFordGate(s,p,p.fordCrossing.to,p.fordCrossing.arrivalX,p.agenda.task,p.agenda.task?.target,fordCargo);if(r.status==='arrived')locate(s,p,r.crossing.to,r.crossing.arrivalX);return false;}
+  if(p.fordCrossing||p.liftTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit).to,(p.fordCrossing||p.liftTransit).arrivalX,p.agenda.task,p.agenda.task?.target,fordCargo);if(r.status==='arrived')locate(s,p,r.crossing.to,r.crossing.arrivalX);return false;}
   npcWorkshopTarget(s,p);if(!p.agenda.task)return false;
   const t=p.agenda.task;
   mentorTarget(s,p,t);
@@ -148,6 +155,9 @@ function moveTask(s,p,ctx){
 }
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
+  if(t.kind==='moneyCache'){const amount=takeBuriedMoney(s,p,t.cache,8);if(amount)tell(s,p,`${p.name} забирает из известного тайника ◈${amount}.`,ctx);m.task=null;m.due=s.tick+48;return;}
+  if(t.kind==='routeMap'){npcRouteMapAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
+  if(t.kind==='mapCopy'){mapCopyAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='rescueEscape'){finishRescueEscape(s,p);return;}
   if(t.kind==='itemSalvage'){const count=npcTakeCache(s,p,t);if(count)tell(s,p,`${p.name} подбирает оставленную поклажу: ${count} вещей. С ними ещё можно добраться до рынка.`,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='toolMend'){npcToolMend(s,p,ctx);m.task=null;m.due=s.tick+48;return;}
@@ -214,6 +224,8 @@ export function peopleTick(s,ctx){
     if(!npcAction(s,p,controller))continue;
     rememberPracticalRole(s,p);
     observeNPCPlace(s,p);
+    observeRouteMap(s,p);
+    observeBestiaryTraces(s,p,ctx);
     observeMarket(s,p.id);
     observeNPCContacts(s,p);
     observeMentors(s,p);
@@ -261,6 +273,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task.kind==='work'&&p.agenda.job==='artisan'&&p.agenda.task.workMode===null)p.agenda.task.workMode=goodsEnabled(s)?'production':'service';
     if(goodsEnabled(s)&&(['farm','rawGather'].includes(p.agenda.task.kind)||p.agenda.task.kind==='work'&&p.agenda.job==='artisan')){goodsWorkReceipt(s,p,p.agenda.task);p.needs.energy=Math.max(0,p.needs.energy-2);}
     if(p.agenda.task.kind==='toolMend'&&p.needs)p.needs.energy=Math.max(0,p.needs.energy-2);
+    if(p.agenda.task.kind==='patrol'&&enabled(s,'npc-watch-needs')&&enabled(s,'npc-needs'))p.needs.energy=Math.max(0,p.needs.energy-2);
     p.agenda.task.remaining--;if(p.agenda.task.remaining<=0)finish(s,p,ctx);
   }
 }

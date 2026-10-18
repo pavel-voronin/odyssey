@@ -55,6 +55,7 @@ export function partyPrepared(s,estimate){
 }
 
 export function partyAvailable(s,c){
+ if(c.petTraining?.lastActionTick===s.tick)return false;
  if(c.person&&partyBodySpent(s,s.people[c.person]))return false;
  if(!active(s)||!c.person)return true;
  const p=s.people[c.person];return Boolean(p?.alive&&(p.needs?.energy??100)>=25&&!p.needs?.sleeping&&!(p.partyNeeds?.tick===s.tick&&p.partyNeeds.activity));

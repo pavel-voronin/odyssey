@@ -1,4 +1,8 @@
 import {offerInvitation,declineInvitation,startInvitation} from './invitation-rhythm.js';
+import {shareMoneyCacheAddresses} from './money-caches.js';
+import {shareRouteMapReports} from './route-maps.js';
+import {recordLastingInjury} from './injury-state.js';
+import {shareBestiary,encounterBestiary} from './bestiary.js';
 import {areaOffset} from '../geometry.js';
 import {shareMarketKnowledge} from './market-knowledge.js';
 import {selfDrivenActor} from '../actor-projection.js';
@@ -20,6 +24,9 @@ export function initializeSocial(s,h){
   h.memory.npcNotes ||= {};
 }
 export function meetPerson(s,id,ctx,trust=1){
+  shareMoneyCacheAddresses(s,id,s.hero.lineage);shareMoneyCacheAddresses(s,s.hero.lineage,id);
+  shareRouteMapReports(s,id,s.hero.lineage);shareRouteMapReports(s,s.hero.lineage,id);
+  shareBestiary(s,id,s.hero.lineage);shareBestiary(s,s.hero.lineage,id);
   shareMarketKnowledge(s,id,s.hero.lineage);shareMarketKnowledge(s,s.hero.lineage,id);
   const person=s.people?.[id];if(!person)return;
   if(!s.hero.memory.people.includes(id))s.hero.memory.people.push(id);
@@ -79,8 +86,12 @@ export function hurtCompanion(s,c,damage,ctx,source=null){
   const h=s.hero,p=s.people[c.person];
   if(damage<=0||c.hp<=0||!h.companions.includes(c)||p&&!p.alive)return 0;
   const previousHp=c.hp;c.hp=Math.max(0,c.hp-damage);
+  const previousPersonHealth=p?.health;
   actorFact(s,'hurt',companionKey(c),source,previousHp-c.hp);
   if(p)p.health=Math.ceil((p.maxHealth||100)*c.hp/c.maxHp);
+  const enemy=source&&s.areas[h.area]?.objects.find(o=>o.id===source&&o.kind==='enemy');
+  if(p&&enemy&&p.health>0)encounterBestiary(s,p,enemy);
+  if(p&&enemy)recordLastingInjury(s,p,enemy,{before:previousPersonHealth,after:p.health,maximum:p.maxHealth||100,area:h.area,controller:'party'},ctx);
   if(c.hp===0){
     if(!c.uid)throw new Error('У попутчика отсутствует текущая личность');
     h.companions=h.companions.filter(other=>other!==c);h.social.lostCompanions++;
@@ -106,7 +117,7 @@ export function partyRest(s){
   if(!enabled(s,'companions'))return;
   for(const c of s.hero.companions){
     const person=s.people[c.person];if(enabled(s,'npc-party-needs')&&person&&!person.alive)continue;
-    c.hp=Math.min(c.maxHp,c.hp+5);if(!person)continue;
+    c.hp=Math.min(c.maxHp,c.hp+5);if(!person){if(enabled(s,'pet-training')&&c.petTraining)c.petTraining.energy=Math.min(100,c.petTraining.energy+8);continue;}
     person.health=Math.ceil((person.maxHealth||100)*c.hp/c.maxHp);
     if((enabled(s,'camp-life')||enabled(s,'npc-party-needs'))&&enabled(s,'npc-needs')&&person.needs){
       const n=person.needs;n.energy=Math.min(100,n.energy+12);

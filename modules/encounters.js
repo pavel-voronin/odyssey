@@ -38,8 +38,8 @@ export function encounter(s, o, ctx) {
   } else if (kind === 'familiar') {
     if (!enabled(s, 'companions') || h.companions.length >= 3 || !offerInvitation(s,'familiar',o.id)) { ctx.log(s, 'Маленькое существо провожает отряд взглядом и остаётся на знакомой тропе.', 'companion'); }
     else if (stat(h,'spirit') + h.personality.generosity * 4 + ctx.random(s) * 5 > 7 || skill === 'beast') {
-      const pet = o.existingPet||choose(s, ctx.random, PETS); h.companions.push({ ...pet, joined: s.tick, uid:pet.uid||`${o.id}-${s.generation}`,hp:pet.hp||24,maxHp:pet.maxHp||24,ethics:0 }); h.counters.companions++;
-      startInvitation(s,'familiar',o.id);moral(s, 2); ctx.log(s, o.existingPet?`${pet.name} ждал прежнего хозяина. Теперь он выбирает другого путника.`:`${pet.name} решает идти следом. Еда, тепло и осторожность теперь нужны не одному.`, 'companion');
+      const returning=Boolean(o.existingPet),pet=o.existingPet||{...choose(s,ctx.random,PETS)};Object.assign(pet,{joined:s.tick,uid:pet.uid||`${o.id}-${s.generation}`,hp:pet.hp||24,maxHp:pet.maxHp||24,ethics:0});h.companions.push(pet);delete o.existingPet;h.counters.companions++;
+      startInvitation(s,'familiar',o.id);moral(s, 2); ctx.log(s, returning?`${pet.name} ждал прежнего хозяина. Теперь он выбирает другого путника.`:`${pet.name} решает идти следом. Еда, тепло и осторожность теперь нужны не одному.`, 'companion');
     } else {declineInvitation(s,'familiar',o.id);ctx.log(s, 'Существо обнюхивает героя и исчезает. Доверие не покупается одним взглядом.', 'choice');}
   } else if (kind === 'gambler') {
     if ((hasHabit(h, 'gambler') || h.gold < 8 && h.personality.courage > .6) && h.gold >= 2) {

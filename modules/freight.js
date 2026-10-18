@@ -75,10 +75,10 @@ export function advanceFreight(s,c,ctx){
   c.lastTick=s.tick;c.elapsed++;
   if(p.status!=='caravan'||p.area!==c.path[c.index]){if(enabled(s,'npc-control'))finishFreight(s,c,ctx,'stranded');return;}
   observeConvoy(s,c);
-  if(!p.fordCrossing&&c.elapsed>720){finishFreight(s,c,ctx,'stranded');return;}
-  if(!p.fordCrossing&&c.elapsed>480&&!c.returning){returnFreight(s,c,ctx);return;}
+  if(!p.fordCrossing&&!p.liftTransit&&c.elapsed>720){finishFreight(s,c,ctx,'stranded');return;}
+  if(!p.fordCrossing&&!p.liftTransit&&c.elapsed>480&&!c.returning){returnFreight(s,c,ctx);return;}
   if(roadNeeds(s,p,ctx,c)){if(!p.alive)finishFreight(s,c,ctx,'stranded');return;}
-  if(p.fordCrossing){const r=npcFordGate(s,p,p.fordCrossing.to,p.fordCrossing.arrivalX,c,c.path.at(-1),{carrier:true,cargoFood:c.food});if(r.status==='arrived'){p.area=r.crossing.to;p.x=r.crossing.arrivalX;c.index++;observeFreightActor(s,p);observeConvoy(s,c);configureLeg(s,c,p);}else if(['aborted','unavailable'].includes(r.status))returnFreight(s,c,ctx);return;}
+  if(p.fordCrossing||p.liftTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit).to,(p.fordCrossing||p.liftTransit).arrivalX,c,c.path.at(-1),{carrier:true,cargoFood:c.food});if(r.status==='arrived'){p.area=r.crossing.to;p.x=r.crossing.arrivalX;c.index++;observeFreightActor(s,p);observeConvoy(s,c);configureLeg(s,c,p);}else if(['aborted','unavailable'].includes(r.status))returnFreight(s,c,ctx);return;}
   const camp=c.path[c.index+1]&&campPassage(s,p.area,c.path[c.index+1],p.id,{carrier:true});if(camp&&!camp.allowed){returnFreight(s,c,ctx);return;}
   if(camp&&c.endX!==camp.x){c.startX=p.x;c.endX=camp.x;c.remaining=c.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,camp.x)/6));}
   const next=s.areas[c.path[c.index+1]];

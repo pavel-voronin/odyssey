@@ -5,6 +5,8 @@ import {isTown} from './common.js';
 import {receiveItem} from './inventory.js';
 import {seedDungeonCaptive} from './dungeon-captives.js';
 import {newDelveAllowed,claimDelveOpportunity} from './delve-rarity.js';
+import {createGrate} from './mechanisms.js';
+import {createLift} from './lifts.js';
 import {delveRecord,startDelve,pauseDelve,finishDelve,reconsiderDelve,priorDelve,reentryReason,delvePassage,prepareDelveEntry,delveEntryReason} from './delve-attempts.js';
 
 export function delvePlan(s,ctx){
@@ -64,6 +66,8 @@ export function delvePlan(s,ctx){
     const floor=room.dungeon.floor+1;
     const id=ctx.addArea(s,'dungeon',`${s.areas[d.root].name}: ${['Врата','Катакомбы','Костяной зал','Забытый престол'][floor-1]}`,room.depth+1,{continent:room.continent,era:room.era});
     room.dungeon.next=id;s.areas[id].dungeon={root:d.root,floor,cleared:false};revealArea(s,id);ctx.connect(s,room.id,id,{mode:'stairs',duration:2});
+    if(enabled(s,'mechanisms')&&room.dungeon.floor===1){const bypass=room.links.find(other=>other!==id&&!s.areas[other].temporaryCamp&&!s.areas[other].interior);if(bypass){ctx.connect(s,id,bypass,{mode:'stairs',duration:2});createGrate(s,room.id,id,bypass,{hold:enabled(s,'companions')});}}
+    if(enabled(s,'mechanisms')&&room.dungeon.floor===2){const bypass=room.links.find(other=>other!==id&&!s.areas[other].temporaryCamp&&!s.areas[other].interior);if(bypass){ctx.connect(s,id,bypass,{mode:'stairs',duration:2});if(createLift(s,room.id,id,bypass))ctx.connect(s,room.id,id,{mode:'road',duration:2});}}
     if(floor===d.floors){const boss=s.areas[id].objects.find(o=>o.kind==='enemy');if(boss){boss.boss=true;boss.hp=boss.maxHp=Math.ceil(boss.maxHp*1.8);boss.attack=Math.ceil(boss.attack*1.5);boss.name='Хранитель глубин · '+boss.name;}}
   }
   d.room=room.dungeon.next;

@@ -1,6 +1,8 @@
 import {routeDistance} from '../geometry.js';
 import {recordPersonRemains} from './remains.js';
 import {pathHasFord} from './fords.js';
+import {grateClosed} from './mechanism-policy.js';
+import {timedLiftPassage,liftAt} from './lift-policy.js';
 import {goodsEnabled,takeGoods,requestHarvest} from './goods.js';
 import { enabled,moduleRandom } from '../rules.js';
 import {detailedActors} from '../actor-projection.js';
@@ -89,7 +91,7 @@ function applyEvent(s,a,ctx){
     }
     const towns=civicDestinations(s,a);
     if(towns.length&&p.role!=='ребёнок'){
-      const destination=pick(s,towns),path=ctx.route(s,a.id,destination.id);if(pathHasFord(s,path))return;const duration=enabled(s,'background-towns')?20:Math.max(20,Math.ceil(routeDistance(s,path)/100*20));
+      const destination=pick(s,towns),path=ctx.route(s,a.id,destination.id);if(pathHasFord(s,path)||path.some((id,i)=>i>0&&liftAt(s,path[i-1],id)))return;const duration=enabled(s,'background-towns')?20:Math.max(20,Math.ceil(routeDistance(s,path)/100*20));
       p.status='travelling';p.area=null;a.population=a.population.filter(id=>id!==p.id);
       s.society.journeys.push({version:1,movement:'timed',person:p.id,from:a.id,to:destination.id,arrival:s.tick+duration,...(enabled(s,'scene-boundaries')?{departedAt:s.tick,duration}:{}),reason:c.food<40?'Ищет место без голода.':'Хочет увидеть родственников и другой рынок.'});
       markNPCDeparture(s,p,'journey');
@@ -105,9 +107,11 @@ export function societyTick(s,ctx){
   for(const journey of [...s.society.journeys]){
     if(journey.movement==='physical'){advancePublicJourney(s,journey,ctx);continue;}
     if(journey.movement!=='timed')throw new Error('Неизвестный текущий способ путешествия');
+    if(grateClosed(s,journey.from,journey.to))continue;
     if(s.tick>=journey.arrival){
     const p=s.people[journey.person],a=s.areas[journey.to];
     if(p?.alive&&!npcAction(s,p,'journey'))continue;
+    if(p?.alive){if(p.area===null&&liftAt(s,journey.from,journey.to))p.area=journey.from;const r=timedLiftPassage(s,p,journey.to,Number(journey.to.slice(1))>Number(journey.from.slice(1))?5:95);if(!['clear','arrived'].includes(r.status))continue;}
     if(p?.alive){p.area=a.id;p.status='resident';a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);
       if(!a.objects.some(o=>o.person===p.id))a.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:42+(a.population.length%3)*9});
       record(s,a,`${p.name} прибывает в ${a.name}. ${journey.reason}`,ctx,'arrival');}

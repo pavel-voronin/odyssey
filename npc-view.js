@@ -11,6 +11,7 @@ export function projectNPCView(s,h,p,leader,previous){
  else if(!p.area&&journey&&s.areas[journey.from]&&s.areas[journey.to])h.transit={from:journey.from,to:journey.to,mode:'road',remaining,total:old?.from===journey.from&&old?.to===journey.to?old.total:Math.max(1,remaining),viewOnly:true};
  else if(!p.area)h.transit={from:h.area,to:h.area,mode:'road',remaining:0,total:1,viewOnly:true,unknown:true};
  else h.transit=null;
+ if(p.liftTransit)h.transit={...p.liftTransit,mode:'lift',liftRide:{...p.liftTransit},viewOnly:true};
  const moved=previous.area!==h.area||previous.x!==h.x,task=p.agenda?.task,job=p.agenda?.job,convoy=s.logistics?.convoys.find(c=>c.person===p.id),order=s.society?.orders.find(o=>o.person===p.id),publicJourney=s.society?.journeys.find(j=>j.person===p.id&&j.movement==='physical');
  if(moved||h.npcProfile?.viewTick!==s.tick)h.lastAction=p.needs?.sleeping?'rest':h.transit?'travel':moved?'walk':task?.kind||'idle';
  if(!moved&&!h.transit&&!p.needs?.sleeping&&task?.kind==='forgeWork')h.lastAction='work';
@@ -54,6 +55,7 @@ export function projectNPCView(s,h,p,leader,previous){
   h.intent=battle.action==='cover'?'Прикрывает союзника':battle.action==='heal'?'Перевязывает раненого':battle.action==='prepare'?'Готовит общий приём':battle.action==='paired-attack'?'Завершает общий приём':'Наносит собственный удар';
   h.reason=battle.action==='cover'?'Прикрывает вместо удара.':battle.action==='heal'?'Расходует своё лекарство.':battle.action==='prepare'?'Этот ход — на подготовку.':battle.action==='paired-attack'?'Размах подготовлен с партнёром.':'Свой удар; силы расходуются.';
  }
+ if(['holding','returning'].includes(p.mechanismDuty?.stage)){h.intent=p.mechanismDuty.stage==='holding'?'Удерживает рычаг':'Возвращается к отряду по обходу';h.reason='Остаётся одним телом на действительной дороге. Ожидание расходует силы; голод и личные дела продолжаются.';if(p.mechanismDuty.stage==='holding')h.lastAction='work';}
  if(h.npcProfile){h.npcProfile.viewTick=s.tick;h.npcProfile.job=job;h.npcProfile.work=p.agenda?.work||0;h.npcProfile.tools=p.agenda?.tools||0;h.profession='npc-'+(job||'farmer');}
  if(h.atlas){const known=new Set([h.area,...(p.navigation?.places||[]).map(e=>e.area),journey?.to,publicJourney?.to,convoy?.to].filter(id=>s.areas[id]));for(const id of known)if(!h.atlas.known.includes(id))h.atlas.known.push(id);for(const r of p.navigation?.roads||[])if(!h.atlas.roads.includes(r.key))h.atlas.roads.push(r.key);if(!h.transit&&s.areas[h.area]){if(!h.atlas.visited.includes(h.area))h.atlas.visited.push(h.area);if(!h.memory.places.includes(h.area))h.memory.places.push(h.area);}}
 }

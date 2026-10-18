@@ -1,4 +1,5 @@
 import {knownArea} from '../actor-atlas.js';
+import {scentPlantKnown} from './pet-scent-policy.js';
 import {goodsEnabled,takeGoods,putGoods} from './goods.js';
 import {rememberRescue} from './camp-life.js';
 import {rememberPromise,commitmentQuestBias} from './commitments.js';
@@ -111,6 +112,7 @@ export function planQuest(s,q,ctx){
   const kind=q.kind==='herbs'||q.kind==='medicine'?'herb':'relic';
   const obj=target.objects.find(o=>o.kind===kind&&(kind==='herb'?o.count>0:!o.taken));
   if(!obj){failQuest(s,q,ctx,'Нужная находка уже исчезла. Обещание придётся пересмотреть.');return;}
+  if(kind==='herb'&&!scentPlantKnown(s,h,target,obj)){ctx.goal(s,'explore',target.id,h.area===target.id&&h.x>=50?15:85,q.title||'Поиск травы','Известно место сбора, но нужное растение ещё предстоит увидеть в зарослях.',{quest:q.id});return;}
   ctx.goal(s,'collect',target.id,obj.x,q.title||'Собрать находки',q.cause||'Он знает, зачем возвращается сюда.',{object:obj.id,quest:q.id});
 }
 export function failQuest(s,q,ctx,reason){

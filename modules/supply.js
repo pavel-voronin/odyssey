@@ -1,5 +1,7 @@
 import {canBargain} from './skill-branches.js';
 import {pathHasFord} from './fords.js';
+import {grateClosed} from './mechanism-policy.js';
+import {timedLiftPassage} from './lift-policy.js';
 import {edibleBroth,actualHearth,kitchenTick} from './hearth-food.js';
 import {initializeFoodSource,localFoodEnabled,localFoodChoice,localFoodWork,forageGrowth,takeForage,LOCAL_FOODS} from './local-food.js';
 import {areaScale,areaOffset} from '../geometry.js';
@@ -151,6 +153,8 @@ export function supplyTick(s,ctx){
       const next=s.areas[c.path[c.index+1]];
       if(next&&(escort.transit||escort.area!==next.id||escort.combat||next.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved)))continue;
     }
+    if(grateClosed(s,c.path[c.index],c.path[c.index+1]))continue;
+    if(c.remaining<=1||s.people[c.person].liftTransit){const from=c.path[c.index],to=c.path[c.index+1],r=timedLiftPassage(s,s.people[c.person],to,Number(to?.slice(1))>Number(from.slice(1))?5:95);if(!['clear','arrived'].includes(r.status))continue;}
     c.remaining--;if(c.remaining>0)continue;
     c.index++;const a=s.areas[c.path[c.index]],p=s.people[c.person];p.area=a.id;
     const enemy=a.objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved);

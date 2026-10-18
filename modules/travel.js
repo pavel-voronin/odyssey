@@ -8,6 +8,9 @@ import { addCondition } from './body.js';
 import {dangerAvoidance} from './danger.js';
 import {registerSpatialEdge} from './spatial.js';
 import {newFord} from './fords.js';
+import {grateClosed} from './mechanism-policy.js';
+import {liftBlocked,admitLift} from './lift-policy.js';
+import {physicalDistance} from '../geometry.js';
 
 export const edgeKey=(a,b)=>[a,b].sort().join('|');
 const pick=(s,list)=>list[Math.floor(moduleRandom(s,'geography')*list.length)];
@@ -20,7 +23,7 @@ export function annotateRegion(s,a,metadata={}){
   if(metadata.timelineRoot)a.timelineRoot=metadata.timelineRoot;
 }
 export function addRoute(s,a,b,options={}){
-  s.edges ||= {};const existing=s.edges[edgeKey(a,b)],previous=existing?.spatial;s.edges[edgeKey(a,b)]={a,b,mode:'road',duration:0,cost:0,...(previous?{spatial:previous}:{}),...(existing?.ford?{ford:existing.ford}:{}),...options};
+  s.edges ||= {};const existing=s.edges[edgeKey(a,b)],previous=existing?.spatial;s.edges[edgeKey(a,b)]={a,b,mode:'road',duration:0,cost:0,...(previous?{spatial:previous}:{}),...(existing?.ford?{ford:existing.ford}:{}),...(existing?.mechanism?{mechanism:existing.mechanism}:{}),...(existing?.lift?{lift:existing.lift}:{}),...options};
   const o=s.edges[edgeKey(a,b)];
   if(!existing)newFord(s,o);
   if(o.mode!=='road'){
@@ -90,22 +93,29 @@ export function expandRoutes(s,ctx){
 }
 export function beginTransit(s,next,arrivalX,ctx){
   const h=s.hero,edge=s.edges?.[edgeKey(h.area,next)];
-  if(!edge||edge.mode==='road'||!enabled(s,'travel'))return false;
+  if(h.transit)return true;
+  if(grateClosed(s,h.area,next)){h.goal=null;ctx.log?.(s,'Решётка закрыла проход. Нужен местный рычаг или обход.','plan');return true;}
+  if(liftBlocked(s,h.area,next)){h.goal=null;return true;}
+  const lift=enabled(s,'mechanisms')&&edge?.lift,mode=lift?'lift':edge?.mode;
+  if(!edge||mode==='road'||!enabled(s,'travel')&&!lift)return false;
+  if(lift&&physicalDistance(s.areas[h.area],h.x,Number(next.slice(1))>Number(h.area.slice(1))?100:0)>1)return true;
   if(edge.mode==='portal'&&!enabled(s,'portals')||edge.mode==='time'&&!enabled(s,'time'))return false;
-  const cost=profile(h).skill==='sea'&&edge.mode==='sea'?0:edge.cost;
+  const cost=lift||profile(h).skill==='sea'&&edge.mode==='sea'?0:edge.cost;
   if(['portal','time'].includes(edge.mode))startInvitation(s,edge.mode,edgeKey(h.area,next));
   let crew=false;
   if(h.gold>=cost)h.gold-=cost;
   else{crew=true;h.energy=Math.max(0,h.energy-5);}
-  h.transit={from:h.area,to:next,mode:edge.mode,remaining:edge.duration,total:edge.duration,arrivalX,crew,eventDone:false,savedIntent:h.intent,savedReason:h.reason};
-  h.lastAction='travel';h.action=ROUTE_NAMES[edge.mode].toUpperCase();h.intent=`${ROUTE_NAMES[edge.mode]}: ${s.areas[next].name}`;
+  const ride=lift?admitLift(s,h.area,next,h.lineage,arrivalX):null;if(lift&&!ride)return true;
+  h.transit={from:h.area,to:next,mode,remaining:ride?2:edge.duration,total:ride?2:edge.duration,arrivalX,crew,eventDone:false,savedIntent:h.intent,savedReason:h.reason,...(ride?{liftRide:ride}:{})};
+  h.lastAction='travel';h.action=ROUTE_NAMES[mode].toUpperCase();h.intent=`${ROUTE_NAMES[mode]}: ${s.areas[next].name}`;
   h.reason=crew?'Денег на билет не хватает. Герой отрабатывает дорогу в команде.':edge.mode==='time'?'Место то же. Год другой. Следы прошлого способны изменить настоящее.':'Этот маршрут соединяет разные части мира.';
-  ctx.log(s,edge.mode==='sea'?`Герой поднимается на корабль. ${crew?'Плата — помощь команде.':'Паруса расправлены.'}`:edge.mode==='time'?'Герой входит в разлом эпох. Тиканье мира не останавливается.':edge.mode==='portal'?'Портал раскрывает чужой горизонт. Герой проходит внутрь.':'Герой спускается под землю. Дневной свет остаётся позади.','travel');
+  ctx.log(s,lift?'Герой входит в кабину. Привод расходует один заряд и начинает поездку.':edge.mode==='sea'?`Герой поднимается на корабль. ${crew?'Плата — помощь команде.':'Паруса расправлены.'}`:edge.mode==='time'?'Герой входит в разлом эпох. Тиканье мира не останавливается.':edge.mode==='portal'?'Портал раскрывает чужой горизонт. Герой проходит внутрь.':'Герой спускается под землю. Дневной свет остаётся позади.','travel');
   return true;
 }
 export function transitTick(s,ctx){
   const h=s.hero,t=h.transit;if(!t)return false;
-  h.lastAction='travel';t.remaining--;h.energy=Math.max(0,h.energy-.2);
+  if(t.liftRide&&t.liftRide.lastTick===s.tick)return true;
+  h.lastAction='travel';t.remaining--;if(t.liftRide){t.liftRide.remaining=t.remaining;t.liftRide.lastTick=s.tick;}h.energy=Math.max(0,h.energy-.2);
   if(t.mode==='sea'&&!t.eventDone&&t.remaining<=Math.floor(t.total/2)){
     t.eventDone=true;const chance=moduleRandom(s,'voyages');
     if(chance<.2&&enabled(s,'travel')){

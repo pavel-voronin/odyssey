@@ -34,25 +34,27 @@ function know(s,p,origin,teacher=null){ensure(p).recipes[KNIFE_RECIPE.id] ||= {l
 function readySite(s,p,id,area){const site=workshopSite(s,area,id);return site&&site.object.state==='intact'&&!site.object.closed&&s.people[site.object.owner]?.alive&&workToolReady(s,site.object)?site:null;}
 function accessible(s,p,site){if(site.object.owner===p.id)return true;const lease=body(s,p)?.goal?.workspace;return lease?.id===site.object.id&&lease.kind==='lease'&&lease.owner===site.object.owner&&lease.until>=s.tick;}
 
-// A real held fang can replace the blade blank. The handle still comes from
+// A real held fang or dismantled lift part can replace the blade blank. The handle still comes from
 // the finite warehouse; neither route creates another raw stock.
 export function startKnife(s,p,site,ctx){
  if(!forgingEnabled(s)||!healthy(s,p)||!canAct(s,p)||current(p)||!site||!near(s,p,site.area.id,42)||readySite(s,p,site.object.id,site.area.id)?.object!==site.object)return null;
  if(!state(p)?.recipes[KNIFE_RECIPE.id]&&!prepared(s,p))return null;
- const sources=productionSources(s,site.area),raw=sources?.materials,held=body(s,p)?.bag||p.looseItems||[],fang=biomaterialOn(s)&&held.find(isFang),units=fang?1:2,price=units*3;
+ const sources=productionSources(s,site.area),raw=sources?.materials,held=body(s,p)?.bag||p.looseItems||[],fang=biomaterialOn(s)&&held.find(isFang),reclaimed=held.find(i=>i.mechanismPart?.version===1),original=fang||reclaimed,units=original?1:2,price=units*3;
  if(!raw||raw.stock<units||purse(s,p)<price)return null;
  if(!state(p)?.recipes[KNIFE_RECIPE.id])know(s,p,'current-role');
  const q=ensure(p),id=`${p.id}/forge/${++q.serial}`;
  raw.stock-=units;raw.used+=units;setActorMoney(s,p,purse(s,p)-price);site.area.civic.treasury+=price;
  const order={id,recipe:KNIFE_RECIPE.id,owner:p.id,master:p.id,area:site.area.id,workshop:site.object.id,started:s.tick,progress:0,required:knowsPracticalMethod(s,p.id,'craft')?4:KNIFE_RECIPE.work,lastWorkTick:-1,status:'working',materials:KNIFE_RECIPE.materials.map((kind,i)=>({id:id+'/material/'+i,kind,owner:p.id,source:raw.id,sourceOwner:'civic/'+raw.place,acquiredAt:s.tick,price:3,state:'reserved'}))};
  if(fang){held.splice(held.indexOf(fang),1);itemLocation(s,fang,{kind:'forge-order',id});order.materials[0]={id:id+'/material/0',kind:'wolf-fang',owner:p.id,source:fang.bioMaterial.body,sourceOwner:'animal/'+fang.bioMaterial.animal,acquiredAt:s.tick,price:0,state:'reserved',original:fang,provenance:{...fang.bioMaterial,item:fang.id}};}
+ else if(reclaimed){held.splice(held.indexOf(reclaimed),1);itemLocation(s,reclaimed,{kind:'forge-order',id});order.materials[0]={id:id+'/material/0',kind:'reclaimed-metal',owner:p.id,source:reclaimed.mechanismPart.node,sourceOwner:reclaimed.mechanismPart.node,acquiredAt:s.tick,price:0,state:'reserved',original:reclaimed,provenance:{node:reclaimed.mechanismPart.node,item:reclaimed.id}};}
  for(const old of Object.values(q.orders).filter(o=>o.status==='completed').slice(0,-7))delete q.orders[old.id];
  q.orders[id]=order;q.active=id;
- announce(s,p,ctx,fang?`${p.name} вкладывает свой волчий клык в заказ и покупает рукоять за ◈3. Тот же материал ждёт работы у верстака.`:`${p.name} покупает заготовку и рукоять за ◈6. Рабочий нож ещё предстоит изготовить.`);return order;
+ announce(s,p,ctx,original?`${p.name} вкладывает ${fang?'свой волчий клык':'деталь разобранного подъёмника'} в заказ и покупает рукоять за ◈3. Тот же материал ждёт работы у верстака.`:`${p.name} покупает заготовку и рукоять за ◈6. Рабочий нож ещё предстоит изготовить.`);return order;
 }
 function makeKnife(s,p,o){
  const item={id:o.id+'/knife',base:'blade',name:'Рабочий нож',slot:'weapon',stat:'attack',power:1,rarity:1,modifier:'plain',value:10,toolKind:'knife',found:s.tick,foundArea:position(s,p).area,creator:p.id,createdAt:s.tick,physical:{version:1,holder:{kind:'person',id:p.id},movedAt:s.tick},manufacture:{version:1,order:o.id,recipe:o.recipe,master:p.id,workshop:o.workshop,started:o.started,finished:s.tick,actions:o.progress,materials:o.materials.map(m=>({...m}))},history:[{tick:s.tick,text:`Изготовлено: ${p.name}. Заготовка и рукоять со склада «${s.areas[o.area].name}»; ${o.progress} рабочих действий.`}]};
  const biological=o.materials.find(m=>m.kind==='wolf-fang');if(biological){item.name='Рабочий нож · волчий клык';item.history[0].text=`Изготовлено: ${p.name}. Клык «${biological.provenance.animalName}», извлечённый ${biological.provenance.extractorName}; рукоять со склада «${s.areas[o.area].name}», ${o.progress} рабочих действий.`;}
+ const reclaimed=o.materials.find(m=>m.kind==='reclaimed-metal');if(reclaimed)item.history[0].text=`Изготовлено: ${p.name}. Металл детали ${reclaimed.provenance.item} разобранного подъёмника; рукоять со склада «${s.areas[o.area].name}».`;
  initializeItemMemory(item);itemBearer(s,item,p.id);initializeNewItemCondition(s,item);return item;
 }
 export function workKnife(s,p,ctx){
