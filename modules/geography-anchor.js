@@ -15,6 +15,7 @@ export function shoreDistance(point,polygon){
 export function currentGeography(s,id=s.hero.area){
  const seen=new Set();let a=s.areas[id];while(a&&!seen.has(a.id)){
   seen.add(a.id);if(a.geography&&s.geographyFrame?.version===1){const g=a.geography,f=s.geographyFrame;return {site:f.sites[g.site],country:f.countries[g.country]||null,region:f.regions[g.region]||null,landmass:g.landmass?s.continents[g.landmass]:null};}
-  const parent=a.temporaryCamp?.parent||a.interior?.parent||(a.city!==a.id?a.city:null);a=s.areas[parent];
+  const left=s.areas[a.routeSite?.from]?.geography,right=s.areas[a.routeSite?.to]?.geography,roadParent=left&&right&&left.country===right.country&&left.region===right.region?a.routeSite.from:null;
+  const parent=a.temporaryCamp?.parent||a.interior?.parent||roadParent||(a.city!==a.id?a.city:null);a=s.areas[parent];
  }return null;
 }

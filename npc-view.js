@@ -65,6 +65,6 @@ export function projectNPCView(s,h,p,leader,previous){
  if(['waiting','supported'].includes(p.partyInjury?.stage)){h.intent=p.partyInjury.stage==='waiting'?'Ожидает помощи на своём месте':'Передвигается с поддержкой';h.reason=p.partyInjury.reason;h.lastAction=p.partyInjury.stage==='waiting'?'rest':h.transit?'travel':'idle';}
  if(['holding','returning'].includes(p.mechanismDuty?.stage)){h.intent=p.mechanismDuty.stage==='holding'?'Удерживает рычаг':'Возвращается к отряду по обходу';h.reason='Остаётся одним телом на действительной дороге. Ожидание расходует силы; голод и личные дела продолжаются.';if(p.mechanismDuty.stage==='holding')h.lastAction='work';}
  if(h.npcProfile){h.npcProfile.viewTick=s.tick;h.npcProfile.job=job;h.npcProfile.work=p.agenda?.work||0;h.npcProfile.tools=p.agenda?.tools||0;h.profession='npc-'+(job||'farmer');}
- if(h.transit?.metric?.restedAt===s.tick)h.lastAction='rest';
+ if(h.transit?.metric?.restedAt===s.tick||p.roadStop?.phase==='rest')h.lastAction='rest';
  if(h.atlas){const known=new Set([h.area,...(p.navigation?.places||[]).map(e=>e.area),journey?.to,publicJourney?.to,convoy?.to].filter(id=>s.areas[id]));for(const id of known)if(!h.atlas.known.includes(id))h.atlas.known.push(id);for(const r of p.navigation?.roads||[])if(!h.atlas.roads.includes(r.key))h.atlas.roads.push(r.key);if(!h.transit&&s.areas[h.area]){if(!h.atlas.visited.includes(h.area))h.atlas.visited.push(h.area);if(!h.memory.places.includes(h.area))h.memory.places.push(h.area);}}
 }

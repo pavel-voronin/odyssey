@@ -1,3 +1,4 @@
+import {routeSiteAnchor,metricMapPoint} from './metric-map.js';
 import {geographyAnchor} from './geography-anchor.js';
 import {rootWorld} from '../world-ref.js';
 import {areaScale} from '../geometry.js';
@@ -23,10 +24,10 @@ function attachment(s,a){
 export function registerSpatialArea(input,area){
  const s=rootWorld(input),a=typeof area==='string'?s.areas[area]:area;if(!a||s.areas[a.id]!==a||a.spatial&&a.spatial.version!==1)return;
  const world=registry(s);if(world.version!==1)return;
- const layer=layerId(a),attach=attachment(s,a),continent=a.continent||'c0',settlement=a.city||null,signature=JSON.stringify([layer,continent,settlement,attach,...(a.geography?[a.geography,geographyAnchor(s,a)]:[])]);
+ const layer=layerId(a),attach=attachment(s,a),continent=a.continent||'c0',settlement=a.city||null,signature=JSON.stringify([layer,continent,settlement,attach,...(a.geography?[a.geography,geographyAnchor(s,a)]:[]),...(a.routeSite?[a.routeSite]:[])]);
  world.layers[layer] ||= {id:layer,realm:a.realm||'surface',era:a.era??0,scheme:'schematic-v1',unit:'diagram'};
  if(a.spatial?.signature===signature)return a.spatial;
- const old=a.spatial;a.spatial={version:1,revision:(old?.revision||0)+1,layer,continent,settlement,scheme:'schematic-v1',signature,...(attach?{attachment:attach}:{anchor:geographyAnchor(s,a)||old?.anchor||rootAnchor(s,a)})};world.revision++;
+ const old=a.spatial;a.spatial={version:1,revision:(old?.revision||0)+1,layer,continent,settlement,scheme:'schematic-v1',signature,...(attach?{attachment:attach}:{anchor:routeSiteAnchor(a)||geographyAnchor(s,a)||old?.anchor||rootAnchor(s,a)})};world.revision++;
  // Refresh only real incident passages when this writer changes a place, never a full per-tick graph scan.
  if(old)for(const to of a.links||[])if(s.edges?.[key(a.id,to)])registerSpatialEdge(s,key(a.id,to));
  return a.spatial;
@@ -81,6 +82,6 @@ export function actorSpatialAddress(input,h=input.hero){
  // NPC/group presence belongs to its existing controller, not the last drawn scene.
  const location=h.alive&&!selfDrivenActor(s,h)&&s.people[h.lineage]?personLocation(s,h.lineage):h;
  if(!location)return unknown(null,null,'missing-presence');
- if(location.transit){const t=location.transit;if(t.unknown)return unknown(null,null,'unknown-transit');const id=key(t.from,t.to),passage=spatialPassage(s,id);return {version:1,status:passage.status==='unknown'?'unknown':'partial',kind:'transit',actor:h.lineage,edge:passage.id||null,from:t.from,to:t.to,mode:t.mode??null,scene:null,point:null,physicalProgress:t.metric?{travelled:t.metric.travelled,distance:t.metric.distance,unit:t.metric.unit}:null,departureVersion:t.metric?.departureVersion??null,geometryBasis:t.metric?'departure-snapshot':'current-edge',time:{remaining:t.remaining??null,total:t.total??null,unit:'tick'},passage};}
+ if(location.transit){const t=location.transit;if(t.unknown)return unknown(null,null,'unknown-transit');const id=key(t.from,t.to),passage=spatialPassage(s,id),mapped=metricMapPoint(s,t);return {version:1,...(mapped||{}),status:mapped?'known':passage.status==='unknown'?'unknown':'partial',kind:'transit',actor:h.lineage,edge:passage.id||null,from:t.from,to:t.to,mode:t.mode??null,scene:null,point:mapped?.point??null,physicalProgress:t.metric?{travelled:t.metric.travelled,distance:t.metric.distance,unit:t.metric.unit}:null,departureVersion:t.metric?.departureVersion??null,geometryBasis:mapped?.geometryBasis??(t.metric?'departure-snapshot':'current-edge'),time:{remaining:t.remaining??null,total:t.total??null,unit:'tick'},passage};}
  return {...spatialAddress(s,location.area,location.x),kind:'scene',actor:h.lineage};
 }

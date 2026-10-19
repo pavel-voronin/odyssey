@@ -84,6 +84,7 @@ export class Scene {
     this.grade.destroy();
   }
   update(state) {
+    if(this.observedAlive===true&&!state.hero.alive)this.roadMap.setView({inspect:false,layer:'current'});this.observedAlive=state.hero.alive;
     if(this.roadView==='map'||this.roadMap.inspect)this.roadMap.update(state);
     const replaced=Boolean(this.state&&this.state!==state);
     this.deathMotion.update(state,{scene:state.hero.area,now:performance.now(),reset:replaced,animate:!this.reduced&&state.rules?.animation!==false});
@@ -306,14 +307,14 @@ export class Scene {
     if(!h.transit)for(const convoy of s.logistics?.convoys||[]){const p=s.people[convoy.person];if(!p?.alive||p.roadTransit||p.status!=='caravan'||p.area!==a.id||convoy.movement!=='physical'&&s.rules?.['npc-logistics']===false)continue;
       freightDrawn++;
       const track=this.actorPositions?.get(p.id),moving=track&&track.from!==track.to&&phase<1,px=screenX(track?track.from+(track.to-track.from)*phase:p.x??42),direction=track?.from!==track?.to?Math.sign(track.to-track.from):p.facing||1,look=looks(p,p.appearance);
-      const sleeping=s.rules?.['npc-road-needs']!==false&&s.rules?.['npc-needs']!==false&&p.needs?.sleeping;this.cart(px-direction*25,ground,convoy.food,convoy.medicine,direction);this.person(px,ground,look?.cloak||'#ad9872',false,direction,0,false,sleeping,look,s.rules?.lineage===false?null:race(p.race),{kind:sleeping?'rest':moving?'walk':'idle',progress:phase,walking:moving&&!sleeping,distance:Math.abs((track?.to??0)-(track?.from??0))*(w-48)/100});if(sleeping){c.fillStyle='#bcd18e';c.font='12px Georgia';c.fillText('z',px+12,ground-43);}
+      const sleeping=p.roadStop?.phase==='rest'||s.rules?.['npc-road-needs']!==false&&s.rules?.['npc-needs']!==false&&p.needs?.sleeping;this.cart(px-direction*25,ground,convoy.food,convoy.medicine,direction);this.person(px,ground,look?.cloak||'#ad9872',false,direction,0,false,sleeping,look,s.rules?.lineage===false?null:race(p.race),{kind:sleeping?'rest':moving?'walk':'idle',progress:phase,walking:moving&&!sleeping,distance:Math.abs((track?.to??0)-(track?.from??0))*(w-48)/100});if(sleeping){c.fillStyle='#bcd18e';c.font='12px Georgia';c.fillText('z',px+12,ground-43);}
     }
     canvas.dataset.caravans=String(freightDrawn);
     canvas.dataset.guards=String(s.rules?.['npc-watch-needs']===false||h.transit?0:s.society.orders.filter(order=>{const p=s.people[order.person];return p?.alive&&!p.roadTransit&&p.area===a.id&&['marching','guarding','returning'].includes(p.status)&&!h.companions.some(c=>c.person===p.id);}).length);
     let travellersDrawn=0;
     if(!h.transit)for(const j of s.society?.journeys||[]){const p=s.people[j.person];if(j.movement!=='physical'||!p?.alive||p.roadTransit||p.status!=='travelling'||p.area!==a.id)continue;
       travellersDrawn++;const track=this.actorPositions?.get(p.id),moving=track&&track.from!==track.to&&phase<1,px=screenX(track?track.from+(track.to-track.from)*phase:p.x??42),direction=track?.from!==track?.to?Math.sign(track.to-track.from):p.facing||1,look=looks(p,p.appearance);
-      const sleeping=s.rules?.['npc-road-needs']!==false&&s.rules?.['npc-needs']!==false&&p.needs?.sleeping;this.person(px,ground,look?.cloak||'#ad9872',false,direction,0,false,sleeping,look,s.rules?.lineage===false?null:race(p.race),{kind:sleeping?'rest':moving?'walk':'idle',progress:phase,walking:moving&&!sleeping,distance:Math.abs((track?.to??0)-(track?.from??0))*(w-48)/100});if(sleeping){c.fillStyle='#bcd18e';c.font='12px Georgia';c.fillText('z',px+12,ground-43);}
+      const sleeping=p.roadStop?.phase==='rest'||s.rules?.['npc-road-needs']!==false&&s.rules?.['npc-needs']!==false&&p.needs?.sleeping;this.person(px,ground,look?.cloak||'#ad9872',false,direction,0,false,sleeping,look,s.rules?.lineage===false?null:race(p.race),{kind:sleeping?'rest':moving?'walk':'idle',progress:phase,walking:moving&&!sleeping,distance:Math.abs((track?.to??0)-(track?.from??0))*(w-48)/100});if(sleeping){c.fillStyle='#bcd18e';c.font='12px Georgia';c.fillText('z',px+12,ground-43);}
     }
     canvas.dataset.travellers=String(travellersDrawn);
     let detailedDrawn=0;

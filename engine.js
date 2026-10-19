@@ -1,3 +1,5 @@
+import {localRoadShop,resumeRoadContact,suspendRoadFight} from './modules/road-contacts.js';
+import {roadCampNeed,manageHeroRoadStop} from './modules/road-stops.js';
 import {pricedNavigation,knownRoadWeight} from './modules/known-route-price.js';
 import {initialWaterPreference} from './modules/metric-route-state.js';
 import {createGeographyFrame} from './modules/geography-frame.js';
@@ -201,7 +203,7 @@ export function random(s) {
   return s.rng / 4294967296;
 }
 const roll = (s, n) => Math.floor(random(s) * n);
-function context(s, stream) { return { meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
   if(observingBodyActive(s)||type==='death'||type==='retirement')rememberMoment(s,s.journal[0]);else s.journal[0].afterLife=true;
@@ -217,6 +219,7 @@ function connect(s, a, b,metadata={}) {
 function addArea(s, type, name, depth = 0,metadata={}) {
   const id = 'a' + s.nextArea++;
   const area = { id, type, name, depth, paletteVersion:2, links: [], visited: false, discovered: false, visits: 0, objects: [], expanded: false };
+  if(metadata.routeSite){Object.assign(area,{routeSite:metadata.routeSite,expanded:true,length:50,forage:{stock:0,max:0,x:18,lastGrowth:s.tick,kind:'Обочина дороги'},continent:metadata.continent,realm:metadata.realm,era:metadata.era,culture:metadata.culture,danger:0});s.areas[id]=area;registerSpatialArea(s,area);return id;}
   if(enabled(s,'long-roads')&&type==='road'&&depth>=2&&depth%4===2){area.length=260;area.roadProfile='long-tract';}
   const layoutShell=type==='dungeon'&&metadata.layoutRoom===true;
   if(layoutShell)area.dungeon={root:metadata.layoutRoot||id,floor:metadata.layoutFloor||1,cleared:false,layoutShell:{version:1,created:s.tick,claimed:false}};
@@ -303,7 +306,7 @@ function enter(s, id) {
   initializeLodging(s);
   const firstVisit=!visitedArea(s,a);h.area = id;syncCoverPosition(s);petPassageEntered(s);recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
   observePlaceRule(s,context(s,'place-rules'));
-  if(a.temporaryCamp)return;
+  if(a.temporaryCamp||a.routeSite)return;
   if (firstVisit) { gainXp(s, 3 + (hasHabit(h, 'diary') ? 2 : 0)); log(s, `Открыто место: ${a.name}.`, 'discover'); }
   if (!h.memory.places.includes(id)) {const bonus=enchantedDiscovery(s,a,context(s,'enchantments'));if(bonus)gainXp(s,bonus);h.memory.places.push(id);}
   for (const link of a.links) if(!s.areas[link]?.temporaryCamp)revealArea(s,link);
@@ -801,7 +804,11 @@ function actObserved(s) {
   if(!enabled(s,'supply')&&['eat','forage'].includes(h.goal?.kind))h.goal=null;
   if (traitsTick(s, context(s, 'body'))) return s;
   if(heroFordProgress(s,context(s,'fords')))return s;
+  if(roadCampNeed(s,context(s,'fieldcamp')))return s;
   if(transitTick(s,context(s,'travel')))return s;
+  if(manageHeroRoadStop(s,context(s,'fieldcamp')))return s;
+  if(resumeRoadContact(s))return s;
+  if(localRoadShop(s,context(s,'road-contact')))return s;
   if(h.delve&&s.areas[h.delve.root]?.dungeon?.layout&&!layoutOn(s))return s;
   observePlaceRule(s,context(s,'place-rules'));
   observeDelveLayout(s);observeGuardians(s);observePositions(s);
@@ -897,7 +904,7 @@ function actObserved(s) {
       log(s, learnedCaution?.avoid?learnedCaution.reason:`${h.name} оценивает ${threat.name} и решает не рисковать. Нужно лучшее снаряжение.`, 'flee'); return s;}
       // With no known escape the real opponent still owns its ordinary fight.
     }
-    h.combat = threat.id; h.lastAction = 'attack'; h.action = 'БОЙ'; h.intent = `Сражаться: ${threat.name}`; h.reason = 'Противник преградил путь. Герой готовится защищаться.';
+    suspendRoadFight(s,threat);h.combat = threat.id; h.lastAction = 'attack'; h.action = 'БОЙ'; h.intent = `Сражаться: ${threat.name}`; h.reason = 'Противник преградил путь. Герой готовится защищаться.';
     log(s, `${threat.name} преграждает дорогу. Начинается бой.`, 'combat'); return s;
   }
   if (physicalDistance(a,h.x,target) > 1) { if(navigationGate(s,target,context(s,'navigation-tools')))return s;move(s, target); return s; }

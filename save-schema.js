@@ -1,3 +1,4 @@
+import {validateRoadStops} from './modules/road-stop-schema.js';
 import {validateMetricRoutes} from './modules/metric-route-schema.js';
 import {validateGeographyFrame} from './modules/geography-frame-schema.js';
 import {validatePlaceRules} from './modules/place-rule-schema.js';
@@ -165,7 +166,7 @@ export function validateSave(s){
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

@@ -2538,3 +2538,14 @@ PARTIAL14/14 exit0,907мс, artifacts/checks/b0d2bebb8371f2ad.log, revision4f034
 Pages220: Actions39177102020 success, HTML HTTP200/build918b2d7; commit8fb0d5e979a9a75af9b1139d0d1601dfdb2407bd.
 
 Опубликовано https://odyssey.kolpaque.dev:4f0342f4c498396c;447 payload-хешей/HTTPS подтверждены, проверки переиспользованы.
+
+<a id="stage-222"></a>
+## Этап222 · MAP-01.5 · сцена и стоянка того же пути
+
+Спокойный metric progress рисуется по снимку ребра; действительный близкий контакт/бой/торговля и привал показывают сцену. Пустой routeSite создаётся только от нужды, без людей/stock/квеста/XP; V-08.3 ставит один костёр в том же адресе. Встречный actual NPC использует его же; оба тела продолжают свои сохранённые пути. Близкий костёр достигается оплачиваемым шагом. Торговля/победа возвращают прежнюю цель; flee/death сохраняют фактическое изменение состояния. Смерть закрывает старый preview, без продолжения дороги тела. Код metric-map/road-stops/road-contacts/schema и adapters; CONTRACT road-stop.v1.
+
+PARTIAL21/21 exit0,1045мс, artifacts/checks/ca11bb5c096f179e.log; revision8a75e4cc623e057f.7новых малых групп +metric/map/smoke, seed1/выбранный42-мерный участок, ≤18actual ticks/случай. Проверены оба выхода/неполный шаг к одному camp/actual public-NPC/одна конечная покупка/уехавший Сава/fight-win-flee-death/промежуточные load/12offline шагов из уже отдохнувшего checkpoint. Это выбранные подготовленные фазы, не полная естественная жизнь/длительность всего отдыха. Browser5кадров320/390 +actual app320:2тела/один костёр, известный camp-icon, death из preview, controls ticks0/overflow0; осмотрено. Build пройден; full/SOAK/перебор не запускались.
+
+Pages221: Actions39178638209 success, HTML HTTP200/build4f0342f; commit5d55622c3b4e9e71f78a7f38c7186228eb78cb72.
+
+Опубликовано https://odyssey.kolpaque.dev:8a75e4cc623e057f;451 payload-хеш/HTTPS подтверждены, проверки переиспользованы.

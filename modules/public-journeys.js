@@ -1,3 +1,4 @@
+import {advanceNPCRoadCamp} from './road-stops.js';
 import {metricTravelRate} from './metric-route.js';
 import {areaScale,areaOffset,campPassage,physicalDistance} from '../geometry.js';
 import {recordPersonRemains} from './remains.js';
@@ -70,6 +71,8 @@ export function advancePublicJourney(s,j,ctx){
   const p=s.people[j.person];if(!p?.alive){s.society.journeys=s.society.journeys.filter(other=>other!==j);return;}
   if(!npcAction(s,p,'journey'))return;
   j.lastTick=s.tick;j.elapsed++;
+  if((p.roadStop||p.roadTransit)&&roadNeeds(s,p,ctx)){if(!p.alive)finish(s,j,p,ctx,'dead');return;}
+  if(advanceNPCRoadCamp(s,p,ctx))return;
   if(p.status!=='travelling'||p.area!==j.path[j.index]){if(enabled(s,'npc-control'))finish(s,j,p,ctx,'stopped');return;}
   if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&j.elapsed>720){finish(s,j,p,ctx,'stopped');return;}
   if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&j.elapsed>480&&!j.returning){turnBack(s,j,p,ctx);return;}
