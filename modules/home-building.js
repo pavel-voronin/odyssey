@@ -1,3 +1,5 @@
+import {dwellingNPCTask,dwellingNPCAction,dwellingPlan,dwellingAction} from './dwellings.js';
+import {constructionWork} from './construction-work.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {productionSources,goodsEnabled} from './goods.js';
@@ -20,6 +22,7 @@ export function noteRoomDemand(s,door,occupants){
 // Invoked inside the owner's ordinary personal planning turn. A thought does
 // not purchase raw stock, increase capacity or create a second building title.
 export function homeBuildingNPCTask(s,p){
+ const own=dwellingNPCTask(s,p);if(own)return own;
  if(!homeBuildingOn(s)||p.role!=='Хозяин трактира'||!ready(p)||npcController(s,p)!=='personal')return null;
  for(const a of Object.values(s.areas)){
   if(!a.lodging)continue;const {outside,door}=facts(s,a);if(door?.owner!==p.id||door.state!=='intact')continue;
@@ -45,11 +48,11 @@ function complete(s,a,r){
 }
 function work(s,a,r,id){
  if(r.status==='done'||!r.materials||r.worker!==id||r.lastWorkTick>=s.tick||r.steps.length>=6)return false;
- r.lastWorkTick=s.tick;r.steps.push({id:r.id+'/work/'+(r.steps.length+1),tick:s.tick,actor:id,energy:3});
- r.status=r.steps.length<2?'foundation':r.steps.length<4?'frame':r.steps.length<6?'fitting':'done';
+ if(!constructionWork(r,id,s.tick))return false;
  if(r.steps.length===6)complete(s,a,r);return true;
 }
 export function homeBuildingNPCAction(s,p){
+ if(p.agenda.task?.dwelling)return dwellingNPCAction(s,p);
  const t=p.agenda.task;if(!['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(t?.kind))return false;
  if(!homeBuildingOn(s))return true;
  const a=s.areas[t.room],r=a?.extension,{outside,door}=facts(s,a);
@@ -71,6 +74,7 @@ export function homeBuildingNPCAction(s,p){
  if(r.status==='done'){p.agenda.task=null;p.agenda.due=s.tick+48;}return true;
 }
 export function homeBuildingPlan(s,ctx){
+ if(dwellingPlan(s,ctx))return true;
  const h=s.hero;if(!homeBuildingOn(s)||h.goal||!body(h)||danger(s,h))return false;
  for(const a of Object.values(s.areas)){
   const r=a.extension;if(!r)continue;
@@ -83,6 +87,7 @@ export function homeBuildingPlan(s,ctx){
  }return false;
 }
 export function homeBuildingAction(s,ctx){
+ if(s.hero.goal?.dwelling)return dwellingAction(s,ctx);
  const h=s.hero,g=h.goal,a=s.areas[g?.buildingRoom],r=a?.extension;
  if(!homeBuildingOn(s)||!r||!body(h)||danger(s,h)){h.goal=null;return false;}
  if(r.hired?.person===h.lineage&&r.hired.lastActionTick>=s.tick)return false;

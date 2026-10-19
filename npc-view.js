@@ -1,6 +1,6 @@
 import {ferryPresence} from './modules/ferry-state.js';
 import {carriedFood} from './modules/stores.js';
-import {NPC_TASKS,NPC_JOBS} from './npc-labels.js';
+import {NPC_TASKS,NPC_JOBS,DWELLING_TASKS} from './npc-labels.js';
 import {companionAffairsEnabled} from './modules/companion-affair-state.js';
 import {materialDeliveryEnabled,pendingMaterialContract,materialContracts} from './modules/material-delivery-state.js';
 import {partyCombatOn} from './modules/party-combat-policy.js';
@@ -29,6 +29,7 @@ export function projectNPCView(s,h,p,leader,previous){
  if(!moved&&!h.transit&&!p.needs?.sleeping&&task?.kind==='forgeWork')h.lastAction='work';
  h.intent=h.transit?.unknown?'В пути · положение неизвестно':h.transit?`В пути: ${s.areas[h.transit.to].name}`:p.needs?.sleeping?'Восстанавливает силы':leader?`В отряде: ${leader.name}`:convoy?`Везёт припасы: ${s.areas[convoy.to]?.name||'место назначения'}`:order?'Выполняет службу':publicJourney?`Путешествует: ${s.areas[publicJourney.to]?.name||'место назначения'}`:NPC_TASKS[task?.kind]||'Между собственными делами';
  h.reason=journey?.reason||(task?.addressName?`Направляется в ${task.addressName}.`:job?`Собственное дело: ${NPC_JOBS[job]||job}.`:'Работа, нужды и дорога принадлежат этому человеку.');
+ if(task?.dwelling&&!h.transit&&!p.needs.sleeping){h.intent=DWELLING_TASKS[task.houseStage]||'Свой жилой дом';h.reason='Собственный проект с настоящим правом, конечным материалом и выполненными этапами.';}
  const talk=s.workshopDisputes?.[task?.dispute];
  if(talk&&['workshopTalk','workshopWait'].includes(task.kind))h.reason=task.kind==='workshopWait'?'Сам согласился подождать пополнения; материал ещё не куплен. Деньги и собственный срок остаются его.':'У двух владельцев повреждённые мастерские. Каждый сообщает свою нужду и решает за себя.';
  if(!leader&&!convoy&&!order&&!publicJourney&&!h.transit&&!p.needs.sleeping){

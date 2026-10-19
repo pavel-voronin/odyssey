@@ -1,3 +1,4 @@
+import {inheritDwellings} from './dwelling-rights.js';
 import {inheritProductionRights} from './production-finance-state.js';
 import {inheritLibraryBooks} from './libraries.js';
 import {enabled} from '../rules.js';
@@ -16,7 +17,7 @@ export function openInheritance(s,h,cache=null,ctx={}){
  const heir=heirs[0]||null,wallet=h.actorMode==='npc'?p.agenda.wealth:h.gold;
  const total=Math.max(0,wallet-(cache?.gold||0));
  const estate=p.estate={version:1,id:`estate/${p.id}/${s.tick}`,opened:s.tick,heir:heir?.id??null,total,cash:total,paid:0,status:'pending',assets:[]};
- inheritProductionRights(s,p,heir,estate);
+ inheritProductionRights(s,p,heir,estate);inheritDwellings(s,p,heir,estate);
  inheritMapCopies(s,p,heir,deathArea,deathX,estate,p.deathJourney||h.transit);
  inheritLibraryBooks(s,p,heir,estate,cache);
  if(heir&&p.routeMaps?.documents.length){const next=routeMapMemory(heir);for(const d of p.routeMaps.documents){d.owner=heir.id;next.documents.push(d);estate.assets.push({kind:'route-map',area:deathArea,id:d.id});}p.routeMaps.documents=[];}

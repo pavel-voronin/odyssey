@@ -1,0 +1,44 @@
+import {HOUSE_PLANS} from './dwelling-state.js';
+import {itemUnits} from './container-state.js';
+export function validateDwellings(s,fail){
+ const time=n=>Number.isSafeInteger(n)&&n>=0&&n<=s.tick,int=n=>Number.isSafeInteger(n)&&n>=0,obj=v=>v&&typeof v==='object'&&!Array.isArray(v),person=id=>Boolean(s.people[id]);
+ const rights=(list,key)=>{if(list===undefined)return;if(!Array.isArray(list)||list.some(e=>!time(e.tick)||!person(e.from)||e.to!==null&&!person(e.to)||s.people[e.from].estate?.id!==e.estate))fail(key+'.rights');};
+ for(const a of Object.values(s.areas)){
+  const req=a.dwellingRequest;if(req!==undefined&&(!a.foundedSettlement||!person(req.person)||!person(req.host)||!time(req.asked)||req.until!==req.asked+96||!Number.isFinite(req.x)||req.x<0||req.x>100))fail(a.id+'.dwellingRequest');
+  const p=a.dwellingPlot;if(p===undefined)continue;const key=a.id+'.dwellingPlot',r=p.project,h=p.house;
+  if(!a.foundedSettlement||p.version!==1||p.id!==a.id+'/dwelling-plot/1'||p.area!==a.id||!Number.isFinite(p.x)||p.x<0||p.x>100||!person(p.owner)||!time(p.created)||p.basis?.kind!=='founder-share'||p.basis.source!==a.foundation.id||!a.foundedSettlement.founders.includes(p.basis.person)||p.basis.tick!==p.created||!int(p.serial)||!Array.isArray(p.history)||p.history.length>8)fail(key);rights(p.rights,key);
+  const permit=p.permission;if(permit!==null){if(permit?.version!==1||typeof permit.id!=='string'||!person(permit.person)||!person(permit.owner)||!time(permit.agreed)||permit.paid!==4)fail(key+'.permission');rights(permit.transfers,key+'.permission');}
+  if(p.offer!==null&&(!person(p.offer?.person)||!person(p.offer.by)||!time(p.offer.tick)||p.offer.until!==p.offer.tick+96||p.offer.price!==4||typeof p.offer.id!=='string'))fail(key+'.offer');
+  for(const old of p.history)if(typeof old.id!=='string'||!HOUSE_PLANS[old.plan]||!time(old.completed)||!int(old.raw)||!int(old.paid))fail(key+'.history');
+  if(r!==null){const plan=HOUSE_PLANS[r?.plan],pay=r?.payment,m=r?.materials,sourceOwners=[r.originalOwner,r.owner,...(r.rights||[]).flatMap(e=>[e.from,e.to])];
+   if(r.version!==1||r.id!==p.id+'/project/'+p.serial||!plan||!person(r.owner)||!person(r.originalOwner)||!['small','family',null].includes(r.previousPlan)||r.rebuild!==(r.previousPlan!==null)||r.raw!==(r.rebuild?Math.max(0,plan.raw-HOUSE_PLANS[r.previousPlan].raw):plan.raw)||r.required!==(r.rebuild?3:plan.work)||!['self','hire'].includes(r.mode)||!['planned','foundation','frame','fitting','done'].includes(r.status)||!time(r.planned)||!Array.isArray(r.steps)||r.steps.length>r.required||!Number.isInteger(r.lastWorkTick)||r.lastWorkTick< -1||r.lastWorkTick>s.tick||!Array.isArray(r.hires)||!pay||pay.reserved!==(r.mode==='hire'?r.required*2:0)||typeof pay.funded!=='boolean'||!int(pay.paid)||!obj(pay.claims))fail(key+'.project');rights(r.rights,key+'.project');
+   if(r.permission!=='owner'&&r.permission!==permit?.id||r.owner!==p.owner&&permit?.person!==r.owner)fail(key+'.project.permission');
+   if(r.worker!==null&&!person(r.worker)||!int(r.workerUntil)||r.offer!==null&&(!person(r.offer?.person)||!sourceOwners.includes(r.offer.by)||!time(r.offer.tick)||r.offer.until!==r.offer.tick+96))fail(key+'.worker');
+   for(const hire of r.hires)if(!person(hire.person)||!time(hire.tick)||hire.until!==hire.tick+96)fail(key+'.hire');
+   if(m!==null&&(!m||!['carried','civic'].includes(m.kind)||!person(m.owner)||!sourceOwners.includes(m.owner)||!time(m.tick)||m.tick<r.planned||m.units!==r.raw||!int(m.before)||m.before<m.units||m.after!==m.before-m.units||m.paid!==(m.kind==='civic'?m.units*3:0)||m.kind==='civic'&&m.source!==a.goods?.sources?.materials.id||m.kind==='carried'&&!s.areas[m.source]))fail(key+'.materials');
+   if(Boolean(m)!==pay.funded||!m&&r.steps.length)fail(key+'.funding');
+   if(pay.funded){const f=pay.funding;if(!f||!sourceOwners.includes(f.owner)||f.tick!==m.tick||!Number.isFinite(f.before)||!Number.isFinite(f.after)||f.after<0||f.materials!==m.paid||f.escrow!==pay.reserved||f.before-f.after!==f.materials+f.escrow)fail(key+'.funding.receipt');}
+   for(const [i,e]of r.steps.entries())if(e.id!==r.id+'/work/'+(i+1)||!time(e.tick)||e.tick<=m?.tick||i>0&&e.tick<=r.steps[i-1].tick||e.energy!==3||![0,2].includes(e.rate)||e.rate===0&&!sourceOwners.includes(e.actor)||e.rate===2&&!r.hires.some(h=>h.person===e.actor&&h.tick<e.tick&&e.tick<h.until))fail(key+'.work');
+   const n=r.steps.length,status=n===r.required?'done':n>=3?'fitting':n>=2?'frame':m?'foundation':'planned';if(r.status!==status||r.lastWorkTick!==(r.steps.at(-1)?.tick??-1)||r.status==='done'&&r.completed!==r.lastWorkTick)fail(key+'.progress');
+   let sum=0,paid=0;for(const [id,c]of Object.entries(pay.claims)){const earned=r.steps.filter(e=>e.actor===id&&e.rate===2).length*2,refund=r.status==='done'&&pay.refundTo===id?pay.reserved-r.steps.filter(e=>e.rate===2).length*2:0;
+    if(c.person!==id||!person(id)||c.beneficiary!==null&&!person(c.beneficiary)||!int(c.amount)||c.amount!==earned+refund||!int(c.paid)||c.paid!==0&&c.paid!==c.amount||c.claimed!==null&&(!time(c.claimed)||c.claimed<r.completed)||c.paid>0&&c.claimed===null)fail(key+'.claim');rights(c.rights,key+'.claim');sum+=c.amount;paid+=c.paid;
+   }if(paid!==pay.paid||sum>pay.reserved||r.status==='done'&&sum!==pay.reserved||!pay.funded&&(sum||paid))fail(key+'.payment.balance');
+  }
+  if(h!==null){const room=s.areas[h?.room],res=room?.residence,plan=HOUSE_PLANS[h.plan],chest=room?.objects.find(o=>o.id===res?.chest),door=a.objects.find(o=>o.id===h.id),profile=a.facades?.profiles.find(b=>b.id===h.building);
+   if(h.id!==p.id+'/door'||h.title!==p.id+'/title'||h.building!==p.id+'/building'||!person(h.owner)||!time(h.created)||!plan||!room||!res||res.version!==1||res.owner!==h.owner||res.plot!==p.id||res.house!==h.id||res.title!==h.title||res.plan!==h.plan||res.state!=='ready'||res.created!==h.created||res.capacity!==plan.capacity||!Array.isArray(res.occupants)||res.occupants.length>res.capacity||new Set(res.occupants).size!==res.occupants.length||res.occupants.some(id=>!person(id))||!res.occupants.includes(res.owner)||room.interior?.parent!==a.id||room.interior.exterior!==a.id||room.interior.building!==h.id||room.lodging?.capacity!==plan.capacity||room.lodging.booking!==null||room.civic||!door||door.kind!=='door'||door.owner!==h.owner||door.to!==room.id||door.dwelling!==p.id||door.building!==h.building||!profile||!chest||chest.id!==room.id+'/house-chest'||chest.owner!==h.owner||chest.capacity!==(room.home?.state==='ready'?Math.max(12,plan.chest):plan.chest)||!Array.isArray(chest.items)||chest.items.reduce((n,i)=>n+itemUnits(i),0)>chest.capacity)fail(key+'.house');
+   if(res.works!==undefined&&(!r||r.status==='done'||!r.rebuild||res.works.project!==r.id||res.works.section!=='addition'||res.works.targetCapacity!==HOUSE_PLANS[r.plan].capacity))fail(key+'.house.works');
+   if(res.consents!==undefined&&(!Array.isArray(res.consents)||res.consents.some(c=>!time(c.tick)||!person(c.owner)||!['party-consent','personal-consent'].includes(c.kind)||!Array.isArray(c.people)||c.people.some(id=>!person(id)))))fail(key+'.house.consents');
+   if(res.lastStoreTick!==undefined&&!time(res.lastStoreTick))fail(key+'.store');
+  }else if(r?.status==='done')fail(key+'.missing-house');
+ }
+ for(const a of Object.values(s.areas))if(a.residence&&!s.areas[a.interior?.parent]?.dwellingPlot?.house||a.residence&&s.areas[a.interior.parent].dwellingPlot.house.room!==a.id)fail(a.id+'.residence.orphan');
+ for(const p of Object.values(s.people)){
+  const h=p.privateHome;if(h!==undefined){const plot=s.areas[h.area]?.dwellingPlot;if(!plot||h.plot!==plot.id||h.room!==plot.house?.room||h.title!==plot.house.title)fail(p.id+'.privateHome');}
+  const c=p.dwellingIntent;if(c!==undefined&&(!s.areas[c.area]?.dwellingPlot||c.plot!==s.areas[c.area].dwellingPlot.id||typeof c.project!=='string'))fail(p.id+'.dwellingIntent');
+  if(p.dwellingAfter!==undefined&&!int(p.dwellingAfter)||p.dwellingGatherTick!==undefined&&!time(p.dwellingGatherTick))fail(p.id+'.dwellingClock');
+  if(p.privatePlotRequest!==undefined&&(!s.areas[p.privatePlotRequest.area]?.foundedSettlement||!person(p.privatePlotRequest.host)||!int(p.privatePlotRequest.until)))fail(p.id+'.privatePlotRequest');
+  if(p.dwellingInvitation!==undefined){const i=p.dwellingInvitation;if(!person(i.owner)||!s.areas[i.area]?.dwellingPlot?.house||s.areas[i.room]?.residence?.plot!==s.areas[i.area].dwellingPlot.id||!time(i.offered)||i.until!==i.offered+96)fail(p.id+'.dwellingInvitation');}
+  if(p.privateResidence!==undefined){const i=p.privateResidence;if(!s.areas[i.room]?.residence||!person(i.owner)||!time(i.agreed))fail(p.id+'.privateResidence');}
+  const t=p.agenda?.task;if(t?.dwelling&&(!s.areas[t.dwelling]?.foundedSettlement||typeof t.houseStage!=='string'||!['homeBuildSupply','homeBuildWait','homeBuildWork','homeBuildHire','homeBuildPay'].includes(t.kind)))fail(p.id+'.dwellingTask');
+ }
+}

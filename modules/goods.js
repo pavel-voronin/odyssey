@@ -59,7 +59,7 @@ export function productionSources(s,a){
  }return g.sources;
 }
 export function rawSite(s,a){
- if(!goodsEnabled(s)||!a||!['forest','mountain','cave','ruins','island'].includes(a.type)||a.interior||a.temporaryCamp)return null;
+ if(!goodsEnabled(s)||!a||!(['forest','mountain','cave','ruins','island'].includes(a.type)||a.foundedSettlement&&a.foundation?.originalType==='forest')||a.interior||a.temporaryCamp)return null;
  a.goodsRaw ||= {id:a.id+'/raw-source',owner:'world',place:a.id,initial:16+hash(s.seed,a.id+'/raw')%17,remaining:16+hash(s.seed,a.id+'/raw')%17,extracted:0};return a.goodsRaw;
 }
 export function extractRaw(s,a,quantity){const source=rawSite(s,a);if(!source||!valid(quantity)||source.remaining<quantity)return 0;source.remaining-=quantity;source.extracted+=quantity;return quantity;}

@@ -1,3 +1,4 @@
+import {residenceAdmission} from './residence-access.js';
 import {npcController} from './npc-control.js';
 import {refugeOn} from './refuge-state.js';
 import {neighborState,occupiedBeds,observeVacantBeds} from './neighbor-housing-state.js';
@@ -16,7 +17,7 @@ export function neighborRestPlan(s,p){
  const r=a.neighborHousing?.requests[p.id];if(!r||r.id!==stay.receipt||!['help','lease'].includes(r.mode))return false;p.agenda.task={kind:'housingRest',target:a.id,x:f.housing.x,remaining:1};return true;
 }
 export function neighborHousingPlan(s,p){
- const a=s.areas[p.area],f=a?.foundedSettlement;if(!refugeOn(s)||!f||!ready(p)||f.founders.includes(p.id)||p.home===a.id||p.houseStay?.until>s.tick||p.housingAfter>s.tick||p.migration)return false;
+ const a=s.areas[p.area],f=a?.foundedSettlement;if(!refugeOn(s)||!f||!ready(p)||f.founders.includes(p.id)||residenceAdmission(s,s.areas[p.privateHome?.room||p.privateResidence?.room],p.id)||p.houseStay?.until>s.tick||p.housingAfter>s.tick||p.migration)return false;
  if(p.housingRequest?.mode==='waiting'&&a.neighborHousing?.pending[p.id]){p.agenda.task={kind:'housingWait',target:a.id,x:f.housing.x,remaining:1};return true;}
  if(p.agenda.task&&!['visit','rest','return','housingAsk'].includes(p.agenda.task.kind)||!(p.refugeGroup||p.lastMigration!==undefined||p.needs.energy<60||p.agenda.task?.kind==='visit'))return false;
  const host=hostAt(s,a);if(!host||physicalDistance(a,p.x,f.housing.x)>28)return false;

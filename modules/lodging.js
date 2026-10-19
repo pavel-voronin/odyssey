@@ -1,3 +1,5 @@
+import {partyRoomConsent} from './lodging-consent.js';
+export {partyRoomConsent};
 import {noteRoomDemand,homeBuildingOn} from './home-building.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
@@ -25,11 +27,6 @@ export function initializeLodging(s){
 export function lodgingTick(s){
  for(const room of Object.values(s.areas)){const r=room.lodging?.booking;if(r?.status!=='booked')continue;if(r.until<=s.tick||!r.occupants.some(id=>s.people[id]?.alive)){r.status=r.until<=s.tick?'expired':'ended';r.ended=s.tick;}}
 }
-export function partyRoomConsent(s,h=s.hero){
- const party=enabled(s,'companions')?humanParty(s):[];
- if(party.some(c=>c.loyalty<45||c.ethics>0&&h.alignment<-20||c.ethics<0&&h.alignment>35||s.people[c.person]?.needs.hunger>=65))return null;
- return [h.lineage,...party.map(c=>c.person)];
-}
 function localDoor(s,area){const a=s.areas[area];return a.interior?interiorBuilding(s,a):tavernIn(s,area);}
 function quote(s,door,person,occupants){
  const room=s.areas[door?.room],r=room?.lodging,owner=s.people[door?.owner],payer=s.people[person];
@@ -41,6 +38,7 @@ export function lodgingPlan(s,ctx){
  const h=s.hero,a=s.areas[h.area];if(!on(s)||(h.lodgingAfter||0)>s.tick||h.combat||h.transit||h.hunger>70)return false;
  if(h.energy>=70&&h.hp>=h.maxHp*.75&&!(enabled(s,'companions')&&humanParty(s).some(c=>s.people[c.person].needs.energy<45)))return false;
  const occupants=partyRoomConsent(s);if(!occupants)return false;
+ const own=a.residence?a:s.areas[s.people[h.lineage].privateHome?.room];if(own?.residence&&[own.id,own.interior.parent].includes(h.area)&&roomAdmission(s,own,h.lineage)&&occupants.every(id=>own.residence.occupants.includes(id))){ctx.goal(s,'rest',own.id,68,'Отдохнуть в своём доме','Жильё построено и доступно по настоящему праву; время мира продолжает идти.',{lodging:own.id});return true;}
  const door=localDoor(s,h.area),room=s.areas[door?.room],paid=activeBooking(s,room,h.lineage);
  if(paid&&roomAdmission(s,room,h.lineage)&&occupants.every(id=>paid.occupants.includes(id))){revealArea(s,room.id);ctx.goal(s,'rest',room.id,68,'Отдохнуть в оплаченной комнате',`Бронь: ещё ${elapsedLabel(paid.until-s.tick)} · места ${paid.occupants.length}/${room.lodging.capacity}`,{lodging:room.id});return true;}
  if(homeBuildingOn(s)&&door&&room&&occupants.length===room.lodging.capacity+1&&tavernAvailable(s,door)){revealArea(s,door.hall);ctx.goal(s,'roomBook',door.hall,76,'Спросить о месте для спутников','В известной гостевой меньше мест, чем нужно группе. Хозяин должен услышать действительный запрос.',{building:door.id,occupants});return true;}
@@ -73,7 +71,7 @@ export function bookRoom(s,ctx){
 export function lodgingRest(s,ctx,continueRest=false){
  const h=s.hero,a=s.areas[h.area];if(!a.lodging)return false;
  if(!roomAdmission(s,a,h.lineage)||h.hunger>75){h.goal=null;return true;}
- const booking=activeBooking(s,a,h.lineage);h.reason=`Бронь: ещё ${elapsedLabel(booking.until-s.tick)} · места ${booking.occupants.length}/${a.lodging.capacity}`;
+ const booking=activeBooking(s,a,h.lineage);h.reason=a.residence?'Отдых по праву на свой дом. Вместимость '+a.residence.occupants.length+'/'+a.residence.capacity:`Бронь: ещё ${elapsedLabel(booking.until-s.tick)} · места ${booking.occupants.length}/${a.lodging.capacity}`;
  h.lastAction='rest';h.energy=Math.min(100,h.energy+10);if(h.hunger<70)h.hp=Math.min(h.maxHp,h.hp+1);ctx.recoverRoomParty?.(s);
  if(!continueRest&&h.energy>=95&&h.hp>=h.maxHp*.85){h.goal=null;h.lodgingAfter=s.tick+120;ctx.log(s,'Ночлег окончен. Можно вернуться к делам.','rest');}
  return true;

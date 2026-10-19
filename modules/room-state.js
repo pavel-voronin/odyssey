@@ -1,3 +1,4 @@
+import {residenceAdmission} from './residence-access.js';
 import {buildingRoomSound} from './building-condition.js';
 import {enabled} from '../rules.js';
 export const ROOM_POLICY={price:3,capacity:2,duration:240};
@@ -8,6 +9,7 @@ export function activeBooking(s,room,person=null){
  return r;
 }
 export function roomAdmission(s,room,person){
+ if(room?.residence){if(!residenceAdmission(s,room,person))return false;const h=s.actorStates?.[person]||(s.hero.lineage===person?s.hero:null);return !(h?.companions||[]).some(c=>c.person&&s.people[c.person]?.alive&&!room.residence.occupants.includes(c.person));}
  if(!enabled(s,'lodging')||!enabled(s,'interiors')||room?.lodging?.state!=='intact'||!buildingRoomSound(s,room))return false;
  const r=activeBooking(s,room,person);if(!r)return false;
  const followers=enabled(s,'companions')?(s.actorStates?.[person]?.companions||[]).filter(c=>c.person&&s.people[c.person]?.alive):[];

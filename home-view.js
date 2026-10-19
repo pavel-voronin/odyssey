@@ -1,5 +1,5 @@
 export function paintHome(c,a,width,ground){
- const h=a.home;if(!h)return;const chest=a.objects.find(o=>o.id===h.chest),at=x=>24+x/100*(width-48);
+ const h=a.home||a.residence;if(!h)return;const chest=a.objects.find(o=>o.id===h.chest),at=x=>24+x/100*(width-48);
  if(chest){const x=at(chest.x);c.fillStyle='#705039';c.fillRect(x-14,ground-20,29,20);c.fillStyle='#9b7850';c.fillRect(x-16,ground-24,33,6);c.fillStyle='#b2a075';c.fillRect(x-10,ground-24,3,24);c.fillRect(x+8,ground-24,3,24);c.fillStyle='#d1b66d';c.fillRect(x-2,ground-13,5,6);if(chest.library?.security?.locked){c.strokeStyle='#302b24';c.lineWidth=2;c.strokeRect(x-3,ground-17,7,9);}const books=chest.items.filter(i=>i.textCopy&&chest.library?.copies.includes(i.id)).slice(0,6);for(let n=0;n<books.length;n++){c.fillStyle=['#b8ae82','#839b90','#ac8377'][n%3];c.fillRect(x-12+n*4,ground-32,3,8);c.fillStyle='#d7ca9f';c.fillRect(x-12+n*4,ground-30,3,1);}}
  if(h.state!=='ready')return;const d=a.objects.find(o=>o.id===h.device);if(!d)return;const x=at(d.x);
  if(d.kind==='homeBench'){

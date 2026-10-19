@@ -1,3 +1,4 @@
+import {dwellingHTML} from './dwelling-sheet.js';
 import {neighborHousingHTML} from './neighbor-housing-sheet.js';
 import {wagonSummary} from './modules/wagon-state.js';
 import {mechanicHTML} from './modules/mechanic-drive.js';
@@ -175,7 +176,7 @@ const icons = { birth: '•', discover: '↗', quest: '!', reward: '+', combat: 
 const types=Object.fromEntries(Object.entries(BIOMES).map(([id,b])=>[id,b.name]));
 types.hall='Общий зал';
 types.room='Гостевая комната';
-const areaType=a=>a.interior?.kind==='workshop'?'Мастерская':types[a.type];
+const areaType=a=>a.residence?'Жилой дом':a.interior?.kind==='workshop'?'Мастерская':types[a.type];
 function lifeName(life=state.hero){return life.actorMode==='npc'?'Житель мира':'Жизнь '+(life.generation??life.actorGeneration??state.generation);}
 function detail() {
   const h = state.hero;
@@ -241,7 +242,7 @@ function enrichSheet(){
   if(tab==='quests'&&state.hero.actorMode!=='npc')$('detail-panel').insertAdjacentHTML('afterbegin',materialDeliveriesHTML(state,state.people[state.hero.lineage],escape));
   if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape)+petPassageHTML(state,escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',petPassageHTML(state,escape)+packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
-  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',neighborHousingHTML(state,escape));
+  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',neighborHousingHTML(state,escape)+dwellingHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));
