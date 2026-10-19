@@ -1,3 +1,4 @@
+import {validateHorses} from './modules/horse-schema.js';
 import {validateRoadStops} from './modules/road-stop-schema.js';
 import {validateMetricRoutes} from './modules/metric-route-schema.js';
 import {validateGeographyFrame} from './modules/geography-frame-schema.js';
@@ -135,6 +136,7 @@ function validatePackLocations(s){
  for(const p of Object.values(s.people))for(const c of p.pets||[]){validatePetCustody(s,c,p.id);pet(c);}
  for(const p of Object.values(s.people))if(!actors.has(p.id))for(const i of p.looseItems||p.legacy?.keepsakes||[])item(i,'pack/'+p.id,{kind:'person',id:p.id});
  for(const a of Object.values(s.areas))for(const o of a.objects){validatePetCustody(s,o.existingPet||o.packPetBody||o.petBody);pet(o.existingPet||o.packPetBody||o.petBody);for(const i of o.items||[])item(i,'cache/'+a.id+'/'+o.id,{kind:'cache',area:a.id,object:o.id});}
+ for(const m of Object.values(s.horses?.byId||{}))for(const i of m.cargo?.items||[])item(i,'mount/'+m.id,{kind:'mount',id:m.id});
  for(const i of s.merchant.items||[])item(i,'merchant/merchant',{kind:'merchant',id:'merchant'});
 }
 export function validateSave(s){
@@ -166,7 +168,7 @@ export function validateSave(s){
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);
@@ -210,6 +212,7 @@ export function validateSave(s){
   if(n.charge.loads){const c=n.charge.source;fields(c,['person','tick','resource','quantity','before','after'],path+'.charge.source');integer(c.tick,path+'.charge.source.tick');integer(c.after,path+'.charge.source.after');if(!s.people[c.person]||c.tick>s.tick||c.resource!=='relic'||c.quantity!==1||c.before!==c.after+1)fail(path+'.charge.source');}
   for(const item of n.parts)part(item,{kind:'mechanism',id:n.id},path+'.part');for(const h of n.history){fields(h,['tick','person','action'],path+'.history');integer(h.tick,path+'.history.tick');if(h.tick<n.created||h.tick>s.tick||!s.people[h.person]||!['repair','fuel','dismantle','ride'].includes(h.action))fail(path+'.history');}
  }
+ for(const m of Object.values(s.horses?.byId||{}))for(const i of m.cargo?.items||[])part(i,{kind:'mount',id:m.id},'item.'+i.id);
  const frames=[s.hero,...Object.values(s.actorStates)];for(const h of frames)for(const item of [...h.bag,...Object.values(h.equipment).filter(Boolean)])part(item,{kind:'person',id:h.lineage},'item.'+item.id);
  for(const p of Object.values(s.people)){if(!frames.some(h=>h.lineage===p.id))for(const item of p.looseItems||[])part(item,{kind:'person',id:p.id},'item.'+item.id);for(const o of Object.values(p.forging?.orders||{}))if(o.status==='working')for(const m of o.materials)if(m.original)part(m.original,{kind:'forge-order',id:o.id},'item.'+m.original.id);}
  for(const a of Object.values(s.areas))for(const o of a.objects)for(const item of [...(o.items||[]),...(o.paymentItems||[])])part(item,{kind:o.paymentItems?.includes(item)?'object':'cache',area:a.id,object:o.id},'item.'+item.id);

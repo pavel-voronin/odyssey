@@ -2549,3 +2549,13 @@ PARTIAL21/21 exit0,1045мс, artifacts/checks/ca11bb5c096f179e.log; revision8a75
 Pages221: Actions39178638209 success, HTML HTTP200/build4f0342f; commit5d55622c3b4e9e71f78a7f38c7186228eb78cb72.
 
 Опубликовано https://odyssey.kolpaque.dev:8a75e4cc623e057f;451 payload-хеш/HTTPS подтверждены, проверки переиспользованы.
+
+
+<a id="stage-223"></a>
+## Этап223 · C-01.4 · одна настоящая верховая лошадь
+
+Один взрослый носитель из actual world/new-settlement constructor: конечный корм/продавец, передача того же ID покупкой/даром/реальной находкой. Автономные посадка/уход/спешивание, одна скорость и progress с ценой еды/сил/нагрузки; узкие проходы оставляют животное с оригиналами. Купленные сумки не дублируют вместимость. Перехват/смерть/наследник/OFF/точный частичный load сохраняют тело и груз. Код horse-state/source/actions/schema, metric-route, item-originals, engine, horse-view/scene; riding.v1.
+
+PARTIAL31/31 exit0,1113мс, artifacts/checks/e6e3af4e717fc4e2.log; revision6cb2373c40e02be9.8малых групп seed0/1 +metric/containers/road-stops/smoke, ≤6actual мировых тиков либо ≤9изолированных действий на случай; 4offline. Browser3кадра320/390/320 осмотрены, одна лошадь/верховой/сумки, save не изменяется. Build пройден; full/SOAK/жизни/перебор не запускались.
+
+Опубликовано https://odyssey.kolpaque.dev:6cb2373c40e02be9;456 payload-хешей/HTTPS подтверждены, проверки переиспользованы. Pages222: Actions39182246359 success, HTML HTTP200/build8a75e4c; commit047afbba669d74ec8026e392b32bd471abab358a.

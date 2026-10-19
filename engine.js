@@ -1,3 +1,6 @@
+import {createStableHorse} from './modules/horse-source.js';
+import {horseWorldTick,horseTurn,syncHorse,detachHorse} from './modules/horse-actions.js';
+import {groupHorse,horseMotion,ridingOn} from './modules/horse-state.js';
 import {localRoadShop,resumeRoadContact,suspendRoadFight} from './modules/road-contacts.js';
 import {roadCampNeed,manageHeroRoadStop} from './modules/road-stops.js';
 import {pricedNavigation,knownRoadWeight} from './modules/known-route-price.js';
@@ -248,7 +251,7 @@ function addArea(s, type, name, depth = 0,metadata={}) {
   populateArea(s, area);
   civicArea(s,area);
   supplyArea(s,area);
-  peopleArea(s,area);
+  peopleArea(s,area);if(s.hero)createStableHorse(s,area);
   createPlaceRule(s,area);initializeDescent(s,area);migrationArea(area);initializeFacades(s);registerSpatialArea(s,area);return id;
 }
 function createHero(s) {
@@ -291,6 +294,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   const camp = addArea(s, 'camp', origin[4], 1);
   connect(s, road, town); connect(s, town, forest); connect(s, forest, ruins); connect(s, forest, camp);
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
+  createStableHorse(s);
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);
@@ -493,8 +497,12 @@ function move(s, target) {
   const h = s.hero, delta = target - h.x;
   h.facing = Math.sign(delta) || h.facing;
   const weather=weatherAt(s,s.areas[h.area]);
-  const amount=areaStep(s.areas[h.area],h.x,target,foodWalkingStride(s,h)*weather.speed);
-  h.x+=amount;h.distance+=Math.abs(amount)*areaScale(s.areas[h.area]);h.energy=Math.max(0,h.energy-walkingEnergy(s,weather));h.lastAction='walk';syncCoverPosition(s);
+  const mount=ridingOn(s)&&groupHorse(s,h),rate=mount?horseMotion(s,h,mount,weather,{mounted:mount.rider===h.lineage,terrain:s.areas[h.area].type==='mountain'?'mountain':'road'}):null;
+  if(mount&&(mount.lastMove===s.tick||mount.lastAction===s.tick||mount.energy<(rate?.energy||1))){h.lastAction='rest';return;}
+  const stride=rate?(mount.rider?rate.speed:Math.min(foodWalkingStride(s,h)*weather.speed,rate.speed)):foodWalkingStride(s,h)*weather.speed;
+  const amount=areaStep(s.areas[h.area],h.x,target,stride);
+  if(mount&&amount){mount.energy=Math.max(0,mount.energy-rate.energy);mount.hunger=Math.min(100,mount.hunger+.12);mount.lastMove=s.tick;}
+  h.x+=amount;h.distance+=Math.abs(amount)*areaScale(s.areas[h.area]);h.energy=Math.max(0,h.energy-(mount?.rider===h.lineage ? .2 : walkingEnergy(s,weather)));h.lastAction='walk';syncCoverPosition(s);
 }
 function gainXp(s, amount) {
   const h = s.hero; h.xp += amount;
@@ -545,6 +553,7 @@ function die(s, enemy,details={}) {
   const meaning=deathMeaning(s,enemy),report=deathRecord(s,enemy,details);
   finishDelve(s,'death');
   cancelWeapon(s,'Смерть прекращает подготовку.');
+  const mount=groupHorse(s,s.hero);if(mount)detachHorse(s,mount,'keeper-died');
   const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';syncCoverPosition(s);
   h.intent = 'Жизнь закончилась. Мир продолжается'; h.reason = 'Можно наблюдать, что станет с этим местом, или отдельно начать другую историю.'; h.action = 'НАСЛЕДИЕ';
   for (const q of h.quests) if (q.status === 'active') q.status = 'failed';
@@ -741,7 +750,7 @@ export function advanceWorld(s) {
  initializeInteriors(s);
  initializeLodging(s);
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
- worldTick(s);syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
+ worldTick(s);horseWorldTick(s);syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
   applyActorExternal(s,h);weaponTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
@@ -751,7 +760,7 @@ export function advanceWorld(s) {
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
   const castsBefore=h.magic.casts;
-  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{syncHorse(view,h);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
@@ -805,6 +814,7 @@ function actObserved(s) {
   if (traitsTick(s, context(s, 'body'))) return s;
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(roadCampNeed(s,context(s,'fieldcamp')))return s;
+  if(horseTurn(s,context(s,'riding')))return s;
   if(transitTick(s,context(s,'travel')))return s;
   if(manageHeroRoadStop(s,context(s,'fieldcamp')))return s;
   if(resumeRoadContact(s))return s;

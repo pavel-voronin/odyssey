@@ -1,3 +1,5 @@
+import {horses,horsePosition,riddenHorse} from './modules/horse-state.js';
+import {paintHorse} from './horse-view.js';
 import {withLimbLook} from './modules/limb-state.js';
 import {paintPatient} from './patient-view.js';
 import {occupiedCover} from './modules/position-state.js';
@@ -67,7 +69,7 @@ export class Scene {
     this.output=this.ctx;this.grade=new SceneGrade(this.output);this.profileMode=profileMode;
     this.roadView=roadView;this.roadMap=new RoadMapRenderer();this.mode='scene';
     this.beastTracks=new ActorTracks();this.deathMotion=new DeathMotion();this.cameraTrack=new CameraTrack();this.onCameraFrame=onCameraFrame;
-    for(const name of ['person','tree','ruin','cart','pet','formedCreature','quadruped','wolf','guard','creature','fire','sign']){const paint=this[name];this[name]=(...args)=>{const ground=name==='person'&&Number.isFinite(args[10]?.supportGround)?args[10].supportGround:args[1],restore=billboardFrame(this.ctx,this.camera,args[0],ground,this.pixelRatio);try{return paint.apply(this,args);}finally{restore();}};}
+    for(const name of ['horse','person','tree','ruin','cart','pet','formedCreature','quadruped','wolf','guard','creature','fire','sign']){const paint=this[name];this[name]=(...args)=>{const ground=name==='person'&&Number.isFinite(args[10]?.supportGround)?args[10].supportGround:args[1],restore=billboardFrame(this.ctx,this.camera,args[0],ground,this.pixelRatio);try{return paint.apply(this,args);}finally{restore();}};}
     this.media=matchMedia('(prefers-reduced-motion: reduce)');this.reduced=this.media.matches;this.frame=null;
     this.motionChanged=event=>{this.reduced=event.matches;this.redraw();};this.media.addEventListener('change',this.motionChanged);
     this.visibilityChanged=()=>this.redraw();document.addEventListener('visibilitychange',this.visibilityChanged);
@@ -336,12 +338,14 @@ export class Scene {
     canvas.dataset.detailedActors=String(detailedDrawn);
     if (!h.transit&&s.merchant.area === a.id) { const look=looks({id:'merchant-sava',role:'merchant'});this.person(screenX(58), ground, look?.cloak||'#867cac', false, -1, 0,false,false,look); c.fillStyle = '#957c58'; c.fillRect(screenX(58) + 12, ground - 13, 18, 13); c.strokeStyle = '#c3a982'; c.strokeRect(screenX(58) + 12, ground - 13, 18, 13); }
     if(h.transit&&['portal','time'].includes(h.transit.mode)){c.strokeStyle=h.transit.mode==='time'?'#d2b779':'#ac93cb';c.lineWidth=4;c.beginPath();c.ellipse(hx,ground-24,24,38,0,0,7);c.stroke();}
+    const mount=riddenHorse(s,h);let horseCount=0;for(const m of horses(s)){if(m===mount)continue;const at=horsePosition(s,m);if(!h.transit&&at?.area===a.id){this.horse(screenX(at.x),ground,m,{direction:1,phase});horseCount++;}}canvas.dataset.horses=String(horseCount+(mount?1:0));
     if (h.alive) {
       const walking = h.lastAction === 'walk' && actionPhase < 1 && !this.reduced&&this.to!==this.from;
       const bob = 0;
       if (h.lastAction === 'rest') { c.fillStyle = '#bcd18e'; c.font = '12px Georgia'; c.fillText('z', hx + 16, ground - 43); }
       const heroLook=withLimbLook(s.people[h.lineage],s.rules?.appearance===false?h.appearance:heroAppearance(s));
-      this.person(hx, ground - bob, heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{kind:occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
+      if(mount)this.horse(hx,ground,mount,{direction:stance.direction,walking,phase:actionPhase});
+      this.person(hx, ground - bob-(mount?29:0), heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{supportGround:ground,kind:occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking:walking&&!mount,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
       if(s.rules?.equipment!==false&&s.rules?.enchantments!==false&&h.equipment?.charm){const color=CHARM_LIGHT_COLORS[h.equipment.charm.modifier];if(color){c.fillStyle=color;c.shadowColor=color;c.shadowBlur=5;c.fillRect(hx+3,ground-24-bob,3,3);c.shadowBlur=0;}}
       if (s.rules?.companions !== false) for (let i=0;i<(h.companions?.length||0);i++) {
         const companion=h.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(body&&body.area!==a.id)continue;
@@ -571,6 +575,7 @@ export class Scene {
     const contours=this.contours||(this.contours=new ContourCache());this.castContourShadow(contours.world(body.polygons,matrix),{x:matrix.e,y:matrix.f},hero);
     c.save();c.translate(x,y);body.replay(c);c.restore();
   }
+  horse(x,y,m,pose){this.castShadow(x,y,38,m.hp>0?62:16);paintHorse(this.ctx,x,y,m,pose);}
   paintPerson(x, y, color, hero, direction, stride, attack = false, rest = false, appearance=null, species=null,pose={}) {
     const c=this.ctx,look=appearance||{},gait=pose.walking?walkPose(pose.progress,pose.distance):{feet:[{x:-4,y:0},{x:5,y:0}],bodyY:0,arm:0};
     rest=rest||Boolean(look.missingLimbs?.leftLeg&&look.missingLimbs?.rightLeg&&!look.prostheticLegs);
