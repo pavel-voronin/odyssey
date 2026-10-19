@@ -1,3 +1,4 @@
+import {migrationEmployment} from './migration-service.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {structurallySound} from './building-condition.js';
@@ -9,7 +10,7 @@ export function localSettlement(s,p){
  if(b===p&&!['resident','wandering','caravan','guarding','lever-duty'].includes(p.status)||p.status==='captive')return null;
  const profiles=a.facades?.profiles||[],workshops=a.objects.filter(o=>o.kind==='workshop');
  const shelter=profiles.length?profiles.some(structurallySound):a.objects.some(o=>['rest','tavern','workshop'].includes(o.kind)&&(!o.state||o.state==='intact')&&!o.closed);
- return {area:a.id,name:a.name,observed:s.tick,food:a.civic.food,safety:a.civic.safety,work:a.civic.treasury>=12&&(!workshops.length||workshops.some(o=>o.state==='intact')),habitable:shelter,damage:profiles.some(p=>!structurallySound(p))||workshops.some(o=>o.state==='burned')};
+ return {area:a.id,name:a.name,observed:s.tick,food:a.civic.food,safety:a.civic.safety,work:enabled(s,'service-access')?migrationEmployment(s,a):a.civic.treasury>=12&&(!workshops.length||workshops.some(o=>o.state==='intact')),habitable:shelter,damage:profiles.some(p=>!structurallySound(p))||workshops.some(o=>o.state==='burned')};
 }
 export function observeMigrationPlace(s,input){
  if(!migrationKnowledgeOn(s))return false;const p=s.people[input?.id];if(!p||input.area!==migrationBody(s,p)?.area)return false;const place=localSettlement(s,p);if(!place)return false;

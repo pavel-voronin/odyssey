@@ -1,3 +1,4 @@
+import {observeRefuge} from './refuge-state.js';
 import {observeRupture} from './quake-knowledge.js';
 import {quakeBlocked,knownQuakeBlocked} from './quake-state.js';
 import {rememberRoadPrice} from './metric-route-state.js';
@@ -12,7 +13,7 @@ export function initializeNPCKnowledge(s,p){
 }
 export function observeNPCPlace(s,p){
   if(!enabled(s,'npc-knowledge')||!p.alive||!p.area||!s.areas[p.area])return;
-  observeMigrationPlace(s,p);
+  observeMigrationPlace(s,p);observeRefuge(s,p);
   initializeNPCKnowledge(s,p);const nav=p.navigation,a=s.areas[p.area];
   const remember=(area,local=false)=>{
     let entry=nav.places.find(e=>e.area===area.id);

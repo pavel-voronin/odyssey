@@ -1,3 +1,5 @@
+import {refugePersonalPlan,finishRefugeSurvey} from './family-refuge.js';
+import {refugeOn} from './refuge-state.js';
 import {npcStoreWatch} from './asset-defense.js';
 import {patronageOn,npcPatronagePlan,finishPatronWork,patronSale} from './patronage.js';
 import {npcInheritedPayout} from './production-partnership.js';
@@ -118,6 +120,7 @@ function plan(s,p,ctx){
   if(releasedPersonPlan(s,p))return;
   if(p.migration&&s.migrations?.[p.migration]?.status==='active')return;
   if(rescueEscapePlan(s,p))return;
+  if(refugePersonalPlan(s,p))return;
   if(p.role==='ребёнок'){begin(p,'learn',p.area,42,2);return;}
   if(p.health<(p.maxHealth||100)*.85||p.ailment){
     if(a.civic?.medicine>=2){begin(p,'recover',p.area,68);return;}
@@ -208,6 +211,7 @@ function moveTask(s,p,ctx){
 }
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
+  if(t.kind==='refugeSurvey'){const found=finishRefugeSurvey(s,p);tell(s,p,found?`${p.name} обследует участок: здесь есть родник и известное место сбора пищи.`:`${p.name} обследует участок, но надёжной воды не находит.`,ctx);m.task=t.home?{kind:'return',target:t.home,x:42,remaining:1}:null;m.due=s.tick+8;return;}
   if(t.kind==='moneyCache'){const amount=takeBuriedMoney(s,p,t.cache,8);if(amount)tell(s,p,`${p.name} забирает из известного тайника ◈${amount}.`,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='routeMap'){npcRouteMapAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='mapCopy'){mapCopyAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
@@ -250,7 +254,7 @@ function finish(s,p,ctx){
     if(marketEnabled(s)){const deal=tradeGoods(s,a,p.id,'tools','buy',1);if(deal.quantity){p.marketCargo.tools--;m.tools=1;tell(s,p,`${p.name} покупает инструмент за ◈${deal.total} на собственный заработок.`,ctx);}}
     else if(a.civic.tools>0&&m.wealth>=18){m.wealth-=18;a.civic.treasury+=18;takeGoods(s,a,'tools',1,{flow:'exported',reason:'personal-tool',actor:p.id});m.tools=1;tell(s,p,`${p.name} покупает инструменты на собственный заработок. Работа станет результативнее.`,ctx);}
   }else if(t.kind==='waitHarvest'){p.needs.energy=Math.min(100,p.needs.energy+8);m.task=null;m.due=s.tick+Math.max(8,Math.min(48,96-s.tick%96));return;}
-  else if(t.kind==='resettle'){if(!migrationArrived(s,p)){tell(s,p,`${p.name} проверяет старый адрес: условия не позволяют обосноваться. Семья ищет сведения и припасы.`,ctx);return;}tell(s,p,`${p.name} добирается до ${a.name}. Теперь здесь его новый дом.`,ctx);}
+  else if(t.kind==='resettle'){if(!migrationArrived(s,p)){tell(s,p,`${p.name} проверяет старый адрес: условия не позволяют обосноваться. Семья ищет сведения и припасы.`,ctx);return;}tell(s,p,`${p.name} добирается до ${a.name}. ${p.refugeGroup?'Здесь семья временно остановилась; своего поселения ещё нет.':'Теперь здесь его новый дом.'}`,ctx);}
   else if(t.kind==='relocate'){p.status='resident';m.home=p.area;if(p.navigation)p.navigation.commute=null;
     tell(s,p,enabled(s,'npc-knowledge')&&t.knownNavigation&&!(a.civic?.treasury>=3)?`${p.name} приходит по старой записи о работе, но казна пуста. Придётся искать другое занятие.`:`${p.name} переезжает туда, где есть оплачиваемая работа.`,ctx);}
   else if(t.kind==='farm'&&a.civic){if(goodsEnabled(s)){const result=completeGoodsWork(s,a,t.goodsWork,{units:6+(m.tools?2:0)});paid=result.quantity>0;if(!paid)tell(s,p,`${p.name}: доступный урожай исчерпан. До восстановления угодий займусь другим делом.`,ctx);}else{a.civic.food=Math.min(100,a.civic.food+Math.round((6+(m.tools?2:0))*weatherAt(s,a).harvest));paid=true;}if(paid)m.work++;}
@@ -334,6 +338,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='rawGather'&&!goodsEnabled(s))continue;
     if(['creditTalk','creditWork'].includes(p.agenda.task?.kind)&&!creditEnabled(s))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task?.kind)&&!fieldCraftEnabled(s))continue;
+    if(p.agenda.task?.kind==='refugeSurvey'&&!refugeOn(s))continue;
     if(p.agenda.task?.migration&&(!enabled(s,'migrations')||s.migrations[p.agenda.task.migration]?.knowledge&&!migrationKnowledgeOn(s)))continue;
     if(p.agenda.task?.productionDeal&&!productionFinanceOn(s)||p.agenda.task?.patronProject&&!patronageOn(s))continue;
     if((p.agenda.task?.productionDeal||p.agenda.task?.patronProject)&&p.agenda.task.kind==='work'&&(p.ailment||p.health<(p.maxHealth||100)*.85)){p.agenda.task=null;p.agenda.due=s.tick+8;continue;}
@@ -343,6 +348,7 @@ export function peopleTick(s,ctx){
     adaptNPCWork(s,p);bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(p.agenda.task.kind==='refugeSurvey'){if(p.ailment||p.needs.energy<2||p.health<(p.maxHealth||100)*.75){p.agenda.task=null;p.agenda.due=s.tick+48;continue;}p.agenda.task.turns++;p.needs.energy-=2;}
     if(p.agenda.task.kind==='patronSale'){patronSale(s,p,p.agenda.task,ctx);continue;}
     if(p.agenda.task.kind==='productionSell'){productionSale(s,p,p.agenda.task,ctx);continue;}
     if(feastNPCAction(s,p,ctx))continue;
@@ -367,7 +373,7 @@ export function peopleTick(s,ctx){
     if(['familySupply','familyAid'].includes(p.agenda.task.kind)){npcFamilyAction(s,p,p.agenda.task,ctx);continue;}
     if(p.agenda.task.kind==='gather'&&p.agenda.task.foodSource){
       if(!localFoodEnabled(s)){delete p.agenda.task.foodSource;delete p.agenda.task.foodWork;p.agenda.task.remaining=3;}
-      else {const task=p.agenda.task,result=localFoodWork(s,p,s.areas[p.area],task,null,ctx);if(result.finished){if(result.receipt)tell(s,p,`${p.name}: ${LOCAL_FOODS[result.receipt.kind].name}, получено ${result.receipt.quantity}.`,ctx);begin(p,'return',task.home,42,1);}continue;}
+      else {const task=p.agenda.task,result=localFoodWork(s,p,s.areas[p.area],task,null,ctx);if(result.finished){if(result.receipt)tell(s,p,`${p.name}: ${LOCAL_FOODS[result.receipt.kind].name}, получено ${result.receipt.quantity}.`,ctx);if(result.receipt&&!p.refugeGroup&&refugePersonalPlan(s,p)&&p.agenda.task?.kind==='refugeSurvey')p.agenda.task.home=task.home;else begin(p,'return',task.home,42,1);}continue;}
     }
     if(p.agenda.task.kind==='work'&&p.agenda.job==='artisan'&&p.agenda.task.workMode===null)p.agenda.task.workMode=goodsEnabled(s)?'production':'service';
     if(goodsEnabled(s)&&(['farm','rawGather'].includes(p.agenda.task.kind)||p.agenda.task.kind==='work'&&p.agenda.job==='artisan')){goodsWorkReceipt(s,p,p.agenda.task);p.needs.energy=Math.max(0,p.needs.energy-2);}

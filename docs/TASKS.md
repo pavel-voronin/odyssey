@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. LIT-03.3 выполнена этапом252: actual building fire или rare actual3work hearth spark повреждает реальные тома по месту; offsite copy/ID/title/fund/прошлое знание сохраняются. Actual intact backup+новая оплаченная бумага дают full replacement; сохранившиеся страницы дают distinct partial work с parent/source/cause, не полное знание. Утрата единственного источника закрывает чтение/зависимую последовательность, реестр не выдаёт архивный том. Common hero/NPC recovery/withdraw/paper/read/deposit, одна recovery per damage. PARTIAL15/15 exit0,1861мс, artifacts/checks/b9444b226c254804.log; modules/paper-fire/events/schema/fragment-state,text-recovery,texts/text-schema, CONTRACTS/paper-fire.v1, DEVELOPMENT/252; https://odyssey.kolpaque.dev revision09a760cad29fa0b0/HTTPS. Следующий этап ещё не взят.
+Текущего этапа нет. R-05.1 выполнена этапом253: одна утрата дома ведёт к известной работе/родным, временному лично посещённому лагерю либо намерению основания на реально обследованном участке с родником и конечным источником пищи. Native3acts обследования после настоящего сбора/местного решения, собственные raw4/tool1 и дорожный+начальный запас; обычная телесная дорога и проверка места при прибытии. Camped/site-ready не создают civic/казну/припасы и не меняют старый титул дома. PARTIAL7/7 exit0,1458мс, artifacts/checks/89c45a707bb72498.log; modules/refuge-state,family-refuge,refuge-schema,migration-service,migrations/memory/choice,people/npc-knowledge; docs/CONTRACTS, DEVELOPMENT/253; https://odyssey.kolpaque.dev revision465ab60f0070125c/HTTPS. R-05.2 строительство и R-05.3 возвращение ещё не выполнены.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 10 | R-05.1 | выбор опоры | 9 | 7 | 1.29 | R-04.2 |
 | 11 | R-05.2 | основание трудом | 9 | 7 | 1.29 | R-05.1 |
 | 12 | R-07.3 | новые соседские отношения | 8 | 5 | 1.60 | R-07.1, R-05.2 |
 | 13 | B-03.1 | выбор мирового условия | 8 | 6 | 1.33 | R-04.2, R-05.2 |
@@ -1590,3 +1589,10 @@ PERSON-01.4 выполнена этапом251 первым local owned-store re
 LIT-03.3 выполнена этапом252: actual building fire или rare actual3work hearth spark повреждает реальные тома по месту; offsite copy/ID/title/fund/прошлое знание сохраняются. Actual intact backup+новая оплаченная бумага дают full replacement; сохранившиеся страницы дают distinct partial work с parent/source/cause, не полное знание. Утрата единственного источника закрывает чтение/зависимую последовательность, реестр не выдаёт архивный том. Common hero/NPC recovery/withdraw/paper/read/deposit, одна recovery per damage. PARTIAL15/15 exit0,1861мс, artifacts/checks/b9444b226c254804.log; modules/paper-fire/events/schema/fragment-state,text-recovery,texts/text-schema, CONTRACTS/paper-fire.v1, DEVELOPMENT/252; https://odyssey.kolpaque.dev revision09a760cad29fa0b0/HTTPS. Следующий этап ещё не взят.
 
 6selected groups≤12changed owner acts after bounded genuine constructors: real fund fire/locality/offsite backup/sameID-title+pastreadings; actual retrieve/surviving physical copy+purchased paper/full replacement/no repeated source; rare actual3cook receipt/fragments/registered engine recovery/actual read+deposit; actual sequence manual→partial two-step knowledge to new reader/closed gate; no pages/backup=no recovery despite descriptor; OFF/absent exact/corrupt residue refusal.8old short text checks+smoke/build, no lives/full/SOAK/combinatorics. Native320quests0UIтиков/exact save/no overflow, partial copy label and original author old knowledge preserved.
+
+
+### R-05.1 · подтверждение реализации253
+
+R-05.1 выполнена этапом253: одна утрата дома ведёт к известной работе/родным, временному лично посещённому лагерю либо намерению основания на реально обследованном участке с родником и конечным источником пищи. Native3acts обследования после настоящего сбора/местного решения, собственные raw4/tool1 и дорожный+начальный запас; обычная телесная дорога и проверка места при прибытии. Camped/site-ready не создают civic/казну/припасы и не меняют старый титул дома. PARTIAL7/7 exit0,1458мс, artifacts/checks/89c45a707bb72498.log; modules/refuge-state,family-refuge,refuge-schema,migration-service,migrations/memory/choice,people/npc-knowledge; docs/CONTRACTS, DEVELOPMENT/253; https://odyssey.kolpaque.dev revision465ab60f0070125c/HTTPS. R-05.2 строительство и R-05.3 возвращение ещё не выполнены.
+
+6groups≤12изолированных актов/≤16коротких тиков: knowledge/work/plot/camp различают исходы; finite kit/setup shortages; native forage→survey3acts/mid-save replay; настоящий family route/no duplicate body step/no instant civic; nearby finite shared meal/carrier death one load; exhausted/closed local arrival отказ/known camp retarget; OFF/current144 exact/absent/forgedsource rejection. Длинные жизни/full/SOAK/комбинаторика не запускались. Service-access104/goods/current building-control используются как фактическая опора, широкая R-04 не переобъявлена выполненной.

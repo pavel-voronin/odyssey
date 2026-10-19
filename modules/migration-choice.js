@@ -8,7 +8,7 @@ export function migrationBelief(p,area){
  const market=p.navigation?.markets?.find(e=>e.area===area);if(market)return {area,name:market.name,observed:market.seen,food:market.food,safety:null,work:market.treasury>=12,habitable:null,damage:false,mode:'own-market-note',witness:p.id,from:p.id,received:market.seen};
  return null;
 }
-export function knownMigrationDestination(s,source,members,from,exclude=null){
+export function knownMigrationDestination(s,source,members,from,exclude=null,requireAnchor=false){
  const leader=members[0];if(!leader)return null;const start=migrationBody(s,leader).area||from,known=new Map((leader.navigation?.places||[]).map(p=>[p.area,{name:p.name}]));
  for(const r of Object.values(leader.migrationKnowledge?.places||{}))known.set(r.area,{name:r.name});
  const relatives=(leader.navigation?.contacts||[]).filter(c=>c.relative&&c.missingAt==null);for(const c of relatives)known.set(c.area,{name:c.place||known.get(c.area)?.name});
@@ -18,6 +18,7 @@ export function knownMigrationDestination(s,source,members,from,exclude=null){
   const note=migrationBelief(leader,id),fresh=note&&s.tick-note.observed<=DAY_TICKS*2;
   if(fresh&&(note.food<22||note.safety!==null&&note.safety<30||note.habitable===false))return null;
   const kin=relatives.filter(c=>c.area===id).length,artisan=members.some(p=>['artisan','merchant'].includes(p.agenda?.job));
+  if(requireAnchor&&!kin&&!(note?.work&&note.mode!=='own-market-note'))return null;
   const value=Math.min(3,kin)*35+(note?Math.min(100,note.food)*.3:0)+(artisan&&note?.work?15:0)-(note?.damage?20:0)-(fresh?0:12)-path.length*12;
   return {a,path,note,name:k.name||a.name,value};
  }).filter(Boolean).sort((a,b)=>b.value-a.value||a.a.id.localeCompare(b.a.id))[0]||null;
