@@ -1,3 +1,4 @@
+import {recordHarvestShortfall} from './harvest-shortfall.js';
 import {harvestFactor} from './harvest-failure-state.js';
 import {stackRoom} from './container-state.js';
 import {enabled} from '../rules.js';
@@ -81,7 +82,7 @@ export function completeGoodsWork(s,a,receipt,{kind='food',units=6,productionDea
  if(p.goodsWork?.id===receipt.id)return {quantity:0,reason:'duplicate',repeated:true};
  const source=productionSources(s,a);let quantity=0,reason;
  if(kind==='food'){
-  quantity=Math.min(source.field.stock,Math.max(0,Math.round(units*weatherAt(s,a).harvest*harvestFactor(s,a))));
+  const expected=Math.min(source.field.stock,Math.max(0,Math.round(units*weatherAt(s,a).harvest)));quantity=Math.min(source.field.stock,Math.max(0,Math.round(units*weatherAt(s,a).harvest*harvestFactor(s,a))));recordHarvestShortfall(s,a,receipt,expected,quantity);
   source.field.stock-=quantity;source.field.harvested+=quantity;reason=quantity?'harvest':'exhausted-field';
  }else if(kind==='tools'){
   if(!workshopFor(s,a,p.id))reason='unavailable-workshop';

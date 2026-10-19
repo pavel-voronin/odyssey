@@ -1,4 +1,4 @@
-import {validateHarvestFailures} from './modules/harvest-failure-schema.js';
+import {validateHarvestFailures,validateHarvestShortfalls} from './modules/harvest-failure-schema.js';
 import {validateDwellings} from './modules/dwelling-schema.js';
 import {validateNeighborHousing} from './modules/neighbor-housing-schema.js';
 import {validateFoundations} from './modules/foundation-schema.js';
@@ -196,7 +196,7 @@ export function validateSave(s){
  validateTracking(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validateWoundInfection(s,fail);validateFractures(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateWagons(s,fail);validateCoverRetreat(s,fail);validateWorldChanges(s,fail);validateEarthquakes(s,fail);validateHarvestFailures(s,fail);validateProductionFinance(s,fail);validatePatronage(s,fail);validateAssetRisk(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateMechanicDrive(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validateWoundInfection(s,fail);validateFractures(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateWagons(s,fail);validateCoverRetreat(s,fail);validateWorldChanges(s,fail);validateEarthquakes(s,fail);validateHarvestFailures(s,fail);validateHarvestShortfalls(s,fail);validateProductionFinance(s,fail);validatePatronage(s,fail);validateAssetRisk(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateMechanicDrive(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

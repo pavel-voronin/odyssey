@@ -1,3 +1,4 @@
+import {shortfallDepartureAllowed} from './harvest-shortfall.js';
 import {observeRupture} from './quake-knowledge.js';
 import {withdrawalCover} from './cover-retreat-state.js';
 import {wagonsOn} from './wagon-state.js';
@@ -20,7 +21,7 @@ import {freightRequest,freightEvent,observeFreightActor,observeConvoy} from './f
 import {npcAction,markNPCDeparture} from './npc-control.js';
 import {roadNeeds} from './road-needs.js';
 export function freightHistory(s,c,outcome,proof){
-  s.logistics.history.push({id:c.id,source:c.source,to:c.to,person:c.person,tick:s.tick,outcome,area:proof.area,eventId:proof.id,knownBy:[...proof.knownBy],wage:c.wagePaid||0,...(c.disruption?{disruption:structuredClone(c.disruption)}:{}),...(c.handoff?.load?{keeper:c.handoff.keeper,load:c.handoff.load,fee:c.custodyFee||0}:{}),...(c.trade?{trade:{cost:c.trade.cost,foodCost:c.trade.foodCost,revenue:c.tradeOutcome?.revenue||0,net:(c.tradeOutcome?.revenue||0)-c.trade.cost-c.trade.foodCost-(c.custodyFee||0)}}:{})});
+  s.logistics.history.push({id:c.id,source:c.source,to:c.to,person:c.person,tick:s.tick,outcome,area:proof.area,eventId:proof.id,knownBy:[...proof.knownBy],wage:c.wagePaid||0,...(c.demand?.shortfall?{shortfall:structuredClone(c.demand.shortfall)}:{}),...(c.disruption?{disruption:structuredClone(c.disruption)}:{}),...(c.handoff?.load?{keeper:c.handoff.keeper,load:c.handoff.load,fee:c.custodyFee||0}:{}),...(c.trade?{trade:{cost:c.trade.cost,foodCost:c.trade.foodCost,revenue:c.tradeOutcome?.revenue||0,net:(c.tradeOutcome?.revenue||0)-c.trade.cost-c.trade.foodCost-(c.custodyFee||0)}}:{})});
   if(s.logistics.history.length>80)s.logistics.history.shift();
 }
 function removeFreight(s,c){s.logistics.convoys=s.logistics.convoys.filter(other=>other!==c);}
@@ -55,7 +56,7 @@ function finishFreight(s,c,ctx,outcome){
     if(a.civic.food>=40&&a.civic.crisis?.kind==='hunger')a.civic.crisis=null;
     if(outcome==='delivered'){s.logistics.deliveries++;c.wagePaid=Math.min(3,Math.max(0,a.civic.treasury||0));a.civic.treasury-=c.wagePaid;p.agenda.wealth+=c.wagePaid;p.agenda.work++;}
     releaseDriver(s,c);c.food=0;c.medicine=0;if(c.tools)c.tools=0;
-    const text=outcome==='delivered'?`${p.name} привозит в ${a.name}: еда ${food}, инструменты ${c.demand?.kind==='tools'?c.demand.quantity:0}, медицина ${medicine}. Оплата из казны: ◈${c.wagePaid}.`:`${p.name} возвращает в ${a.name} оставшиеся припасы: еда ${food}, медицина ${medicine}. Путь оказался недоступен.`;
+    const text=outcome==='delivered'?`${p.name} привозит в ${a.name}: еда ${food}, инструменты ${c.demand?.kind==='tools'?c.demand.quantity:0}, медицина ${medicine}. Оплата из казны: ◈${c.wagePaid}.${c.demand?.shortfall?' После неурожая погружено '+c.demand.shortfall.loaded+' вместо '+c.demand.shortfall.requested+'; на полную партию не хватило припасов.':''}`:`${p.name} возвращает в ${a.name} оставшиеся припасы: еда ${food}, медицина ${medicine}. Путь оказался недоступен.`;
     const proof=freightEvent(s,c,a,text,ctx);freightHistory(s,c,outcome,proof);removeFreight(s,c);observeFreightActor(s,p);return;
   }
   cacheCargo(s,c,a,food,medicine);c.food=0;c.medicine=0;if(c.tools)c.tools=0;s.logistics.losses++;
@@ -86,6 +87,7 @@ export function createFreight(s,source,destination,ctx,driverId=null){
   return departFreight(s,source,destination,request,ctx);
 }
 export function departFreight(s,source,destination,request,ctx,paid=null){
+  if(!shortfallDepartureAllowed(s,source,request))return null;
   const p=request.driver,medicine=request.kind?(request.kind==='medicine'?request.quantity:0):Math.min(4,Math.max(0,source.civic.medicine-30));
   const food=request.kind?(request.kind==='food'?request.quantity:0):12,tools=request.kind==='tools'?request.quantity:0;
   if(!paid&&request.kind!=='medicine'&&takeGoods(s,source,request.kind||'food',request.quantity||12,{flow:'exported',reason:'freight-departure',actor:p.id})!==(request.quantity||12))return null;source.civic.medicine-=medicine;
@@ -95,7 +97,7 @@ export function departFreight(s,source,destination,request,ctx,paid=null){
   s.logistics.convoys.push(c);p.status='caravan';p.agenda.task=null;
   markNPCDeparture(s,p,'caravan');
   source.population=source.population.filter(id=>id!==p.id);source.objects=source.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);
-  attachFreightWagon(s,c);configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.${c.demand?` Потребность по сведениям от тика ${c.demand.seen}: ${c.demand.kind==='food'?'еда':c.demand.kind==='medicine'?'медицина':'инструменты'} ${c.demand.knownStock}/${c.demand.target}; партия ${c.demand.quantity}, резерв отправителя ${c.demand.reserve}.`:''}`,ctx);observeFreightActor(s,p);carrierNewsContact(s,p,ctx);return c;
+  attachFreightWagon(s,c);configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.${c.demand?` Потребность по сведениям от тика ${c.demand.seen}: ${c.demand.kind==='food'?'еда':c.demand.kind==='medicine'?'медицина':'инструменты'} ${c.demand.knownStock}/${c.demand.target}; партия ${c.demand.quantity}, резерв отправителя ${c.demand.reserve}.${c.demand.shortfall?' Недопоставка после действительного неурожая: '+c.demand.shortfall.loaded+'/'+c.demand.shortfall.requested+'.':''}`:''}`,ctx);observeFreightActor(s,p);carrierNewsContact(s,p,ctx);return c;
 }
 export function advanceFreight(s,c,ctx){
   if(c.wagon&&!wagonsOn(s))return;

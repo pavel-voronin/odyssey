@@ -1,0 +1,33 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {dependencyFixture as fixture,poorHarvest,dependencySave as save,dependencyContext as ctx,drainTo,knownFreightPlace,finishShortFreight as finish} from '../scripts/harvest-dependency-scenarios.mjs';
+import {demandOffer,localDemand} from '../modules/demand-freight.js';import {createFreight,advanceFreight,departFreight} from '../modules/freight.js';
+import {goodsBalance,completeGoodsWork} from '../modules/goods.js';import {harvestFactor} from '../modules/harvest-failure-state.js';
+import {sourceHarvestShortfall} from '../modules/harvest-shortfall.js';import {goodsHTML} from '../goods-sheet.js';
+import {setModule} from '../rules.js';import {restore,serialize} from '../engine.js';import {forgetNPCRoad} from '../modules/npc-knowledge.js';
+import {personNeeds} from '../modules/needs.js';import {npcAction} from '../modules/npc-control.js';
+const exact=f=>{const raw=save(f);assert.equal(serialize(restore(raw)),raw);return raw;};
+const balance=a=>assert.equal(goodsBalance(a,'food').difference,0);
+// PARTIAL six selected groups <=16 actual acts/ticks. Prepared last road approach,
+// same manifest/body; no full journey, long life or combinations of all mechanics.
+test('three towns: actual poor harvest permits one smaller food load after the same source reserve, never a duplicate or continent-wide debit',()=>{
+ const f=fixture(),{s,a,b,c,p}=f,untouched=c.civic.food;poorHarvest(f);const offer=demandOffer(s,p,a,b.id);assert.equal(offer.kind,'food');assert.equal(offer.quantity,5);assert.equal(offer.shortfall.requested,12);assert.equal(offer.shortfall.cause,f.event.id);const count=s.nextPerson,source=a.civic.food,load=createFreight(s,a,b,ctx,p.id);assert.ok(load);assert.equal(a.civic.food,source-load.food);assert.equal(a.civic.food,load.demand.reserve);assert.equal(load.food,5);assert.equal(b.civic.food,0);assert.equal(c.civic.food,untouched);assert.equal(createFreight(s,a,b,ctx,p.id),null);assert.equal(s.nextPerson,count);assert.equal(harvestFactor(s,b),1);exact(f);assert.ok(finish(s,load)<=3);assert.equal(b.civic.food,5);assert.equal(s.logistics.history.at(-1).shortfall.missing,7);assert.equal(s.logistics.history.at(-1).wage,3);assert.equal(c.civic.food,untouched);balance(a);balance(b);exact(f);
+});
+test('unaffected actual work keeps full yield; old reserves buy time and a known alternate path delivers the same finite cargo',()=>{
+ const f=fixture(),{s,a,b,c,p,q}=f;poorHarvest(f);const before=c.civic.food,work=completeGoodsWork(s,c,{id:q.id+'/independent',actor:q.id,required:3,spent:3});assert.equal(work.quantity,6);assert.equal(c.civic.food,before+6);assert.equal(c.goods.harvestShortfall,undefined);const offer=demandOffer(s,q,c,b.id);assert.equal(offer.kind,'food');assert.ok(offer.quantity>=8);assert.equal(offer.shortfall,undefined);
+ // This carrier retains the already observed route via the third town, not the shortcut.
+ forgetNPCRoad(p,a.id,b.id);const alt=demandOffer(s,p,a,b.id);assert.ok(alt.path.includes(c.id));const load=createFreight(s,a,b,ctx,p.id),id=load.id,amount=load.food;assert.ok(load.path.includes(c.id));assert.ok(finish(s,load)<=7);assert.equal(b.civic.food,amount);assert.equal(s.logistics.history.at(-1).id,id);assert.equal(s.logistics.history.at(-1).shortfall.cause,f.event.id);balance(a);balance(b);balance(c);exact(f);
+});
+test('timely finite relief changes one actual hungry resident outcome while an empty store cannot avert the prepared starvation boundary',()=>{
+ function outcome(help){const f=fixture(),{s,a,b,c,p,q}=f;poorHarvest(f);drainTo(s,a,localDemand(s,a).food+5);assert.equal(demandOffer(s,p,a,b.id),null);const person=b.population.map(id=>s.people[id]).find(p=>p.alive&&p.agenda&&p.id!==s.hero.lineage);assert.ok(person);setModule(s,'npc-needs',true);Object.assign(person.needs,{energy:100,hunger:100,sleeping:false});person.health=4;person.x=42;person.agenda.task=null;person.roadSupplies={food:0,medicine:0};
+ if(help){completeGoodsWork(s,c,{id:q.id+'/relief',actor:q.id,required:3,spent:3});knownFreightPlace(s,q,b);const load=createFreight(s,c,b,ctx,q.id);assert.ok(load);finish(s,load);assert.ok(b.civic.food>=8);}const food=b.civic.food;s.tick=Math.ceil((s.tick+1)/96)*96;assert.ok(npcAction(s,person,'personal'));assert.equal(personNeeds(s,person,ctx),true);if(help){assert.equal(person.alive,true);assert.equal(person.needs.meals,1);assert.equal(b.civic.food,food-1);assert.equal(person.health,4);}else assert.equal(person.alive,false);balance(b);exact(f);return person.alive;}
+ assert.equal(outcome(false),false);assert.equal(outcome(true),true);
+});
+test('in-flight partial manifest survives exact replay and OFF without creating extra food or wages',()=>{
+ const f=fixture();poorHarvest(f);const load=createFreight(f.s,f.a,f.b,ctx,f.p.id);setModule(f.s,'harvest-failure',false);setModule(f.s,'demand-freight',false);const raw=exact(f),copy=restore(raw),amount=load.food;assert.equal(sourceHarvestShortfall(f.s,f.a),null);for(let n=0;n<2;n++){f.s.tick++;copy.tick++;advanceFreight(f.s,load,ctx);advanceFreight(copy,copy.logistics.convoys[0],ctx);}assert.equal(serialize(copy),save(f));assert.equal(load.food,amount);assert.equal(f.s.logistics.history.length,0);exact(f);
+});
+test('a tiny local fluctuation or an unworked bad season does not permit a small shipment; native harvest trace and local UI remain factual',()=>{
+ const f=fixture(),{s,a,b,p}=f;drainTo(s,a,localDemand(s,a).food+6);assert.equal(sourceHarvestShortfall(s,a),null);assert.equal(demandOffer(s,p,a,b.id),null);poorHarvest(f);const loss=sourceHarvestShortfall(s,a);assert.equal(loss.missing,3);s.hero.area=a.id;s.hero.x=42;const raw=exact(f),html=goodsHTML(s,String);assert.match(html,/3 вместо 6/);assert.equal(save(f),raw);const offer=demandOffer(s,p,a,b.id),known=p.navigation.markets.find(m=>m.area===b.id);known.demand.foodStock=known.demand.food-3;assert.equal(demandOffer(s,p,a,b.id),null);known.demand.foodStock=0;drainTo(s,a,offer.reserve);const stale=save(f);assert.equal(departFreight(s,a,b,{driver:p,author:p.id,...offer},ctx),null);assert.equal(save(f),stale);exact(f);
+});
+test('forged shortage, manifest amount, cost-free reserve and repeated source are rejected by current save validation',()=>{
+ const f=fixture();poorHarvest(f);createFreight(f.s,f.a,f.b,ctx,f.p.id);const raw=exact(f);for(const change of [s=>s.areas[f.a.id].goods.harvestShortfall.missing=90,s=>s.logistics.convoys[0].demand.shortfall.loaded=12,s=>s.logistics.convoys[0].demand.reserve=1000,s=>s.logistics.convoys[0].demand.shortfall.cause='harvest-failure/7/999']){const s=JSON.parse(raw);change(s);assert.throws(()=>restore(JSON.stringify(s)),/harvestShortfall|convoy.demand/);}assert.equal(serialize(restore(raw)),raw);
+});
