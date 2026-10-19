@@ -1,3 +1,4 @@
+import {recordCrossingTrace} from './edge-traces.js';
 import {groupHorse,horseMotion,ridingOn} from './horse-state.js';
 import {metricMap,metricMapPoint} from './metric-map.js';
 import {weatherAt} from './weather.js';
@@ -27,7 +28,8 @@ export function advanceMetricTravel(s,body,t,options={}){
  const waypoint=body.lineage||options.canCamp?roadCampWaypoint(s,body,t,rate.speed):null,next=waypoint??Math.min(m.distance,m.travelled+rate.speed),walked=Math.abs(next-m.travelled);m.travelled=next;t.remaining=Math.ceil(Math.max(0,m.distance-m.travelled)/rate.speed);
  if(rate.mount){rate.mount.energy=Math.max(0,rate.mount.energy-rate.mountEnergy);rate.mount.hunger=Math.min(100,rate.mount.hunger+.12);rate.mount.lastMove=s.tick;}
  if(energy)energy.energy=Math.max(0,energy.energy-rate.energy);if(body.lineage)body.distance+=walked;
- for(const c of group){c.petTraining.energy-=.5;if(t.remaining===0){const b=petBody(c);b.area=t.to;b.x=t.arrivalX;if(c.packCargo)c.packCargo.lastKnown={area:b.area,x:b.x,at:s.tick,reason:'seen'};}}
+ if(t.remaining===0)recordCrossingTrace(s,{kind:'person',id:body.lineage||body.id},t.from,t.to);
+ for(const c of group){c.petTraining.energy-=.5;if(t.remaining===0)recordCrossingTrace(s,{kind:'pet',id:c.uid,owner:body.lineage||body.id,pet:c},t.from,t.to);if(t.remaining===0){const b=petBody(c);b.area=t.to;b.x=t.arrivalX;if(c.packCargo)c.packCargo.lastKnown={area:b.area,x:b.x,at:s.tick,reason:'seen'};}}
  return t.remaining===0;
 }
 // The controller already owns this body's action. No location/cargo transfer here.

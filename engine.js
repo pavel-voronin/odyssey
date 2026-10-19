@@ -1,3 +1,5 @@
+import {recordCrossingTrace} from './modules/edge-traces.js';
+import {trackingPlan,trackingAction,confirmTracking} from './modules/tracking.js';
 import {admitAction,dependency,preparationAccepted,preparationProgress} from './modules/action-admission.js';
 import {remainsByArea} from './modules/remains-cycle-state.js';
 import {predatorCarrionTurn} from './modules/predator-carrion.js';
@@ -299,6 +301,7 @@ function createHero(s) {
   initializeStories(s,h);
   initializeSupply(s,h);
   rememberPracticalRole(s,s.people[h.lineage],h);
+
   initializeFoodKit(s,s.people[h.lineage],h,{newborn:true});
   initializeActorAtlas(s,h);birthLiteracy(s,s.people[h.lineage],h);
   return h;
@@ -326,6 +329,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
 }
 function enter(s, id) {
   const a = s.areas[id], h = s.hero;
+  if(!h.carriedBy)recordCrossingTrace(s,{kind:'person',id:h.lineage},h.area,id);
   openSettlement(s,a,context(s,'districts'));
   initializeAreaFacades(s,a);
   initializeInteriors(s);
@@ -438,6 +442,7 @@ function plan(s) {
   if(!q&&offer('moneyCachePlan',()=>moneyCachePlan(s,context(s,'finances'))))return planningSpent;
   if(!q&&offer('routeMapPlan',()=>routeMapPlan(s,context(s,'route-maps'))))return planningSpent;
   if(!q&&offer('mapCopyPlan',()=>mapCopyPlan(s,context(s,'route-maps'))))return planningSpent;
+  if(offer('trackingPlan',()=>trackingPlan(s,context(s,'tracking'))))return planningSpent;
   if(!q&&offer('studyBestiaryPlan',()=>studyBestiaryPlan(s,context(s,'bestiary'))))return planningSpent;
   if(offer('biomaterialPlan',()=>biomaterialPlan(s,context(s,'animal-materials'))))return planningSpent;
   if(!q&&offer('burialPlan',()=>burialPlan(s,context(s,'remains-cycle'))))return planningSpent;
@@ -837,6 +842,7 @@ function actObserved(s) {
   weaponTick(s);
   pairCombatTick(s);
   rememberPracticalRole(s,s.people[h.lineage],h);
+  confirmTracking(s);
   observeServices(s);
   observeOwnCollection(s,context(s,'collections'));
   weatherTick(s,context(s,'weather'));
@@ -973,6 +979,7 @@ function actObserved(s) {
   }
   if (physicalDistance(a,h.x,target) > 1) { if(navigationGate(s,target,context(s,'navigation-tools')))return s;move(s, target); return s; }
   if (next) { const from=h.area,passage=interiorPassage(s,from,next),arrivalX=passage?.arrival??(target===100?5:95);if(!passage&&heroFordGate(s,next,arrivalX,context(s,'fords')))return s;if(!passage&&beginTransit(s,next,arrivalX,context(s,'travel')))return s;h.x=arrivalX;enter(s,next);resumeFordTaskView(s);campCrossed(s,from,next,context(s,'fieldcamp'));h.lastAction='walk';return s; }
+  if(['trackStudy','trackLesson'].includes(g.kind)){execute('trackingAction',()=>trackingAction(s,context(s,'tracking')));return s;}
   if(['directionAsk','directionInspect'].includes(g.kind)){execute('routeOpportunityAction',()=>routeOpportunityAction(s,g,{observeLocalRoutes,log}));return s;}
   if(g.kind==='localRecovery'){h.hp=Math.min(h.maxHp,h.hp+restAmount(s,a));h.energy=Math.min(100,h.energy+4);traitsRest(s,context(s,'body'));magicRest(s);partyRest(s);h.lastAction='rest';h.goal=null;return s;}
   if (g.kind === 'rest') {

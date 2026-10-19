@@ -1,3 +1,4 @@
+import {localEdgeTraces} from './modules/edge-traces.js';
 import {physicalActorLook,readableActorLook,drawActorPack,drawProstheticLeg,drawWoundMarks,actorLabelPoint} from './actor-readability.js';
 import {remainsObservationView} from './remains-observation.js';import {paintRemainsAt,paintCarriedRemains,paintRemainsCarrier} from './remains-carry-view.js';
 import {carrySupport,paintCarrySupport,paintCarriedObserver} from './people-carry-view.js';
@@ -214,6 +215,8 @@ export class Scene {
     if(weather.id==='heat'){c.fillStyle='#be9e6e';c.globalAlpha=.08;c.fillRect(0,0,w,ground);c.globalAlpha=1;}
     drawMechanisms(c,s,a,screenX,ground);
     drawLifts(c,s,a,screenX,ground);
+    if(!travel){const trails=localEdgeTraces(s),painted=new Set();for(const t of trails){const at=t.edge+'/'+t.x;if(painted.has(at))continue;painted.add(at);const x=screenX(t.x),restore=billboardFrame(c,this.camera,x,ground,dpr);drawCreatureTrace(c,x,ground,trails.filter(q=>q.edge===t.edge&&q.x===t.x).length>1);restore();}}
+
     for (const o of a.objects) {
       const beastTrack=this.beastTracks.tracks.get(o.id),beastMotion=s.rules?.['creature-motion']!==false;
       const x = screenX(beastMotion&&beastTrack?beastTrack.from+(beastTrack.to-beastTrack.from)*phase:o.x);

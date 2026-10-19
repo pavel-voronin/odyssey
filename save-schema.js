@@ -1,3 +1,4 @@
+import {validateTracking} from './modules/tracking-schema.js';
 import {validateRemainsCycle,validateBurialTool} from './modules/remains-cycle-schema.js';
 import {validateCampMusic,validateMusicInstrument} from './modules/camp-music-schema.js';
 import {validateActionSelection} from './modules/action-selection-schema.js';
@@ -175,6 +176,7 @@ export function validateSave(s){
  validateTexts(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
+ validateTracking(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
  validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateFerry(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);

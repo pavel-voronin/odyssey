@@ -1,3 +1,4 @@
+import {recordCrossingTrace} from './edge-traces.js';
 import {boardFerry} from './ferry-actions.js';
 import {advanceNPCRoadCamp} from './road-stops.js';
 import {metricTravelRate} from './metric-route.js';
@@ -80,7 +81,7 @@ export function advancePublicJourney(s,j,ctx){
   if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&j.elapsed>720){finish(s,j,p,ctx,'stopped');return;}
   if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&j.elapsed>480&&!j.returning){turnBack(s,j,p,ctx);return;}
   if(roadNeeds(s,p,ctx)){if(!p.alive)finish(s,j,p,ctx,'dead');return;}
-  if(p.fordCrossing||p.liftTransit||p.roadTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit||p.roadTransit).to,(p.fordCrossing||p.liftTransit||p.roadTransit).arrivalX,j,j.path.at(-1));if(r.status==='arrived'){p.area=r.crossing.to;p.x=r.crossing.arrivalX;j.index++;observe(s,p);configure(s,j,p);}else if(['aborted','unavailable'].includes(r.status))turnBack(s,j,p,ctx);return;}
+  if(p.fordCrossing||p.liftTransit||p.roadTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit||p.roadTransit).to,(p.fordCrossing||p.liftTransit||p.roadTransit).arrivalX,j,j.path.at(-1));if(r.status==='arrived'){recordCrossingTrace(s,{kind:'person',id:p.id},p.area,r.crossing.to);p.area=r.crossing.to;p.x=r.crossing.arrivalX;j.index++;observe(s,p);configure(s,j,p);}else if(['aborted','unavailable'].includes(r.status))turnBack(s,j,p,ctx);return;}
   const camp=j.path[j.index+1]&&campPassage(s,p.area,j.path[j.index+1],p.id);if(camp&&!camp.allowed){turnBack(s,j,p,ctx);return;}
   if(camp&&j.endX!==camp.x){j.startX=p.x;j.endX=camp.x;j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,camp.x)/6));}
   j.remaining--;const oldX=p.x,progress=Math.max(0,Math.min(1,1-j.remaining/j.segmentTicks));p.x=j.startX+(j.endX-j.startX)*progress;
@@ -100,5 +101,5 @@ export function advancePublicJourney(s,j,ctx){
   if(!roadStillPresent(s,p.area,next)){forgetNPCRoad(p,p.area,next);turnBack(s,j,p,ctx);return;}
   if(s.ferry&&s.edges[[p.area,next].sort().join('|')]?.ferry===s.ferry.id){boardFerry(s,p.id,next,ctx,{work:(p.agenda?.wealth||0)<6});return;}
   const ford=camp?{status:'clear'}:npcFordGate(s,p,next,j.endX===100?5:95,j,j.path.at(-1));if(ford.status!=='clear'){if(ford.status==='bypass'){j.path=[...j.path.slice(0,j.index),...ford.path];configure(s,j,p);}else if(['defer','unavailable','aborted'].includes(ford.status))turnBack(s,j,p,ctx);return;}
-  const direction=j.endX===100?1:-1;p.area=next;p.x=camp?.arrival??(direction>0?5:95);j.index++;observe(s,p);configure(s,j,p);
+  const direction=j.endX===100?1:-1;recordCrossingTrace(s,{kind:'person',id:p.id},p.area,next);p.area=next;p.x=camp?.arrival??(direction>0?5:95);j.index++;observe(s,p);configure(s,j,p);
 }

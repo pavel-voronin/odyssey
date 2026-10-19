@@ -1,3 +1,5 @@
+import {npcTrackingTurn} from './tracking.js';
+import {recordCrossingTrace} from './edge-traces.js';
 import {burialTurn} from './burial-work.js';
 import {remainsCarryTurn} from './remains-carry.js';
 import {libraryGuardTurn} from './library-security.js';
@@ -94,6 +96,7 @@ function objectAt(s,p){
   if(!o){o={id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x};a.objects.push(o);}o.x=p.x;
 }
 function locate(s,p,id,x){
+  recordCrossingTrace(s,{kind:'person',id:p.id},p.area,id);
   const old=s.areas[p.area];if(old?.population)old.population=old.population.filter(person=>person!==p.id);
   p.area=id;p.x=x;const a=s.areas[id];a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);objectAt(s,p);observeNPCPlace(s,p);observeNPCContacts(s,p);observeFreightActor(s,p,p.area,true);
 }
@@ -277,6 +280,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(npcTrackingTurn(s,p))continue;
     if(remainsCarryTurn(s,p,ctx))continue;
     if(burialTurn(s,p,ctx))continue;
     if(libraryGuardTurn(s,p,ctx))continue;

@@ -1,4 +1,5 @@
 export const SKILL_TREE=Object.freeze([
+ {id:'read-trail-direction',branch:'tracking',name:'Направление настоящего следа',requires:[]},
  {id:'fit-working-part',branch:'craft',name:'Подгонка рабочей детали',requires:[]},
  {id:'field-dressing',branch:'aid',name:'Полевая повязка',requires:[]},
  {id:'check-account',branch:'trade',name:'Проверка расчёта',requires:[]},

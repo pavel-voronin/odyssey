@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {profession} from '../content.js';
 
 export const SKILL_METHODS={
+ tracking:{name:'Чтение следов',method:'read-trail-direction',label:'Направление настоящего следа',threshold:2},
  craft:{name:'Ремесло',method:'fit-working-part',label:'Подгонка рабочей детали',threshold:3},
  aid:{name:'Полевая помощь',method:'field-dressing',label:'Полевая повязка',threshold:3},
  trade:{name:'Торговля',method:'check-account',label:'Проверка расчёта',threshold:2}
@@ -78,3 +79,9 @@ export function recordPracticalToolRepair(s,a,o,event){
 }
 export function canBargain(s,id,native=false){return native||knowsPracticalMethod(s,id,'trade');}
 export function fieldMedicineCost(s,id){return knowsPracticalMethod(s,id,'aid')?1:2;}
+
+export function recordPracticalTracking(s,p,note){
+ if(!p?.tracking?.notes.includes(note)||note.confirmedAt!==s.tick||note.studiedAt>=s.tick||note.quality!=='fresh')return null;
+ const state=practicalSkill(s,p.id,'tracking');if(state?.method||state?.operations.some(e=>e.source===note.source.id))return null;
+ note.tick=s.tick;return credit(s,p.id,'tracking',note,{source:note.source.id,trace:note.trace,studiedAt:note.studiedAt});
+}

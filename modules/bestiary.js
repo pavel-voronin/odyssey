@@ -1,3 +1,4 @@
+import {weatherAt} from './weather.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {selfDrivenActor} from '../actor-projection.js';
@@ -14,7 +15,7 @@ export function creatureTrace(s,a,e,oldX){
  if(!on(s)||s.tick%24!==0||e.hidden||!e.alive||!speciesKnown(e.species)||!a.objects.includes(e)||e.x===oldX)return null;
  const id='creature-trace/'+e.id,group=a.objects.some(o=>o!==e&&o.kind==='enemy'&&o.alive&&!o.resolved&&!o.hidden&&o.species===e.species&&physicalDistance(a,o.x,e.x)<=15);
  let trace=a.objects.find(o=>o.id===id&&o.kind==='creatureTrace');if(!trace){trace={id,kind:'creatureTrace',name:'Следы существа',x:oldX};a.objects.push(trace);}
- trace.x=oldX;trace.trace={version:1,enemy:e.id,species:e.species,habitat:a.type,group,created:s.tick,expires:s.tick+240};return trace;
+ trace.x=oldX;trace.trace={direction:Math.sign(e.x-oldX),wet:['rain','storm'].includes(weatherAt(s,a).id),version:1,enemy:e.id,species:e.species,habitat:a.type,group,created:s.tick,expires:s.tick+240};return trace;
 }
 export function observeBestiaryTraces(s,p,ctx){
  const b=p&&body(s,p);if(!on(s)||!p?.alive||p.needs?.sleeping||!b)return;
