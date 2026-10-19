@@ -1,3 +1,4 @@
+import {campTalkSummary} from './camp-topic-view.js';
 import {remainsObservationView,focusOwnRemains} from './remains-observation.js';import {bodyRemains} from './modules/remains.js';
 import {geographyHTML} from './geography-sheet.js';
 import {knownMapLayers} from './road-map.js';
@@ -264,7 +265,7 @@ function enrichSheet(){
     $('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">ДОРОЖНЫЙ БЛОКНОТ</p><p class="empty">Любит рисовать · листов ${b.paper} · практика ${b.practice}${b.pending?' · рисунок не закончен':''}.</p>${Object.values(b.works).slice(-3).reverse().map(w=>`<div class="habit"><b>${escape(w.name)}</b><p>${dateLabel(state,w.tick,state.areas[w.area])} · зарисовка, качество ${w.quality}.</p></div>`).join('')}`);
   }
   if(tab==='ties'&&state.hero.campLife?.history.length){
-    $('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">У КОСТРА</p>${state.hero.campLife.history.slice(-3).reverse().map(e=>`<div class="habit"><b>${escape(state.people[e.person]?.name||'Попутчик')}</b><p>${eventDate(e,true)} · спасение ${escape(state.people[e.rescued]?.name||'путника')}. ${({thanks:'Благодарность',caution:'Разногласие',quiet:'Не захотел обсуждать'})[e.outcome]}.${e.delta?' Доверие '+(e.delta>0?'+':'')+e.delta+'.':''}</p></div>`).join('')}`);
+    $('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">У КОСТРА</p>${state.hero.campLife.history.slice(-3).reverse().map(e=>`<div class="habit"><b>${escape(state.people[e.person]?.name||'Попутчик')}</b><p>${eventDate(e,true)} · ${escape(campTalkSummary(state,e))}</p></div>`).join('')}`);
   }
   if(tab==='hero'||tab==='lineage')$('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">КУЛЬТУРА · ${escape(culture(state.hero.culture).name)}</p><p class="empty">${escape(culture(state.hero.culture).style)}.</p>`);
   if(tab==='map'){

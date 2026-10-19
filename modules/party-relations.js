@@ -1,3 +1,4 @@
+import {rememberCampPairCare} from './camp-topic-memory.js';
 import {enabled} from '../rules.js';
 import {recordPracticalAid,fieldMedicineCost,skillBranchesEnabled} from './skill-branches.js';
 import {safeCampActivity,campActivityAvailable,reserveCampActivity} from './camp-session.js';
@@ -40,11 +41,11 @@ export function pairCampCare(s,ctx){
   const refuse=(donor.agenda?.sociability??.5)<.3&&(donor.agenda?.duty??.5)<.5&&pairFeeling(donor,recipient.id)<3;
   if(!refuse&&!consumeCarriedSupplies(donor,null,kind,amount))return false;
   if(!refuse){if(medical){recipient.health=Math.min(recipient.maxHealth||100,recipient.health+25);c.hp=Math.max(1,Math.ceil(c.maxHp*recipient.health/(recipient.maxHealth||100)));}else{recipient.needs.hunger=Math.max(0,recipient.needs.hunger-48);recipient.needs.meals++;}}
-  const event={id:`${h.lineage}/camp/${campIdentity(h)}/care`,tick:s.tick,area:h.area,kind,outcome:refuse?'refused':'shared',donor:donor.id,recipient:recipient.id,spent:refuse?0:amount};
+  const event={id:`${h.lineage}/camp/${campIdentity(h)}/care`,tick:s.tick,area:h.area,kind,outcome:refuse?'refused':'shared',donor:donor.id,recipient:recipient.id,spent:refuse?0:amount,...(refuse&&donor.health<(donor.maxHealth||100)*.75?{need:'own-health',ownHealth:donor.health,ownMaximum:donor.maxHealth||100}:{})};
   if(skillBranchesEnabled(s)&&medical&&!refuse){Object.assign(event,{actor:donor.id,patient:recipient.id,before,after:recipient.health,resource:'medicine'});session(h).care=event;recordPracticalAid(s,event);}
-  remember(recipient,donor,event,refuse?-3:3);remember(donor,recipient,event,refuse?0:1);session(h).care=event;
+  remember(recipient,donor,event,refuse?-3:3);remember(donor,recipient,event,refuse?0:1);session(h).care=event;rememberCampPairCare(s,event);
   recipient.needs.energy--;donor.needs.energy--;h.energy--;h.lastAction='talk';
-  ctx.log(s,refuse?`${recipient.name} просит немного ${kind==='food'?'еды':'лекарств'}. ${donor.name}: «Этот запас оставлю себе». У костра повисает неловкое молчание.`:`${donor.name} делится ${kind==='food'?'своей едой':'своими лекарствами'} у костра. ${recipient.name}: «Спасибо. Я это запомню».`,'relationship');return true;
+  ctx.log(s,refuse?`${recipient.name} просит немного ${kind==='food'?'еды':'лекарств'}. ${donor.name}: «Этот запас оставлю себе${event.need?': мне самому сейчас нужно лекарство':''}». У костра повисает неловкое молчание.`:`${donor.name} делится ${kind==='food'?'своей едой':'своими лекарствами'} у костра. ${recipient.name}: «Спасибо. Я это запомню».`,'relationship');return true;
  }
  return false;
 }
@@ -65,3 +66,5 @@ export function pairCampWatch(s,ctx){
  else {const refusing=pairFeeling(a,b.id)<=-3?a:b;ctx.log(s,`${a.name} и ${b.name} обсуждают общий дозор. ${refusing.name}: «После того отказа я пока предпочту побыть один». Разговор затихает. К совместному дозору они не приступают.`,'relationship');}
  return true;
 }
+
+export function campPairFeeling(s,p,other,event,delta){if(!enabled(s,'party-relations')||!enabled(s,'relationships'))return 0;const before=pairFeeling(p,other.id);remember(p,other,event,delta);return pairFeeling(p,other.id)-before;}

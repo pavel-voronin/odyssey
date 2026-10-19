@@ -1,3 +1,4 @@
+import {promiseCampWitnesses,rememberCampBrokenPromise} from './camp-topic-memory.js';
 import {enabled} from '../rules.js';
 import {equipmentPrice} from './prices.js';
 import {maySpend,needsIncome} from './finances.js';
@@ -16,7 +17,7 @@ export function rememberPromise(s,q){
   if(!enabled(s,'commitments'))return;
   initializeCommitments(s.hero);
   const memory=remember(s,{kind:'promise',quest:q.id,person:q.giver,cause:q.cause,status:q.status});
-  q.memory=memory.id;
+  q.memory=memory.id;const witnesses=promiseCampWitnesses(s,q);if(witnesses)q.promiseWitnesses=witnesses;
 }
 export function rememberRetreat(s,enemy){
   if(!enabled(s,'commitments'))return;
@@ -30,7 +31,7 @@ export function commitmentTick(s,ctx){
   if(!enabled(s,'commitments'))return;
   const h=s.hero,c=h.commitments;
   for(const m of c.memories)if(m.kind==='promise'){
-    const q=h.quests.find(q=>q.id===m.quest);if(q&&m.status!==q.status){m.status=q.status;m.changed=s.tick;m.outcome=q.failure||q.status;}
+    const q=h.quests.find(q=>q.id===m.quest);if(q&&m.status!==q.status){m.status=q.status;m.changed=s.tick;m.outcome=q.failure||q.status;rememberCampBrokenPromise(s,q,m);}
   }
   const p=c.personal;if(p?.status!=='active')return;
   if(h.weapon>=p.target){p.status='done';p.ended=s.tick;c.nextPersonalAt=s.tick+480;causalOutcome(s,p);ctx.log(s,'После прежнего отступления герой добыл более надёжное оружие. Теперь можно вернуться к отложенным делам.','choice');}

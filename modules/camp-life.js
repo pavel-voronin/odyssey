@@ -1,3 +1,4 @@
+import {campTopicConversation} from './camp-topic-dialogue.js';
 import {safeCampActivity,campActivityAvailable,reserveCampActivity} from './camp-session.js';
 import {enabled} from '../rules.js';
 import {clamp} from './common.js';
@@ -12,7 +13,7 @@ export function campConversation(s,ctx){
   const h=s.hero,a=s.areas[h.area];
   if(!safeCampActivity(s)||!campActivityAvailable(h))return false;
   initializeCampLife(h);const life=h.campLife;
-  if(life.lastCamp===h.counters.camps)return false;
+  if(life.lastCamp===h.counters.camps)return false;if(campTopicConversation(s,ctx))return true;
   const companions=h.companions.filter(c=>c.person&&c.hp>=c.maxHp*.8&&s.people[c.person]?.alive&&s.people[c.person]?.area===h.area&&(!enabled(s,'npc-needs')||((s.people[c.person].needs?.energy??100)>=30&&!s.people[c.person].needs?.sleeping)));
   let topic,companion;
   for(const q of h.quests.slice().reverse()){

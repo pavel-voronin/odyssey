@@ -30,3 +30,5 @@ export function missedRepairPromise(s,c){
  (p.agenda.bonds ||= {})[c.helper]=Math.max(-100,(p.agenda.bonds[c.helper]||0)-4);
  r.lastPromise={id:c.id,tick:s.tick,deadline:c.deadline,outcome:'missed'};return true;
 }
+
+export function campCraftRespect(s,p,subject,delta){if(!on(s))return 0;const r=relationship(p,subject),before=r.respect;r.respect=Math.max(0,Math.min(100,r.respect+delta));return r.respect-before;}

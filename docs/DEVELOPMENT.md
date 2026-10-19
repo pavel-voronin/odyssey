@@ -2649,3 +2649,14 @@ PARTIAL7/7 exit0,1056мс, artifacts/checks/fe44e0e32cba15d2.log; revisionb8f5c1
 Pages230: Actions39204978695 success, HTML HTTP200/buildf9cbad5; commit6128fb4ba105eac52942eb9e3d848319f5770a1b.
 
 Опубликовано https://odyssey.kolpaque.dev:b8f5c187e1cc1699;486 payload-хешей/HTTPS подтверждены, целевые проверки переиспользованы.
+
+<a id="stage-232"></a>
+## Этап232 · E-01.6 · личные лагерные темы из работы, помощи и обещания
+
+Действительные writers заказа/перевязки/парной помощи/commitments фиксируют source-ID и присутствовавших осведомлённых людей; обычный журнал не источник. Спокойный лагерный разговор учитывает интерес, тревогу, нужды/дело/службу и ответ собеседника. Один аспект/пара/source: уважение к мастерству, личное feeling помощи или доверие; тихий отказ без награды, извинение без нового обещания/исполнения старого. Оба NPC медицинской пары расходуют собственные фазы; campTalkTick защищает тело и с NPC-control OFF. Карта/лояльность/XP/запас не передаются. Actor topics≤12/участники≤6/history≤16, source optional schema144 без backfill; NPC-view и ties показывают реальный разговор/точную пару. Код camp-topic-memory/dialogue/schema/view, camp-life/commitments/resident-orders/wound-care/party-relations/craft-respect/phase policy/UI.
+
+PARTIAL13/13 exit0,1071мс, artifacts/checks/232ab88a511dea89.log; revision7cf007b31c793ad7.6подготовленных случаев, ≤16world ticks либо≤12изолированных действий на случай, один условный seed без частотных заявлений. Источники настоящие: заказ/плата/материал/ремонт, перевязка с расходом, объявленная медицинская нужда, принятие/реальный отказ от обещания. Поздняя восстановленная функция/здоровье и дорожное прибытие — явные checkpoints без циклов лечения/длинного пути. Обычный step/еда/следующий лагерь/повтор, неизвестный третий/стресс/дело/интерес, одна NPC-фаза ON/OFF, приватная реальная NPC-навигация/точный restore, выбранная ferry-интеграция/smoke/build. Browser ties320 на3источниках осмотрен, UI0тиков/save неизменен. Full/SOAK/жизни/перебор не запускались.
+
+Pages231: Actions39206574347 success, HTML HTTP200/buildb8f5c18; commitfd39de60db6c3de3d7e5d45dd55ac869fb83ce0f.
+
+Опубликовано https://odyssey.kolpaque.dev:7cf007b31c793ad7;490 payload-хешей/HTTPS подтверждены, целевые проверки переиспользованы.

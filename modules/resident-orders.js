@@ -1,3 +1,4 @@
+import {rememberCampRepair} from './camp-topic-memory.js';
 import {controlBlocked} from './building-control-state.js';
 import {confirmWord} from './word-custom.js';
 import {areaScale} from '../geometry.js';
@@ -125,7 +126,7 @@ export function finishServiceRepair(s,a,o,proof,ctx){
  const c=s.workOrders?.[o.service];if(!c||c.status!=='active'||!active(s)||o.state!=='intact'||a.id!==c.area||o.id!==c.property||proof.actor!==c.helper||proof.payer!==c.client||proof.damageAt!==c.damageAt||c.materialsPaid!==18||c.escrow!==c.fee)return;
  const h=s.actorStates[c.helper],p=s.people[c.client];if(!h?.alive||!p?.alive)return;
  setActorMoney(s,s.people[h.lineage],h.gold+c.fee);c.escrow=0;c.paid=c.fee;c.status='done';c.ended=s.tick;o.service=null;if(h.life.residence?.service===c.id)h.life.residence.service=null;
- h.counters.customerWork=(h.counters.customerWork||0)+1;h.counters.peacefulWork=(h.counters.peacefulWork||0)+1;advanceCareer(s,5,ctx);ctx.gainXp(s,5);
+ rememberCampRepair(s,a,o,c,proof);h.counters.customerWork=(h.counters.customerWork||0)+1;h.counters.peacefulWork=(h.counters.peacefulWork||0)+1;advanceCareer(s,5,ctx);ctx.gainXp(s,5);
  (p.agenda.bonds ||= {})[h.lineage]=clamp((p.agenda.bonds[h.lineage]||0)+2,-100,100);
  const relation=h.relations[p.id];if(relation&&enabled(s,'relationships')){relation.trust=clamp(relation.trust+2,-100,100);relation.helped++;}
  tell(s,c,`${h.name} восстанавливает мастерскую для ${p.name} и получает ◈${c.fee}. Заказчик снова может работать в своём помещении.`,ctx);

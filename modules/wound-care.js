@@ -1,3 +1,4 @@
+import {rememberCampDressing} from './camp-topic-memory.js';
 import {supportedPatient} from './patient-state.js';
 import {physicalDistance} from '../geometry.js';
 import {knownArea} from '../actor-atlas.js';
@@ -25,7 +26,7 @@ function applyDressing(s,p,w,by,method,kind,ctx){
  const quality=kind==='herbs'?12:20;w.dressing={version:1,applied:s.tick,by:by.id,method,material:kind,units:1,quality,remaining:quality,age:0};
  w.bleed=0;const t=careState(p);t.lastActionTick=s.tick;t.treatments++;careState(by).lastActionTick=s.tick;
  const h=woundActor(s,by);if(h){h.energy=Math.max(0,h.energy-2);h.lastAction='heal';}else if(by.needs)by.needs.energy=Math.max(0,by.needs.energy-2);
- woundActivity(s,p,'body',by.id!==p.id);ctx?.log?.(s,`${by.name}: ${kind==='herbs'?'травяной компресс':'лекарственная повязка'} — ${w.label}. Израсходована одна единица материала; закрытие и функция ещё требуют времени.`,'heal');return true;
+ rememberCampDressing(s,p,w,by);woundActivity(s,p,'body',by.id!==p.id);ctx?.log?.(s,`${by.name}: ${kind==='herbs'?'травяной компресс':'лекарственная повязка'} — ${w.label}. Израсходована одна единица материала; закрытие и функция ещё требуют времени.`,'heal');return true;
 }
 function safe(s,p,h=null){const area=s.areas[h?.area||p.area],x=h?.x??p.x;return !area?.objects.some(e=>e.kind==='enemy'&&e.alive&&!e.resolved&&physicalDistance(area,e.x,x)<=15&&(!h||!coverBlocks(s,e,h)));}
 function clinic(s,p,w,ctx,payer=null){
