@@ -1,3 +1,4 @@
+import {remainsCarryTurn} from './remains-carry.js';
 import {libraryGuardTurn} from './library-security.js';
 import {libraryNPCTask,libraryNPCAction} from './libraries.js';
 import {advanceNPCRoadCamp} from './road-stops.js';
@@ -275,9 +276,10 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(remainsCarryTurn(s,p,ctx))continue;
     if(libraryGuardTurn(s,p,ctx))continue;
-    if(p.bodyCarry?.stage==='stopped'&&p.roadStop&&advanceNPCRoadCamp(s,p,ctx))continue;
-    if(p.bodyCarry?.stage==='stopped'&&p.roadTransit){moveTask(s,p,ctx);continue;}
+    if((p.bodyCarry?.stage==='stopped'||p.remainsCarry?.stage==='dropped')&&p.roadStop&&advanceNPCRoadCamp(s,p,ctx))continue;
+    if((p.bodyCarry?.stage==='stopped'||p.remainsCarry?.stage==='dropped')&&p.roadTransit){moveTask(s,p,ctx);continue;}
     if(displacedOwnerTurn(s,p,ctx))continue;
     if(prostheticNPCTurn(s,p,ctx))continue;
     if(rivalryNPCTurn(s,p,ctx))continue;

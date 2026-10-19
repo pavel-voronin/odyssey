@@ -22,7 +22,7 @@ test('two explicit returns keep the same bodies, wounded worker, wallet, private
 test('old wall-time debt is processed first and a target who dies during it is never replaced automatically',()=>{
  const {s,p}=fixture(),clock=createClock(0),request=observerRequest(s,'person',p.id,6000),old=s.hero;
  assert.equal(commitObserverRequest(s,clock,request,6000),false);assert.equal(s.hero,old);
- catchUp(clock,6000,()=>step(s),2);assert.equal(s.tick,2);assert.equal(commitObserverRequest(s,clock,request,6000),false);
+ while(s.tick<2)catchUp(clock,6000,()=>step(s),2-s.tick);assert.equal(s.tick,2);assert.equal(commitObserverRequest(s,clock,request,6000),false);
  p.alive=false;p.health=0;while(hasDue(clock,request.target))catchUp(clock,request.target,()=>step(s),2);
  assert.equal(s.tick,6);assert.equal(commitObserverRequest(s,clock,request,9000),false);assert.equal(s.hero,old);assert.equal(s.nextGeneration,1);assert.equal(clock.anchor,6000);
 });

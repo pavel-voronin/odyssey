@@ -21,8 +21,8 @@ function localContact(s,a,h){
  for(const r of [...s.society.journeys,...s.logistics.convoys]){if(own.has(r.person))continue;const p=personLocation(s,r.person);if(p?.area===a.id&&near(p.x))return true;}return false;
 }
 export function roadMapModel(s,{inspect=false,scope=mapScopeProposal(s),layer='current'}={}){
- const h=s.hero,a=s.areas[h.area],edgeTravel=Boolean(h.transit?.metric||h.transit?.ferry||h.transit?.carry);
- if(!a||!inspect&&(!h.alive||h.life?.ended||h.combat||h.roadStop||h.roadContact||h.transit&&!edgeTravel||!edgeTravel&&(h.lastAction!=='walk'||a.interior||a.temporaryCamp||a.dungeon||!['road','forest','desert','mountain','island','village','port','citadel','undercity'].includes(a.type)||h.goal?.area===a.id||localContact(s,a,h))))return null;
+ const h=s.hero,a=s.areas[h.area],following=!h.alive&&s.observation?.focus?.kind==='remains',edgeTravel=Boolean(h.transit?.metric||h.transit?.ferry||h.transit?.carry);
+ if(!a||!inspect&&((!h.alive||h.life?.ended)&&!(following&&edgeTravel)||h.combat||h.roadStop||h.roadContact||h.transit&&!edgeTravel||!edgeTravel&&(h.lastAction!=='walk'||a.interior||a.temporaryCamp||a.dungeon||!['road','forest','desert','mountain','island','village','port','citadel','undercity'].includes(a.type)||h.goal?.area===a.id||localContact(s,a,h))))return null;
  const address=actorSpatialAddress(s),currentLayer=address.layer||a.spatial?.layer,layers=knownMapLayers(s);
  if(!inspect&&(address.status!=='known'||!address.point||!['scene','edge','vessel'].includes(address.precision)))return null;
  const selected=layer!=='current'&&layers.some(l=>l.id===layer)?layer:currentLayer;if(!layers.some(l=>l.id===selected))return null;
@@ -34,6 +34,6 @@ export function roadMapModel(s,{inspect=false,scope=mapScopeProposal(s),layer='c
   if(p.ends[0].address.layer===selected)roads.push({id:p.id,revision:p.revision,kind:p.kind,areas:p.ends.map(e=>e.area),ends:p.ends.map(e=>e.address.point),priority:p.kind==='sea'?0:Math.min(node.priority,all.get(to).priority)});
  }
  const threshold={overview:0,region:1,local:2}[scope];for(const n of nodes)n.labelVisible=n.priority<=threshold||n.id===a.id||connectors.some(c=>c.from===n.id);
- const body=!h.alive?'dead':h.transit&&!edgeTravel?'transit':address.layer!==selected?'elsewhere':address.status!=='known'||!['scene','edge','vessel'].includes(address.precision)||address.precision!=='vessel'&&!nodes.some(n=>n.id===a.id)?'unmapped':'here';
+ const body=!h.alive&&!following?'dead':h.transit&&!edgeTravel?'transit':address.layer!==selected?'elsewhere':address.status!=='known'||!['scene','edge','vessel'].includes(address.precision)||address.precision!=='vessel'&&!nodes.some(n=>n.id===a.id)?'unmapped':'here';
  const topology=JSON.stringify([s.seed,selected,scope,nodes,roads,connectors]);return {scheme:'schematic-v1',scope,layer:selected,layers,layerName:layers.find(l=>l.id===selected).name,body,area:a.id,nodes,roads,connectors,topology,marker:body==='here'?{...address.point,name:h.name,actor:h.lineage,localX:h.x,facing:h.facing}:null};
 }

@@ -10,7 +10,7 @@ export function initializeNeeds(p){p.needs ||= {hunger:10,energy:100,loneliness:
 // Returns true when a personal need occupies this NPC's present action.
 export function personNeeds(s,p,ctx,adapter=null){
   if(!enabled(s,'npc-needs'))return false;
-  initializeNeeds(p);const n=p.needs,a=s.areas[p.area];if(!a)return false;
+  initializeNeeds(p);const n=p.needs;let a=s.areas[p.area];if(!a)return false;
   n.hunger=Math.min(100,n.hunger+.4);n.energy=Math.max(0,n.energy-.8);n.loneliness=Math.min(100,n.loneliness+.4);
   const personal=!adapter&&enabled(s,'npc-personal-supplies'),maximum=p.maxHealth||100;
   if(!adapter?.onlyUpkeep){
@@ -31,7 +31,7 @@ export function personNeeds(s,p,ctx,adapter=null){
   }
   if(n.hunger>=95&&s.tick%96===0){
     p.health=Math.max(0,p.health-4);
-    if(!p.health){p.alive=false;p.status='dead';p.died=s.tick;p.deathCause='Голод';if(adapter?.grave!==false)a.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x||42});if(adapter?.onDeath)adapter.onDeath(a);else{s.changes.push({tick:s.tick,text:p.name+' умер от голода.'});if(s.hero.area===p.area)ctx.log(s,p.name+' не пережил голод.','loss');}recordPersonRemains(s,p);return true;}
+    if(!p.health){p.alive=false;p.status='dead';p.died=s.tick;p.deathCause='Голод';ctx.dropRemains?.(s,p,'носитель погиб');a=s.areas[p.area];if(adapter?.grave!==false)a.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x||42});if(adapter?.onDeath)adapter.onDeath(a);else{s.changes.push({tick:s.tick,text:p.name+' умер от голода.'});if(s.hero.area===p.area)ctx.log(s,p.name+' не пережил голод.','loss');}recordPersonRemains(s,p);return true;}
   }
   if((n.energy<25||n.sleeping)&&adapter?.sleep!==false&&!adapter?.onlyUpkeep){
     n.sleeping=true;n.energy=Math.min(100,n.energy+8);if(n.energy>=90){n.sleeping=false;n.sleeps++;}return true;

@@ -1,3 +1,4 @@
+import {validateRemainsCarry} from './modules/remains-carry-schema.js';
 import {validateLibraries} from './modules/library-schema.js';
 import {validatePeopleCarry} from './modules/people-carry-schema.js';
 import {validateBuildingControl} from './modules/building-control-schema.js';
@@ -167,7 +168,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateTexts(s,fail);validateLibraries(s,fail);
+ validateTexts(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
@@ -196,13 +197,13 @@ export function validateSave(s){
  for(const k of ['gear','medicine'])integer(s.merchant.serviceStock[k],'merchant.serviceStock.'+k);
  if(s.remains){
   fields(s.remains,['version','byId'],'remains');fields(s.remains.byId,[],'remains.byId');if(own(s.remains,'nextCompanion'))fail('remains.nextCompanion');
-  const position=(p,path)=>{fields(p,['kind'],path);if(p.kind==='area'){fields(p,['area','x'],path);if(!s.areas[p.area])fail(path+'.area');finite(p.x,path+'.x');}else if(p.kind==='transit')fields(p.journey,[],path+'.journey');else if(p.kind!=='unknown')fail(path+'.kind');};
+  const position=(p,path)=>{fields(p,['kind'],path);if(p.kind==='area'){fields(p,['area','x'],path);if(!s.areas[p.area])fail(path+'.area');finite(p.x,path+'.x');}else if(p.kind==='transit')fields(p.journey,[],path+'.journey');else if(p.kind==='carrier'){fields(p,['person'],path);if(!s.people[p.person])fail(path+'.person');}else if(p.kind!=='unknown')fail(path+'.kind');};
   for(const [key,b]of Object.entries(s.remains.byId)){
    fields(b,['version','id','deathId','source','stage','carrier','position','facing','death','loot'],key);fields(b.source,['kind','id'],key+'.source');fields(b.death,['tick','source','name','family','race','species','shape','role','traveller','facing','fallSide','appearance','anatomy','position','cause'],key+'.death');
    const d=b.death;integer(d.tick,key+'.death.tick');if(d.tick>s.tick||!['person','enemy','companion'].includes(b.source.kind)||typeof b.source.id!=='string'||b.id!==key||key!==`corpse:${b.source.kind}:${b.source.id}:${d.tick}`||b.deathId!==`death:${b.source.kind}:${b.source.id}:${d.tick}`||JSON.stringify(d.source)!==JSON.stringify(b.source))fail(key+'.identity');
    if(b.material)validateBodyMaterial(s,b,key+'.material');
    if(!['fresh','trace'].includes(b.stage)||![-1,1].includes(b.facing)||![null,-1,1].includes(d.facing)||![-1,1].includes(d.fallSide))fail(key+'.stage');
-   fields(d.anatomy,['form','stature','recorded'],key+'.anatomy');if(!(d.anatomy.stature>0))fail(key+'.anatomy.stature');position(b.position,key+'.position');position(d.position,key+'.death.position');array(b.loot,key+'.loot');
+   fields(d.anatomy,['form','stature','recorded'],key+'.anatomy');if(!(d.anatomy.stature>0))fail(key+'.anatomy.stature');position(b.position,key+'.position');position(d.position,key+'.death.position');if(d.position.kind==='carrier')fail(key+'.death.position');array(b.loot,key+'.loot');
    if(b.carrier!==null)fields(b.carrier,['kind','id'],key+'.carrier');for(const k of ['gold','items','inventory','equipment'])if(own(b,k))fail(key+'.'+k);
   }
  }

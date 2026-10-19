@@ -1,0 +1,8 @@
+import {WORLD_ROOT,rootWorld} from './world-ref.js';
+import {bodyRemains} from './modules/remains.js';
+import {remainsLocation} from './remains-position.js';
+const cache=new WeakMap();
+export function observedRemains(s){const f=s.observation?.focus,h=s.hero;if(s.rules.remains===false||h.alive||f?.kind!=='remains'||f.body!==h.remainsId)return null;const b=bodyRemains(s,h);return b&&remainsLocation(s,b)?b:null;}
+export function focusOwnRemains(s,on=true){if(!on){if(!s.observation.focus)return false;delete s.observation.focus;return true;}const b=!s.hero.alive&&s.rules.remains!==false&&bodyRemains(s,s.hero);if(!b||!remainsLocation(s,b))return false;s.observation.focus={kind:'remains',body:b.id,started:s.tick};return true;}
+// Presentation only. The canonical dead person keeps the exact death location and age.
+export function remainsObservationView(input){const s=rootWorld(input),b=observedRemains(s);if(!b)return input;let q=cache.get(s);if(q?.hero===s.hero&&q.body===b.id)return q.view;const h=s.hero,hero=new Proxy(h,{get(target,key,receiver){const at=remainsLocation(s,b);if(key==='area')return at?.area||target.area;if(key==='x')return at?.x??target.x;if(key==='transit')return at?.transit?{...at.transit,viewOnly:true}:null;if(key==='facing')return b.facing;if(key==='lastAction')return b.carrier&&s.people[b.carrier.id]?.remainsCarry?.lastMove===s.tick?'walk':'death';return Reflect.get(target,key,receiver);}}),view=new Proxy(s,{get(target,key,receiver){if(key===WORLD_ROOT)return s;if(key==='hero')return hero;return Reflect.get(target,key,receiver);}});cache.set(s,{hero:h,body:b.id,view});return view;}

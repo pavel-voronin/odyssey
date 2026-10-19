@@ -1,0 +1,6 @@
+import {carriedRemains} from './modules/remains-mass.js';
+import {race} from './content.js';
+import {personAppearance} from './appearance.js';
+export function paintRemainsAt(scene,s,b,x,ground,{carried=false,direction=1}={}){if(s.rules.remains===false||!b||scene.remainsPainted?.has(b.id))return;scene.remainsPainted?.add(b.id);const c=scene.ctx,d=b.death,r=d.race&&s.rules.lineage!==false?race(d.race):null,species=r?{...r,height:r.height*(d.anatomy.stature||1)}:null;c.save();c.translate(x+(carried?direction*13:0),ground-(carried?25:0));c.rotate((carried?-direction:d.fallSide||1)*Math.PI/2);scene.person(0,0,d.appearance?.cloak||'#8b8d73',false,b.facing||1,0,false,false,d.appearance,species,{kind:'death',progress:1});c.restore();}
+export function paintCarriedRemains(scene,s,p,x,ground){const b=p&&carriedRemains(s,p.id);if(b)paintRemainsAt(scene,s,b,x,ground,{carried:true,direction:p.facing||1});}
+export function paintRemainsCarrier(scene,s,b,x,ground,phase){const p=s.people[b?.carrier?.id];if(!p)return;const look=personAppearance(s,p);scene.person(x,ground,look?.cloak||'#ad9872',false,p.facing||1,0,false,false,look,s.rules.lineage===false?null:race(p.race),{kind:p.remainsCarry?.lastMove===s.tick?'walk':'idle',walking:p.remainsCarry?.lastMove===s.tick,progress:phase});paintCarriedRemains(scene,s,p,x,ground);}

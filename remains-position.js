@@ -1,0 +1,3 @@
+import {rootWorld} from './world-ref.js';
+// A carried body refers to one existing carrier progress; no second route clock.
+export function remainsLocation(input,b){const s=rootWorld(input);if(!b)return null;if(b.carrier?.kind==='person'){const p=s.people[b.carrier.id];if(!p)return null;return p.roadTransit?{area:p.roadTransit.from,x:p.x,transit:p.roadTransit,carrier:p.id}:{area:p.area,x:p.x,transit:null,carrier:p.id};}const q=b.position;if(q?.kind==='area')return {area:q.area,x:q.x,transit:null};if(q?.kind==='transit')return {area:q.journey.from,x:q.journey.metric?.departureX??50,transit:q.journey};return null;}

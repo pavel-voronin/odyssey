@@ -1,3 +1,4 @@
+import {remainsObservationView,focusOwnRemains} from './remains-observation.js';import {bodyRemains} from './modules/remains.js';
 import {geographyHTML} from './geography-sheet.js';
 import {knownMapLayers} from './road-map.js';
 import {limbSummary} from './modules/limb-state.js';
@@ -94,7 +95,7 @@ import {savedRunNotice} from './playback-view.js';
 import {placeRuleHTML} from './place-rule-view.js';
 import {beginGesture,moveGesture,isTap} from './gestures.js';
 import {bindFreshAction,bindFreshChoice} from './fresh-action.js';
-import {rememberObservers,observerChoices,observerRequest,commitObserverRequest} from './observer-choice.js';
+import {remainsChoices,rememberObservers,observerChoices,observerRequest,commitObserverRequest} from './observer-choice.js';
 import {pointInGame,startsInGame} from './input-region.js';
 import {lifeTick,createSpeech,visibleSpeech,clearSpeech} from './presentation.js';
 import {weatherAt,WEATHERS} from './modules/weather.js';
@@ -332,9 +333,10 @@ function render(automatic=false,batching=false) {
   rememberObservers(state);
   showTutorial();
   document.documentElement.classList.toggle('no-animation',!enabled(state,'animation'));
-  const h = state.hero, a = state.areas[h.area], time = calendar(state.tick);
-  const date=worldDate(state);$('day').textContent = `${date.seasonName} · ${date.seasonDay}`;
-  $('tick').textContent = calendarSceneCaption(state);
+  const display=remainsObservationView(state),h=display.hero,a=state.areas[h.area],time=calendar(state.tick);
+  $('watch-remains').hidden=h.alive||!bodyRemains(state,state.hero);$('summary-remains').hidden=$('watch-remains').hidden;$('watch-remains').textContent=state.observation.focus?.kind==='remains'?'К месту гибели':'Наблюдать останки';
+  const date=worldDate(display);$('day').textContent = `${date.seasonName} · ${date.seasonDay}`;
+  $('tick').textContent = calendarSceneCaption(display);
   $('location').textContent=h.transit?.unknown?'В пути · положение неизвестно':h.transit?`${ROUTE_NAMES[h.transit.mode]} → ${state.areas[h.transit.to].name}`:a.name;
   $('biome').textContent=h.transit?.dead?'ГИБЕЛЬ В ПУТИ':h.transit?.unknown?'МАРШРУТ НЕ ЗАПИСАН':h.transit?`${elapsedLabel(h.transit.remaining)} в пути`:`${a.roadProfile==='long-tract'?'ДЛИННЫЙ ТРАКТ':areaType(a).toUpperCase()}${a.danger?' · опасность '+a.danger:''}${a.era?' · '+date.year:''}`;
   const weather=weatherAt(state,a),ford=fordLabel(state);$('weather').textContent=weather.icon+' '+weather.name+(ford?' · '+ford:'');$('weather').title=weather.text;
@@ -344,7 +346,7 @@ function render(automatic=false,batching=false) {
   const mana=resourceViews(state).find(r=>r.id==='mana');$('mana-vital').hidden=!mana;document.querySelector('.hero-strip').classList.toggle('has-mana',Boolean(mana));
   if(mana){$('mana').textContent=`${Math.floor(mana.value)}/${mana.max}`;$('mana-bar').style.width=`${Math.max(0,Math.min(100,mana.value/mana.max*100))}%`;}
   $('name').title=h.name;$('level').title=$('level').textContent;$('gold').title=String(h.gold);
-  fitGold(); $('intent').textContent = h.intent; $('reason').textContent = h.reason.replace('отдельно в меню.','кнопкой под дневником.'); $('action-type').textContent = h.action;
+  const watched=state.observation.focus?.kind==='remains'&&state.rules.remains!==false?bodyRemains(state,state.hero):null,carrier=watched?.carrier&&state.people[watched.carrier.id];fitGold();$('intent').textContent=watched?(carrier?carrier.name+' несёт останки: '+h.name:'Наблюдать за останками: '+h.name):h.intent;$('reason').textContent=watched?(carrier?'Тело следует за носителем. Место гибели и история человека сохраняются.':watched.transport?.stage==='delivered'?'Доставлено к месту погребения. Само погребение ещё не совершено.':'Тело остаётся в этом месте; мир продолжает жить.'):h.reason.replace('отдельно в меню.','кнопкой под дневником.');$('action-type').textContent=watched?'НАБЛЮДЕНИЕ':h.action;
   const spoken=visibleSpeech(speechMemory,state);$('speech').innerHTML = semanticEvent(state,{text:spoken,type:spoken?speechMemory.type:null,meaning:spoken?speechMemory.meaning:null}); drawHeroPortrait($('portrait'),state);
   fitCaptions();
   $('world-age').textContent=`Мир ${state.seed} · всего тиков: ${state.tick} · ${lifeName()}`;
@@ -488,7 +490,7 @@ function requestObserver(kind,person){
  if(pendingNextStory)return;
  const request=observerRequest(state,kind,person,Date.now());if(!request){openObservers('Этот человек сейчас недоступен. Выберите другого.');return;}
  releaseHold();pendingInputs.length=0;releaseFast();fastNotice='';lifeReview=false;
- cancelObserverChoice();
+ cancelObserverChoice();cancelRemainsChoice();
  for(const id of ['life-summary','sheet','settings-dialog','observer-dialog'])if($(id).open)$(id).close();
  pendingNextStory=request;drainTime();
 }
@@ -496,13 +498,14 @@ function openObservers(message=''){
  if(pendingNextStory)return;
  releaseHold();if(fastRun)stopFast();lifeReview=false;
  for(const id of ['life-summary','sheet','settings-dialog'])if($(id).open)$(id).close();
- const choices=observerChoices(state);$('observer-status').textContent=message;
+ const choices=observerChoices(state),bodies=remainsChoices(state);$('observer-status').textContent=message;
  $('observer-hint').textContent=state.hero.alive?'Прежний персонаж продолжит жить сам. Мир не останавливается.':'Мир продолжает жить. Можно наблюдать знакомого или начать путь нового человека.';
- $('observer-list').innerHTML=choices.map(p=>`<button data-observer="${escape(p.id)}"><b>${escape(p.name)}</b><span>${escape(p.description)}</span></button>`).join('')||'<p class="empty">Пока нет доступных знакомых. Можно начать путь нового человека.</p>';
- cancelObserverChoice();if(!$('observer-dialog').open)$('observer-dialog').showModal();persist();
+ $('observer-list').innerHTML=choices.map(p=>`<button data-observer="${escape(p.id)}"><b>${escape(p.name)}</b><span>${escape(p.description)}</span></button>`).join('')+bodies.map(p=>`<button data-remains-observer="${escape(p.id)}"><b>${escape(p.name)}</b><span>${escape(p.description)}</span></button>`).join('')||'<p class="empty">Пока нет доступных знакомых. Можно начать путь нового человека.</p>';
+ cancelObserverChoice();cancelRemainsChoice();if(!$('observer-dialog').open)$('observer-dialog').showModal();persist();
 }
 const cancelObserverChoice=bindFreshChoice($('observer-list'),e=>e.target.closest('[data-observer]')?.dataset.observer??null,id=>!pendingNextStory&&observerChoices(state).some(p=>p.id===id),id=>requestObserver('person',id),document,window,e=>pointInGame($('game-shell').getBoundingClientRect(),e));
-$('observer-dialog').addEventListener('close',cancelObserverChoice);
+const cancelRemainsChoice=bindFreshChoice($('observer-list'),e=>e.target.closest('[data-remains-observer]')?.dataset.remainsObserver??null,id=>!pendingNextStory&&remainsChoices(state).some(p=>p.id===id),id=>requestObserver('remains',id),document,window,e=>pointInGame($('game-shell').getBoundingClientRect(),e));
+$('observer-dialog').addEventListener('close',()=>{cancelObserverChoice();cancelRemainsChoice();});
 $('close-observer').addEventListener('click',()=>$('observer-dialog').close());
 $('choose-observer').addEventListener('click',()=>openObservers());
 $('summary-observer').addEventListener('click',()=>openObservers());
@@ -564,3 +567,7 @@ window.addEventListener('pagehide',persist);
 
 
 
+
+function toggleBodyFocus(){if(pendingNextStory)return;if(focusOwnRemains(state,state.observation.focus?.kind!=='remains')){if($('settings-dialog').open)$('settings-dialog').close();closeSummary();persist();render();}}
+bindFreshAction($('watch-remains'),()=>!pendingNextStory,toggleBodyFocus,document,window,e=>pointInGame($('game-shell').getBoundingClientRect(),e));
+bindFreshAction($('summary-remains'),()=>!pendingNextStory,toggleBodyFocus,document,window,e=>pointInGame($('game-shell').getBoundingClientRect(),e));
