@@ -13,6 +13,7 @@ export function literacyCaps(s,p,h=null){
  // Already performed, dated text actions remain evidence of skill. This pure
  // query never initializes literacy or manufactures a historical lesson.
  for(const e of p?.textCraft?.readings||[]){const lang=s.literature?.works[e.content]?.language;if(lang){base.reading.push(lang);base.spoken.push(lang);}}
+ for(const id of Object.values(p?.spellTexts?.works||{})){const lang=s.literature?.works[id]?.language;if(lang){base.reading.push(lang);base.writing.push(lang);}}
  for(const id of [p?.textCraft?.work,...(p?.textCraft?.copied||[])]){const lang=s.literature?.works[id]?.language;if(lang)base.writing.push(lang);}
  return Object.fromEntries(Object.entries(base).map(([key,list])=>[key,[...new Set(list)]]));
 }

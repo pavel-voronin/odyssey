@@ -14,7 +14,7 @@ const vital=(s,p)=>textActor(s,p?.id)||p?.needs;
 function ready(s,p){const h=textActor(s,p?.id),b=body(s,p);return textsOn(s)&&p?.alive&&b&&!h?.combat&&!h?.transit&&!p.roadTransit&&!p.needs.sleeping&&!p.ailment&&vital(s,p).energy>=30&&vital(s,p).hunger<60&&(h?h.hp>=h.maxHp*.75:p.health>=(p.maxHealth||100)*.75);}
 const at=(s,p,o)=>{const b=body(s,p);return b?.area===o.area&&physicalDistance(s.areas[o.area],b.x,o.x)<=2;};
 const lawful=(p,i)=>i&&(!i.textCopy||i.textCopy.owner===p.id)&&i.libraryLoan?.returned!==null&&i.libraryTheft?.returned!==null;
-function sourceReady(s,p,i){const w=textWork(s,i);return lawful(p,i)&&i.textCopy?.condition==='intact'&&['employment-note','mechanism-sequence'].includes(w?.content.kind)&&heldTexts(s,p.id).filter(k=>k.textCopy?.content===w.id&&k.textCopy.condition==='intact').length===1;}
+function sourceReady(s,p,i){const w=textWork(s,i);return lawful(p,i)&&i.textCopy?.condition==='intact'&&['employment-note','mechanism-sequence','spell-manual'].includes(w?.content.kind)&&heldTexts(s,p.id).filter(k=>k.textCopy?.content===w.id&&k.textCopy.condition==='intact').length===1;}
 const freeMaster=(s,p)=>!Object.values(s.people).some(q=>copyOrders(q).some(o=>o.master===p.id&&o.status==='working'));
 function suitable(s,p,q,w){const b=body(s,q),a=b&&s.areas[b.area];return p.id!==q?.id&&ready(s,q)&&a?.civic&&!a.interior&&physicalDistance(a,b.x,42)<=3&&canReadText(s,q,w.language)&&canWriteText(s,q,w.language)&&freeMaster(s,q)&&(textActor(s,q.id)||npcController(s,q)==='personal'&&canStartNPCActivity(s,q,{inTurn:true}));}
 export function requestCopyOrder(s,p,q,sourceID,paperID){

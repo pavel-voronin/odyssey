@@ -1,0 +1,8 @@
+import {spellTextGift,spellTextsOn} from './modules/spell-text-state.js';
+import {heldTexts} from './modules/text-state.js';
+import {dateLabel} from './calendar.js';
+export function spellTextHTML(s,escape){
+ const p=s.people[s.hero.lineage],m=p.spellTexts,items=heldTexts(s,p.id).filter(i=>s.literature?.works[i.textCopy?.content]?.content.kind==='spell-manual');if(!m&&!items.length)return '';
+ const course=m?.courses.ward,held=items.map(i=>'<div class="habit"><b>'+escape(i.name)+'</b><p>'+escape(i.textCopy.condition==='draft'?'Незавершённая рукопись · '+i.spellManuscript.progress+'/3. Из черновика нельзя получить готовые чары.':i.textCopy.condition!=='intact'?'Страницы повреждены; готовая формула недоступна.':i.spellScroll?'Один настоящий эффект расходует этот свиток. Понимание и обычная цена маны обязательны.':'Книга учит постепенно и сохраняется после обучения.')+'</p></div>').join('');
+ return '<p class="detail-label">РУКОПИСНЫЕ ЧАРЫ</p>'+held+(course?'<p class="empty">'+escape(course.status==='learned'?'Слово укрытия освоено по книге. Полученный способ сохраняется отдельно от экземпляра.':'Учебных упражнений: '+course.steps.length+'/3. Каждое требует своей маны; постоянный способ ещё не освоен.')+'</p>':'')+(!spellTextGift(s.hero)?'<p class="empty">Читаемая формула сама не даёт магического дара или маны. Запись можно хранить, обсудить с читателем или передать.</p>':'')+(!spellTextsOn(s)?'<p class="empty">Работа с магией сейчас приостановлена.</p>':'')+(m?.uses||[]).slice(-3).map(r=>'<p class="empty">'+escape(dateLabel(s,r.at))+' · свиток применён и израсходован. Оплачено '+r.mana+' маны'+(r.charge?' и '+r.charge+' заряда камня':'')+'.</p>').join('');
+}
