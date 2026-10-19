@@ -1,3 +1,5 @@
+import {initializeWoodBarrier} from './modules/mechanisms.js';
+import {materialWorldTick} from './modules/local-material-world.js';
 import {recollectionTick} from './modules/recollection-state.js';
 import {socketPlan,socketAction} from './modules/socket-service.js';
 import {estateClaimPlan,estateClaimAction} from './modules/estate-claims.js';
@@ -346,7 +348,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);
   log(s, `${s.hero.name} начинает путь: ${s.areas[s.hero.area].name}, ${s.continents.c0.name}.`, 'birth');
-  initializeFacades(s);syncObservedPerson(s);syncActiveActor(s);bindObservedJournal(s);initializeSpatial(s);
+  initializeFacades(s);initializeWoodBarrier(s);syncObservedPerson(s);syncActiveActor(s);bindObservedJournal(s);initializeSpatial(s);
   return s;
 }
 function enter(s, id) {
@@ -772,6 +774,7 @@ function worldTick(s) {
   patientsTick(s,context(s,'injured-party'));
   waitingPackPetsTick(s);
   leverTeamTick(s,context(s,'mechanisms'));
+  materialWorldTick(s,context(s,'local-materials'));
   biomaterialTick(s);settleBurialWork(s);
   goodsTick(s);
   lodgingTick(s);

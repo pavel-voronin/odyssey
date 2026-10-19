@@ -23,3 +23,9 @@ export function buildingRoomSound(s,a){
  if(!a?.interior)return true;const exterior=s.areas[a.interior.exterior||a.interior.parent],o=exterior?.objects.find(o=>o.id===a.interior.building);
  return structurallySound(structureFor(s,exterior,o));
 }
+
+// Local external scorching is one roof loss, not a new whole-building blaze.
+export function scorchStructure(s,a,p,source){
+ if(!p||!ruinsOn(s)&&!p.structure)return false;const r=structureRecord(s,p);if(r.roof<=0)return false;r.roof--;r.history.push({tick:s.tick,kind:'material-scorch',roof:r.roof,walls:r.walls,source});if(r.history.length>16)r.history.shift();
+ if(!structurallySound(p))for(const o of a.objects)if(o.building===p.id&&['workshop','tavern'].includes(o.kind)){o.state='burned';o.damagedAt=s.tick;o.repair=null;o.structuralDamage={version:1,building:p.id,cause:'material-scorch',tick:s.tick};}return true;
+}

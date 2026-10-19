@@ -1,3 +1,4 @@
+import {materialNPCTurn} from './local-material-actions.js';
 import {npcSocketPlan,socketMasterTurn,socketAction} from './socket-service.js';
 import {socketsOn} from './socket-state.js';
 import {npcEstateClaimPlan,estateClaimAction,estateResponse} from './estate-claims.js';
@@ -307,6 +308,7 @@ export function peopleTick(s,ctx){
     if(neighborHostTurn(s,p,ctx))continue;
     if(estateResponse(s,p))continue;
     if(socketMasterTurn(s,p))continue;
+    if(materialNPCTurn(s,p,ctx))continue;
     prepareFoundation(s,p);
     if(npcStoreWatch(s,p,ctx))continue;
     if(npcInheritedPayout(s,p,ctx))continue;
