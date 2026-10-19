@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. H-02.6 выполнена этапом242: только реальная открытая загрязнённая рана на присутствующей части, свой infection ledger/мировая дата/тяжесть. Очищение расходует1настоящий материал и действие, снижает причину без мгновенного закрытия; тяжёлый вред входит с кровотечением в один HP packet. Код modules/wound-infection-state/schema, wound-world/care/state; test/wound-infection.test.js, CONTRACTS/wound-infection.v1. PARTIAL7/7 exit0,1148мс, artifacts/checks/195377d078827678.log; https://odyssey.kolpaque.dev revision18c2717f5b0cf9b7/HTTPS. Остальные MED/H-02 не закрыты. Следующий этап ещё не взят.
+Текущего этапа нет. H-02.7 выполнена этапом243: перелом от значимого actual impact существующей кости руки/ноги, без нового HP/утраты части. Свой bone union отделён от кожи; конечная грубая/подогнанная шина расходует1реальную деревянную заготовку+1medicine и3монеты, собственное действие/действие настоящего помощника. Код modules/fracture-state/care/schema, wound-world/state/care; test/fractures.test.js, CONTRACTS/fractures.v1. PARTIAL13/13 exit0,1185мс, artifacts/checks/d7af79a808f0cd2a.log; https://odyssey.kolpaque.dev revisiona7c5842c28d8b039/HTTPS. Остальные MED/H-02 не закрыты. Следующий этап ещё не взят.
 
 ## Следующие этапы
 
@@ -1528,3 +1528,10 @@ SK-01.9 выполнена этапом241: настоящий износ пре
 H-02.6 выполнена этапом242: только реальная открытая загрязнённая рана на присутствующей части, свой infection ledger/мировая дата/тяжесть. Очищение расходует1настоящий материал и действие, снижает причину без мгновенного закрытия; тяжёлый вред входит с кровотечением в один HP packet. Код modules/wound-infection-state/schema, wound-world/care/state; test/wound-infection.test.js, CONTRACTS/wound-infection.v1. PARTIAL7/7 exit0,1148мс, artifacts/checks/195377d078827678.log; https://odyssey.kolpaque.dev revision18c2717f5b0cf9b7/HTTPS. Остальные MED/H-02 не закрыты. Следующий этап ещё не взят.
 
 6малых групп≤12актов либо≤16world phases/группу: clean/dirty одной раны и near-worn граница,1actual own-care/9следующих коротких шагов, врач/stock0/ограниченный отказ/трава, тяжёлый общий debit/реальная смерть/мир после смерти, настоящее принятое срочное дело и иной риск, detailed/NPC одна фаза/observer/OFF/restore/отсутствующая ткань/закрытая чистая рана/неверный ledger. Подготовлены только явные границы старого ухода и недавнего ранения возле срока действительного договора; длинный префикс жизни не выполнялся. Native320 герой:0UI-тиков/точное сохранение. Pages241 Actions39246272970 success/HTMLe16e30d4eaf7a535. Full/SOAK/длинные жизни/комбинаторика не запускались.
+
+
+### H-02.7 · подтверждение реализации243
+
+H-02.7 выполнена этапом243: перелом от значимого actual impact существующей кости руки/ноги, без нового HP/утраты части. Свой bone union отделён от кожи; конечная грубая/подогнанная шина расходует1реальную деревянную заготовку+1medicine и3монеты, собственное действие/действие настоящего помощника. Код modules/fracture-state/care/schema, wound-world/state/care; test/fractures.test.js, CONTRACTS/fractures.v1. PARTIAL13/13 exit0,1185мс, artifacts/checks/d7af79a808f0cd2a.log; https://odyssey.kolpaque.dev revisiona7c5842c28d8b039/HTTPS. Остальные MED/H-02 не закрыты. Следующий этап ещё не взят.
+
+6малых групп≤12актов/≤16world ticks: настоящий native impact/дедупликация/нет несовместимой кости, рука/нога/skin100+HP100 не чинят bone,1обычный игровой шаг устанавливает rough splint с конечным расходом, actual helper/body claim/качество, stock0/binding0/короткое отклонение/union98 checkpoint+1реальная фаза, NPC/observer/OFF/точный restore144/смерть. Native320 hero:0UI-тиков/сохранение неизменно. Ограниченная интеграция infection6групп и smoke; без full/SOAK/жизней/комбинаторики. Pages242 Actions39250635181 success/HTML18c2717f5b0cf9b7.

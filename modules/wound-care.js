@@ -1,3 +1,5 @@
+import {fracturesOn,fracturePending} from './fracture-state.js';
+import {fractureCare} from './fracture-care.js';
 import {cleanInfection,infectionNeedsCare,infectionRiskAllowed,infectionSeverity} from './wound-infection-state.js';
 import {rememberCampDressing} from './camp-topic-memory.js';
 import {supportedPatient} from './patient-state.js';
@@ -39,7 +41,7 @@ function clinic(s,p,w,ctx,payer=null){
  const before=a.civic.medicine;a.civic.medicine--;h.gold-=2;provider.agenda.wealth+=2;if(w)return applyDressing(s,p,w,provider,'clinic','clinic',ctx,{holder:provider.id,area:a.id,before,after:a.civic.medicine});p.health=Math.min(p.maxHealth||100,p.health+25);provider.needs.energy=Math.max(0,provider.needs.energy-2);careState(provider).lastActionTick=s.tick;p.partyInjury.lastActionTick=s.tick;return true;
 }
 export function woundCareTurn(s,ctx){
- const h=s.hero,p=s.people[h.lineage],w=careIssue(s,p);if(!woundCareOn(s)||!h.alive||h.transit)return false;
+ const h=s.hero,p=s.people[h.lineage],w=careIssue(s,p);if(fractureCare(s,p,ctx))return true;if(w?.kind==='bruise'&&fracturesOn(s)&&fracturePending(w))return false;if(!woundCareOn(s)||!h.alive||h.transit)return false;
  if(!w){if(h.goal?.woundCare){h.goal=null;decision(s,p,'recovered','Рана закрылась, функция позволяет вернуться к обычным делам.',ctx);}return false;}
  if(p.woundCare?.lastActionTick===s.tick)return true;
  if(!safe(s,p,h))return false;
@@ -61,7 +63,7 @@ export function woundCareTurn(s,ctx){
  if(!h.goal?.woundCare){ctx.goal(s,'rest',h.area,h.x,'Дать ране восстановиться','Бережёт повреждённую часть; без перевязки сохраняется риск кровопотери.',{woundCare:true});decision(s,p,'rest','Рана мешает работе и походу. Он выбирает безопасный отдых, сохраняя прежние обязательства.',ctx);}return false;
 }
 export function woundNPCTurn(s,p,ctx){
- const w=careIssue(s,p);if(!w||woundActor(s,p)||!safe(s,p)||p.needs.hunger>85)return false;if(p.woundCare?.lastActionTick===s.tick)return true;
+ if(!woundActor(s,p)&&fractureCare(s,p,ctx))return true;const w=careIssue(s,p);if(!w||woundActor(s,p)||!safe(s,p)||p.needs.hunger>85)return false;if(p.woundCare?.lastActionTick===s.tick)return true;
  if((!goodDressing(w)||infectionNeedsCare(s,p,w))&&material(p,null)&&dressWound(s,p,w,p,'self','medicine',s.hero.area===p.area?ctx:null))return true;
  if(seriousWound(s,p)){woundActivity(s,p,'body',true);p.needs.energy=Math.min(100,p.needs.energy+6);careState(p).lastActionTick=s.tick;decision(s,p,'rest','Повреждение требует отдыха.',null);return true;}return false;
 }
