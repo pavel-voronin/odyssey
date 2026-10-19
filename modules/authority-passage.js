@@ -1,3 +1,4 @@
+import {commonEntry} from './diplomacy-state.js';
 import {authoritiesOn,authorityBody,borderAt,borderGuard,borderMemory,authorityKey} from './authority-state.js';
 import {fordBypass} from './fords.js';
 import {physicalDistance} from '../geometry.js';
@@ -10,6 +11,7 @@ function record(s,p,b,g){const m=borderMemory(p);let r=m.entries.find(r=>r.id===
 export function authorityPassage(s,id,to,target){
  if(!authoritiesOn(s))return {status:'clear'};const p=s.people[id],body=authorityBody(s,id),b=body&&borderAt(s,body.area,to);if(!p?.alive||!body||!b||body.transit||p.roadTransit||p.fordCrossing||p.liftTransit)return {status:'clear'};
  if(!body.lineage&&s.rules['npc-control']!==false&&(p.actionControl?.tick!==s.tick||p.actionControl.owner!==npcController(s,p)||!p.actionControl.phases.includes('act')))return {status:'unavailable',reason:'Путник не владеет действием своего тела.'};
+ if(commonEntry(s,b))return {status:'clear'};
  if(physicalDistance(s.areas[b.from],body.x,b.x)>1)return {status:'unavailable',reason:'До поста ещё нужно дойти.'};
  const m=borderMemory(p),old=m.entries.find(r=>r.id===m.pending);if(old?.edge===b.edge&&old.status==='admitted')return {status:'clear'};if(m.lastAt===s.tick)return {status:'held',reason:'Одна операция на посту за ход.'};
  const state=s.authorities.byId[b.receiver],law=state.law;let known=m.known.find(k=>k.edge===b.edge);if(!known){known={edge:b.edge,from:b.from,to:b.to,state:state.id,law:law.id,fee:law.fee,workAllowed:law.workAllowed,workRequired:law.workRequired,seen:s.tick};m.known.push(known);}else known.seen=s.tick;

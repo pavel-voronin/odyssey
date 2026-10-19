@@ -1,0 +1,6 @@
+import {dateLabel} from './calendar.js';
+export function diplomacyHTML(s,escape){
+ const p=s.people[s.hero.lineage],known=Object.values(p.news?.known||{}).filter(r=>r.source?.kind==='diplomacy-action').sort((a,b)=>b.heardAt-a.heardAt||b.occurred-a.occurred),latest=new Map();for(const r of known)if(!latest.has(r.diplomacy.proposal))latest.set(r.diplomacy.proposal,r);if(!latest.size)return '';
+ const label={proposed:'Сообщено о личных пограничных расходах',accepted:'Получено согласие; исполнение требует доставки на пост',vetoed:'Получен отказ',implemented:'Подтверждён действительный общий въезд',supported:'Передан настоящий провиант для переговоров'};
+ return '<p class="detail-label">ПЕРЕГОВОРЫ ОБ ОБЩЕМ ПУТИ</p>'+[...latest.values()].map(r=>'<div class="habit"><b>'+escape(r.diplomacy.fromName)+' · '+escape(r.diplomacy.toName)+'</b><p>'+escape(label[r.status])+'.</p><p>'+escape(r.mode==='witness'?'Личное присутствие.':'Известие доставлено человеком.')+' Узнал: '+escape(dateLabel(s,r.heardAt))+'. Подписи, поездка и служба требуют отдельных действительных действий.</p></div>').join('')+(s.rules['authority-diplomacy']===false?'<p class="empty">Новые переговоры приостановлены; известные факты сохранены.</p>':'');
+}
