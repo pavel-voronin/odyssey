@@ -3,7 +3,7 @@ export function validateWoundCare(s,fail){
  for(const p of Object.values(s.people)){
   const t=p.woundCare;if(t!==undefined){
    if(t?.version!==1||!int(t.lastActionTick,-1,s.tick)||!int(t.treatments,0,Number.MAX_SAFE_INTEGER)||!Object.hasOwn(t,'decision')||!Object.hasOwn(t,'failedClinic'))fail(p.id+'.woundCare');
-   if(t.decision!==null){const d=t.decision;if(!tick(d?.tick)||!['rest','clinic','recovered'].includes(d.method)||typeof d.reason!=='string'||d.wound!==null&&!int(d.wound,1,p.localWounds?.serial||0))fail(p.id+'.woundDecision');}
+   if(t.decision!==null){const d=t.decision;if(!tick(d?.tick)||!['rest','clinic','recovered','risk'].includes(d.method)||typeof d.reason!=='string'||d.wound!==null&&!int(d.wound,1,p.localWounds?.serial||0))fail(p.id+'.woundDecision');}
    if(t.failedClinic!==null&&(!s.areas[t.failedClinic?.area]||!int(t.failedClinic.until,0,s.tick+80)))fail(p.id+'.woundClinic');
   }
   for(const w of p.localWounds?.active||[]){

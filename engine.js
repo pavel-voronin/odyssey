@@ -729,11 +729,12 @@ function npcVictory(s,a,enemy,p){
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
-  woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p);if(h)log(actorView(s,h),kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount){
-   if(h){const view=actorView(s,h);h.hp=Math.max(0,h.hp-amount);if(h.hp===0)die(view,{kind:'condition',name:'Кровопотеря из незакрывшейся раны'});syncActiveActor(view);return;}
+  woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p),view=h?actorView(s,h):s.hero.lineage===p.id?s:null;if(view)log(view,kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:kind==='infected'?`${w.label}: загрязнённая рана нагноилась.`:kind==='infection-changed'?`${w.label}: состояние инфекции изменилось, тяжесть ${w.infection.severity}.`:kind==='infection-resolved'?`${w.label}: местное нагноение прошло; восстановление самой раны продолжается.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount,damage){
+   const infection=damage?.sources.some(r=>r.kind==='infection'),mixed=infection&&damage.sources.some(r=>r.kind==='bleeding'),cause=infection?(mixed?'Осложнения загрязнённой кровоточащей раны':'Тяжёлое нагноение раны'):'Кровопотеря из незакрывшейся раны';
+   if(h){const view=actorView(s,h);h.hp=Math.max(0,h.hp-amount);if(h.hp===0)die(view,{kind:'condition',name:cause});syncActiveActor(view);return;}
    const leader=detailedActors(s).find(h=>h.alive&&h.companions.some(c=>c.person===p.id)),c=leader?.companions.find(c=>c.person===p.id);
    p.health=Math.max(0,p.health-amount);
-   if(p.health===0){const passage=patientJourney(s,p);if(passage){p.deathJourney=passage;p.area=null;p.x=null;}p.deathCause='Кровопотеря из незакрывшейся раны';if(c){const view=actorView(s,leader);hurtCompanion(view,c,c.hp,context(view,'local-wounds'),'bleeding');}else{p.alive=false;p.status='dead';p.died=s.tick;recordPersonRemains(s,p);}}
+   if(p.health===0){const passage=patientJourney(s,p);if(passage){p.deathJourney=passage;p.area=null;p.x=null;}p.deathCause=cause;if(c){const view=actorView(s,leader);hurtCompanion(view,c,c.hp,context(view,'local-wounds'),infection?'wound-infection':'bleeding');}else{p.alive=false;p.status='dead';p.died=s.tick;recordPersonRemains(s,p);}}
    else if(c)c.hp=Math.max(1,Math.ceil(c.maxHp*p.health/(p.maxHealth||100)));
   }});
   patientsTick(s,context(s,'injured-party'));
