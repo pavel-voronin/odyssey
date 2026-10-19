@@ -15,8 +15,10 @@ import {biomaterialOn,isFang} from './biomaterial-state.js';
 import {collectionItems} from './collection-state.js';
 import {initializeItemMemory,itemBearer} from './enchantments.js';
 import {initializeNewItemCondition,itemWorking} from './item-condition.js';
+import {knownMelody,musicInstrument,musicOn} from './camp-music-state.js';
 
 export const KNIFE_RECIPE=Object.freeze({id:'working-knife',name:'Рабочий нож',materials:['blade-blank','handle'],price:6,work:6});
+export const WHISTLE_RECIPE=Object.freeze({id:'camp-whistle',name:'Дорожная свистулька',materials:['whistle-body','mouthpiece'],price:6,work:3});
 export const forgingEnabled=s=>enabled(s,'forging')&&enabled(s,'equipment')&&enabled(s,'property')&&goodsEnabled(s);
 const body=(s,p)=>s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];
 const activeBody=(s,p)=>{const h=body(s,p);return h?.actorMode!=='npc'?h:null;};
@@ -53,6 +55,15 @@ export function startKnife(s,p,site,ctx){
  q.orders[id]=order;q.active=id;
  announce(s,p,ctx,original?`${p.name} вкладывает ${fang?'свой волчий клык':'деталь разобранного подъёмника'} в заказ и покупает рукоять за ◈3. Тот же материал ждёт работы у верстака.`:`${p.name} покупает заготовку и рукоять за ◈6. Рабочий нож ещё предстоит изготовить.`);return order;
 }
+export function startWhistle(s,p,site,ctx){
+ if(!musicOn(s)||!forgingEnabled(s)||!healthy(s,p)||!canAct(s,p)||current(p)||!site||!near(s,p,site.area.id,42)||readySite(s,p,site.object.id,site.area.id)?.object!==site.object||!prepared(s,p)&&!knowsPracticalMethod(s,p.id,'craft'))return null;
+ const raw=productionSources(s,site.area)?.materials;if(!raw||raw.stock<2||purse(s,p)<WHISTLE_RECIPE.price)return null;
+ const q=ensure(p),id=p.id+'/forge/'+(++q.serial);q.recipes[WHISTLE_RECIPE.id] ||= {learnedAt:s.tick,origin:prepared(s,p)?'current-role':'practice',teacher:null};
+ raw.stock-=2;raw.used+=2;setActorMoney(s,p,purse(s,p)-6);site.area.civic.treasury+=6;
+ const o={id,recipe:WHISTLE_RECIPE.id,owner:p.id,master:p.id,area:site.area.id,workshop:site.object.id,started:s.tick,progress:0,required:3,lastWorkTick:-1,status:'working',materials:WHISTLE_RECIPE.materials.map((kind,i)=>({id:id+'/material/'+i,kind,owner:p.id,source:raw.id,sourceOwner:'civic/'+raw.place,acquiredAt:s.tick,price:3,state:'reserved'}))};for(const old of Object.values(q.orders).filter(o=>o.status==='completed').slice(0,-7))delete q.orders[old.id];q.orders[id]=o;q.active=id;
+ announce(s,p,ctx,p.name+' приобретает две заготовки за ◈6. До музыкального инструмента остаются три рабочих действия.');return o;
+}
+function makeWhistle(s,p,o){const item={id:o.id+'/whistle',base:'whistle',name:WHISTLE_RECIPE.name,slot:'charm',stat:'spirit',power:0,rarity:1,modifier:'plain',value:9,creator:p.id,createdAt:s.tick,found:s.tick,foundArea:o.area,physical:{version:1,holder:{kind:'person',id:p.id},movedAt:s.tick},instrument:{version:1,kind:'whistle',order:o.id,maker:p.id},manufacture:{version:1,order:o.id,recipe:o.recipe,master:p.id,workshop:o.workshop,started:o.started,finished:s.tick,actions:o.progress,materials:o.materials.map(m=>({...m}))},history:[{tick:s.tick,text:'Изготовлено: '+p.name+'. Две оплаченные заготовки и три рабочих действия у верстака.'}]};initializeItemMemory(item);itemBearer(s,item,p.id);return item;}
 function makeKnife(s,p,o){
  const item={id:o.id+'/knife',base:'blade',name:'Рабочий нож',slot:'weapon',stat:'attack',power:1,rarity:1,modifier:'plain',value:10,toolKind:'knife',found:s.tick,foundArea:position(s,p).area,creator:p.id,createdAt:s.tick,physical:{version:1,holder:{kind:'person',id:p.id},movedAt:s.tick},manufacture:{version:1,order:o.id,recipe:o.recipe,master:p.id,workshop:o.workshop,started:o.started,finished:s.tick,actions:o.progress,materials:o.materials.map(m=>({...m}))},history:[{tick:s.tick,text:`Изготовлено: ${p.name}. Заготовка и рукоять со склада «${s.areas[o.area].name}»; ${o.progress} рабочих действий.`}]};
  const biological=o.materials.find(m=>m.kind==='wolf-fang');if(biological){item.name='Рабочий нож · волчий клык';item.history[0].text=`Изготовлено: ${p.name}. Клык «${biological.provenance.animalName}», извлечённый ${biological.provenance.extractorName}; рукоять со склада «${s.areas[o.area].name}», ${o.progress} рабочих действий.`;}
@@ -63,16 +74,16 @@ export function workKnife(s,p,ctx){
  const o=current(p);if(!forgingEnabled(s)||!o||o.status!=='working'||!healthy(s,p)||!canAct(s,p)||o.lastWorkTick>=s.tick)return false;
  const site=readySite(s,p,o.workshop,o.area);if(!site||!accessible(s,p,site))return false;
  const pos=workshopPosition(s,site.area,site.object);if(!near(s,p,pos.area,pos.x))return false;
- o.lastWorkTick=s.tick;o.progress++;const h=activeBody(s,p);if(h){h.energy=Math.max(0,h.energy-2);h.lastAction='work';h.speech=`Рабочий нож: ${o.progress}/${o.required}`;}else p.needs.energy=Math.max(0,p.needs.energy-2);
+ o.lastWorkTick=s.tick;o.progress++;const h=activeBody(s,p);if(h){h.energy=Math.max(0,h.energy-2);h.lastAction='work';h.speech=`${o.recipe===WHISTLE_RECIPE.id?WHISTLE_RECIPE.name:KNIFE_RECIPE.name}: ${o.progress}/${o.required}`;}else p.needs.energy=Math.max(0,p.needs.energy-2);
  if(o.progress<o.required)return true;
  // Commit before delivery: a repeated action or restored completed order cannot
  // produce another original. The receipt keeps the actual creation date.
- o.status='completed';o.finished=s.tick;o.item=o.id+'/knife';for(const m of o.materials){m.state='consumed';if(m.original){const original=m.original;consumeOriginal(s,original,{area:o.area,object:o.id,reason:'working-knife-material'});s.itemArchive ||= {};s.itemArchive[original.id]=JSON.parse(JSON.stringify(original));delete m.original;}}
- const item=makeKnife(s,p,o);const q=state(p);q.active=null;q.after=s.tick+960;
+ o.status='completed';o.finished=s.tick;o.item=o.id+(o.recipe===WHISTLE_RECIPE.id?'/whistle':'/knife');for(const m of o.materials){m.state='consumed';if(m.original){const original=m.original;consumeOriginal(s,original,{area:o.area,object:o.id,reason:'working-knife-material'});s.itemArchive ||= {};s.itemArchive[original.id]=JSON.parse(JSON.stringify(original));delete m.original;}}
+ const item=o.recipe===WHISTLE_RECIPE.id?makeWhistle(s,p,o):makeKnife(s,p,o);const q=state(p);q.active=null;q.after=s.tick+960;
  if(h)ctx.receiveItem(s,ctx,null,item,{crafted:true});
  else {const bag=npcLooseItems(s,p);if(fitsPack(s,p.id,{items:[...bag,item]})&&bag.length<ITEM_CAPACITY){bag.push(item);actorItemLocation(s,item,p.id);}else cacheItems(s,[item],{area:p.area,x:p.x,leftBy:p.id,name:'Изделие у верстака'});}
  recordToolUse(s,site.area,site.object,p.id,ctx);
- announce(s,p,ctx,`${p.name} заканчивает рабочий нож. Это его собственное изделие, а не случайная находка.`);
+ announce(s,p,ctx,`${p.name} заканчивает изделие «${item.name}». Это его собственная работа, а не случайная находка.`);
  if(!h)q.offer={item:item.id,price:item.value,area:p.area,at:s.tick};
  if(h)h.goal=null;else{p.agenda.task=null;p.agenda.due=s.tick+48;}return true;
 }
@@ -98,14 +109,16 @@ export function buyKnife(s,p,seller,ctx){
 }
 export function forgePlan(s,ctx){
  const h=s.hero,p=s.people[h.lineage];if(!forgingEnabled(s)||h.goal||h.combat||h.transit||!healthy(s,p)||state(p)?.after>s.tick)return false;
- const q=state(p),o=current(p);if(o){const site=readySite(s,p,o.workshop,o.area),route=site&&(ctx.knownRoute||ctx.route)(s,h.area,site.area.id);if(!site||!route?.length){rest(s,p);return false;}const pos=workshopPosition(s,site.area,site.object);ctx.goal(s,'forgeWork',pos.area,pos.x,'Изготовить рабочий нож','Материалы уже принадлежат этому заказу. Осталось поработать у верстака.',{property:o.workshop});return true;}
- if(knife(s,p))return false;
+ const q=state(p),o=current(p);if(o){const site=readySite(s,p,o.workshop,o.area),route=site&&(ctx.knownRoute||ctx.route)(s,h.area,site.area.id);if(!site||!route?.length){rest(s,p);return false;}const pos=workshopPosition(s,site.area,site.object);ctx.goal(s,'forgeWork',pos.area,pos.x,o.recipe===WHISTLE_RECIPE.id?'Изготовить дорожную свистульку':'Изготовить рабочий нож','Материалы уже принадлежат этому заказу. Осталось поработать у верстака.',{property:o.workshop});return true;}
+ const musical=musicOn(s)&&knownMelody(p)&&!musicInstrument(s,p);
+ if(musical&&(prepared(s,p)||knowsPracticalMethod(s,p.id,'craft'))){const site=ownedWorkshopSite(s,h.area,p.id);if(site&&readySite(s,p,site.object.id,site.area.id)&&h.gold>=6){ctx.goal(s,'forgeSupply',site.area.id,42,'Подготовить дорожную свистульку','Нужны две оплаченные заготовки и три рабочих действия.',{property:site.object.id,recipe:WHISTLE_RECIPE.id});return true;}}
+ if(knife(s,p)&&!musical)return false;
  const a=s.areas[h.area];
  const home=Object.values(s.areas).map(r=>homeWorkbenchSite(s,r)).find(site=>site&&homeAdmission(s,site.room,p.id)&&[site.area.id,site.room.id,site.room.interior.parent].includes(h.area));
  if(home&&(q?.recipes[KNIFE_RECIPE.id]||prepared(s,p))&&h.gold>=KNIFE_RECIPE.price&&!h.quests.some(q=>q.status==='active')){ctx.goal(s,'forgeSupply',home.area.id,42,'Приобрести материалы для домашнего ножа','Стол поставлен с согласия хозяина, но заготовку и рукоять нужно действительно приобрести на местном складе.',{property:home.object.id});return true;}
  if(!a.civic||a.interior||h.quests?.some(x=>x.status==='active')||h.career?.path!=='peaceful'&&h.personality.curiosity<.7)return false;
- const seller=Object.values(s.people).find(t=>t.alive&&t.area===h.area&&state(t)?.offer&&purse(s,p)>=state(t).offer.price);
- if(seller){ctx.goal(s,'forgeBuy',h.area,seller.x,'Купить рабочий нож','Местный мастер предлагает уже изготовленную вещь.',{person:seller.id});return true;}
+ const seller=Object.values(s.people).find(t=>t.alive&&t.area===h.area&&state(t)?.offer&&purse(s,p)>=state(t).offer.price&&collectionItems(s,t.id).some(i=>i.id===state(t).offer.item&&(i.toolKind==='knife'&&!knife(s,p)||musical&&i.instrument?.kind==='whistle')));
+ if(seller){ctx.goal(s,'forgeBuy',h.area,seller.x,'Купить собственное изделие мастера','Местный мастер предлагает уже изготовленный нож либо нужный музыкальный инструмент.',{person:seller.id});return true;}
  if(!q?.recipes[KNIFE_RECIPE.id]&&!prepared(s,p)){const t=teacher(s,p);if(!t||q?.study&&q.study.teacher!==t.id||!q?.study&&h.gold<2)return false;ctx.goal(s,'forgeLearn',h.area,t.x,'Узнать рецепт ножа','Любопытство и свободный мастер: можно освоить способ за три занятия.',{person:t.id});return true;}
  const price=biomaterialOn(s)&&h.bag.some(isFang)?3:KNIFE_RECIPE.price,site=workshopSite(s,a);if(!site||!readySite(s,p,site.object.id,a.id)||h.gold<price+(site.object.owner===p.id?0:site.object.rent))return false;
  ctx.goal(s,'forgeSupply',a.id,42,'Подготовить рабочий нож','Сначала приобрести настоящую заготовку и рукоять. Без них изготовление невозможно.',{property:site.object.id});return true;
@@ -113,19 +126,19 @@ export function forgePlan(s,ctx){
 export function forgeAction(s,ctx){
  const p=s.people[s.hero.lineage],g=s.hero.goal;if(!g)return false;
  if(!forgingEnabled(s)){s.hero.goal=null;return false;}
- if(g.kind==='forgeSupply'){const site=workshopSite(s,g.area,g.property);const o=startKnife(s,p,site,ctx);if(o){const pos=workshopPosition(s,site.area,site.object);Object.assign(g,{kind:'forgeWork',area:pos.area,x:pos.x});}else rest(s,p);return Boolean(o);}
+ if(g.kind==='forgeSupply'){const site=workshopSite(s,g.area,g.property);const o=g.recipe===WHISTLE_RECIPE.id?startWhistle(s,p,site,ctx):startKnife(s,p,site,ctx);if(o){const pos=workshopPosition(s,site.area,site.object);Object.assign(g,{kind:'forgeWork',area:pos.area,x:pos.x});}else rest(s,p);return Boolean(o);}
  if(g.kind==='forgeWork'){const access=ctx.workspaceAccess(s);if(access!=='ready')return false;const done=workKnife(s,p,ctx);if(!done)rest(s,p);return done;}
  if(g.kind==='forgeLearn'){const t=s.people[g.person];if(t?.area===s.hero.area)g.x=t.x;if(learnKnife(s,p,t,ctx))return true;rest(s,p);return false;}
  if(g.kind==='forgeBuy'){if(buyKnife(s,p,s.people[g.person],ctx))return true;rest(s,p);return false;}
  return false;
 }
 export function npcForgePlan(s,p){
- if(!forgingEnabled(s)||!current(p)&&p.agenda.job!=='artisan'||!healthy(s,p)||state(p)?.after>s.tick||!current(p)&&knife(s,p))return null;
+ if(!forgingEnabled(s)||!current(p)&&p.agenda.job!=='artisan'||!healthy(s,p)||state(p)?.after>s.tick||!current(p)&&knife(s,p)&&!(musicOn(s)&&knownMelody(p)&&!musicInstrument(s,p)))return null;
  const o=current(p),site=o?readySite(s,p,o.workshop,o.area):ownedWorkshopSite(s,p.area,p.id),price=biomaterialOn(s)&&collectionItems(s,p.id).some(isFang)?3:6;if(!site||site.object.owner!==p.id||!readySite(s,p,site.object.id,site.area.id)||!o&&purse(s,p)<price)return null;
- return {kind:o?'forgeWork':'forgeSupply',target:site.area.id,x:o?site.object.x:42,remaining:1,property:site.object.id};
+ return {kind:o?'forgeWork':'forgeSupply',target:site.area.id,x:o?site.object.x:42,remaining:1,property:site.object.id,...(!o&&musicOn(s)&&knownMelody(p)&&!musicInstrument(s,p)?{recipe:WHISTLE_RECIPE.id}:{})};
 }
 export function npcForgeAction(s,p,t,ctx){
  if(!forgingEnabled(s)){p.agenda.task=null;p.agenda.due=s.tick+48;return false;}
- if(t.kind==='forgeSupply'){const site=workshopSite(s,t.target,t.property);if(startKnife(s,p,site,ctx)){t.kind='forgeWork';t.x=site.object.x;return true;}rest(s,p);return false;}
+ if(t.kind==='forgeSupply'){const site=workshopSite(s,t.target,t.property);if(t.recipe===WHISTLE_RECIPE.id?startWhistle(s,p,site,ctx):startKnife(s,p,site,ctx)){t.kind='forgeWork';t.x=site.object.x;return true;}rest(s,p);return false;}
  if(workKnife(s,p,ctx))return true;rest(s,p);return false;
 }

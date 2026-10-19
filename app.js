@@ -1,3 +1,4 @@
+import {CAMP_MELODY,musicInstrument} from './modules/camp-music-state.js';
 import {campTalkSummary} from './camp-topic-view.js';
 import {remainsObservationView,focusOwnRemains} from './remains-observation.js';import {bodyRemains} from './modules/remains.js';
 import {geographyHTML} from './geography-sheet.js';
@@ -259,6 +260,10 @@ function enrichSheet(){
       const toolBroken=enabled(state,'workshop-tools')&&state.hero.workToolMemory?.known[id]?.state==='broken';
       return `<div class="habit"><b>${escape(k.name)} · ${escape(state.areas[k.area]?.name||'Прежний адрес')}</b><p>${k.control?.blocked?`При последнем осмотре мастерскую занимает ${escape(k.control.name||'вооружённая угроза')}. Работать, арендовать и передавать помещение сейчас нельзя. Известное право ${own?'героя':escape(state.people[k.owner]?.name||'прежнего владельца')} сохраняется.`:own?(k.state==='burned'?'Собственность героя. При последнем осмотре непригодна для работы; право сохраняется.':toolBroken?'Собственность героя. Помещение цело, но рабочий зажим сломан; работа на нём остановлена.':'Собственность героя. При последнем осмотре мастерская исправна; аренда своего места не нужна.'):`Известный владелец: ${escape(state.people[k.owner]?.name||'Неизвестен')}.${k.price===null?' Продажа не предлагалась.':` Предложенная цена: ◈${k.price}.`}${toolBroken?' При последнем осмотре зажим был сломан.':''}`}</p></div>`;
     }).join('')}${Object.values(state.hero.property.lost||{}).map(k=>`<div class="habit"><b>${escape(k.name)}</b><p>Адрес потерян. Право сохраняется.</p></div>`).join('')}`);
+  }
+  if((tab==='hero'||tab==='bag')&&state.people[state.hero.lineage]?.music){
+    const person=state.people[state.hero.lineage],m=person.music,k=m.melodies[CAMP_MELODY.id],instrument=musicInstrument(state,person);
+    if(k)$('detail-panel').insertAdjacentHTML('afterbegin',`<p class="detail-label">МУЗЫКА НА ПРИВАЛЕ</p><div class="habit"><b>${escape(CAMP_MELODY.name)}</b><p>${k.source.kind==='initial-profile'?'Знакома с начала бардовского пути.':'Услышана от '+escape(state.people[k.source.person]?.name||'спутника')+' на привале.'} ${instrument?'Свой инструмент: '+escape(instrument.name)+'.':'Можно петь без инструмента.'}${m.calming?' Умеет петь мягче для напряжённого согласного слушателя.':''}</p></div>`);
   }
   if((tab==='hero'||tab==='bag')&&state.hero.sketchbook?.interest){
     const b=state.hero.sketchbook;

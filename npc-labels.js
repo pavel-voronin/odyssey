@@ -17,7 +17,7 @@ export const NPC_TASKS={
  bodyMaterial:'Извлекает пригодный клык',
  itemRepairBench:'Готовит верстак для ремонта вещи',
  refitBench:'Ждёт заказчика у верстака',
- forgeSupply:'Покупает заготовку и рукоять',forgeWork:'Изготавливает рабочий нож',forgeLearn:'Изучает рецепт ножа',forgeBuy:'Покупает рабочий нож',
+ forgeSupply:'Покупает заготовку и рукоять',forgeWork:'Изготавливает собственное изделие',forgeLearn:'Изучает рецепт ножа',forgeBuy:'Покупает рабочий нож',
  workshopTalk:'Обсуждает очередь ремонта',workshopWait:'Ждёт материал по своей договорённости',
  rescueEscape:'Сам идёт к выходу из подземелья',
  caseReviewRead:'Проверяет подлинник для пересмотра',caseReviewReturn:'Возвращается к слушанию',caseReviewWait:'Ждёт личного слушания',

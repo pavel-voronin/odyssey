@@ -1,3 +1,5 @@
+import {musicCamp,musicTick} from './modules/camp-music.js';
+import {birthMusic} from './modules/camp-music-state.js';
 import {PLANNER_ORDER} from './modules/goal-handlers.js';
 import {chooseQuest,questChoiceAvailable,CHOICE_POLICY} from './modules/intention-choice.js';
 import {actionKey,deferredMethod,deferMethod,executionResult,reconsiderMethods,parkMethod} from './modules/action-selection.js';
@@ -283,7 +285,7 @@ function createHero(s) {
   };
   initializeHero(s, h, () => moduleRandom(s, 'identity'));
   h.ruleFlags = s.rules;
-  initializeLineage(s,h);initializeMind(s,h);initializeMagic(s,h);initialWaterPreference(s,h);
+  initializeLineage(s,h);birthMusic(s,s.people[h.lineage],h);initializeMind(s,h);initializeMagic(s,h);initialWaterPreference(s,h);
   initializeWeather(s,h);initializePreparation(h);initializeCommitments(h);initializeInnerLife(s,h);initializeFinances(h);initializeMigrations(s);
   initializeWork(s,h);
   initializeWorkMaterials(h);
@@ -588,7 +590,7 @@ function die(s, enemy,details={}) {
   finishDelve(s,'death');
   cancelWeapon(s,'Смерть прекращает подготовку.');
   const mount=groupHorse(s,s.hero);if(mount)detachHorse(s,mount,'keeper-died');
-  const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';syncCoverPosition(s);
+  const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';musicTick(s,context(s,'camp-music'));syncCoverPosition(s);
   h.intent = 'Жизнь закончилась. Мир продолжается'; h.reason = 'Можно наблюдать, что станет с этим местом, или отдельно начать другую историю.'; h.action = 'НАСЛЕДИЕ';
   for (const q of h.quests) if (q.status === 'active') q.status = 'failed';
   const grave = { name: h.name, family: h.family, lineage: h.lineage, race: h.race, area: h.area, x: h.x, tick: s.tick, born: h.born, level: h.level, kills: h.kills, cause: enemy.name };
@@ -822,6 +824,7 @@ export function observeExistingPerson(s,person){
 }
 function actObserved(s) {
  const h=s.hero;
+  musicTick(s,context(s,'camp-music'));
   petTrainingTick(s);
   if(h.petPassage?.lastActionTick===s.tick){h.lastAction='companion';return s;}
   weaponTick(s);
@@ -966,7 +969,7 @@ function actObserved(s) {
   if (g.kind === 'rest') {
     restoreCampRestView(s);
     if(lodgingRest(s,context(s,'lodging'),holdPoisonRest(s)||holdWoundRest(s)))return s;
-    if(!holdPoisonRest(s)&&!holdWoundRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
+    if(!holdPoisonRest(s)&&!holdWoundRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||musicCamp(s,context(s,'camp-music'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
     const amount = restAmount(s,a);
     h.hp = Math.min(h.maxHp, h.hp + amount); h.energy = Math.min(100, h.energy + smokeRestEnergy(s,12)); h.lastAction = 'rest';
     traitsRest(s, context(s, 'body'));

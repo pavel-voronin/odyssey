@@ -80,6 +80,7 @@ export const ENEMY_POWERS = [
   { id: 'spore', name: 'болотные споры', text: 'Может оставить после боя лихорадку.' }
 ];
 export const ITEM_BASES = [
+  { id: 'whistle', name: 'дорожная свистулька', slot: 'charm', stat: 'spirit', craftOnly:true },
   { id: 'blade', name: 'клинок', slot: 'weapon', stat: 'attack' },
   { id: 'axe', name: 'топор', slot: 'weapon', stat: 'attack' },
   { id: 'staff', name: 'посох', slot: 'weapon', stat: 'magic' },

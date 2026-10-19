@@ -21,7 +21,7 @@ export function itemBonus(h, stat) {
 }
 
 export function makeItem(s, ctx, rarity = null) {
-  const h = s.hero, base = choose(s, ctx.random, ITEM_BASES), epithet = choose(s, ctx.random, ITEM_EPITHETS);
+  const h = s.hero, base = choose(s, ctx.random, ITEM_BASES.filter(b=>!b.craftOnly)), epithet = choose(s, ctx.random, ITEM_EPITHETS);
   const origin = choose(s, ctx.random, ITEM_ORIGINS);
   const tier = rarity ?? (ctx.random(s) < .06 ? 4 : ctx.random(s) < .25 ? 2 : 1);
   const power = tier + Math.floor(Math.min(8, s.areas[h.area].depth) / 3);
