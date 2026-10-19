@@ -37,6 +37,7 @@ import {calendar} from './calendar.js';
 import {appearance,heroAppearance,personAppearance} from './appearance.js';
 import {drawGarment} from './outfit.js';
 import {scenery,houseProfile} from './scenery.js';
+import {terrainProfile,terrainRidge,paintTerrainBackdrop,facadeSmoke} from './terrain-profile.js';
 import {boundaryMotifs,transitLandscape,blendColor,blendScenery,paintBoundaryMotifs,paintTransitLandmarks} from './scene-boundary.js';
 import {walkPose,heroStance,quadrupedPose,creatureActionPose,DeathMotion} from './motion.js';
 import {ActorTracks,companionKey,companionShape,visibleRemains,remainsView,MOTION_SHAPES} from './actor-facts.js';
@@ -127,7 +128,10 @@ export class Scene {
     this.remainsPainted=new Set();this.canvas.dataset.remainsBodies='';
     const canvas = this.canvas, s = this.state, h = s.hero;let c=this.output;
     const travel=transitLandscape(s),a=travel?.area||s.areas[h.area];
-    const terrain=areaEnvironment(s,a);
+    const terrain=areaEnvironment(s,a),terrainView=terrainProfile(s,a);
+    canvas.dataset.terrainFamily=terrainView.family;
+    const terrainFrom=travel?.mix?terrainProfile(s,travel.mix.from):terrainView,terrainTo=travel?.mix?terrainProfile(s,travel.mix.to):terrainView,terrainMix=travel?.mix?.progress||0;
+    const treeCount=Math.round(terrainFrom.trees*(1-terrainMix)+terrainTo.trees*terrainMix);
     const viewportWidth=canvas.clientWidth,ht=canvas.clientHeight,dpr=Math.min(devicePixelRatio||1,2),frame=sceneFrame(a,viewportWidth),w=frame.worldWidth;
     if(viewportWidth<=0||ht<=0)return;
     this.pixelRatio=dpr;
@@ -164,31 +168,26 @@ export class Scene {
       c.fillStyle = [night ? '#384b47' : '#6a8065', p[2], p[3]][layer]; c.globalAlpha = layer === 0 ? .45 : .62;
       c.beginPath(); c.moveTo(0, ground);
       for (let x = 0; x <= w + 15; x += 15) {
-        const y = ground - (55 - layer * 18) - Math.sin(x / (100 + layer * 30) + layer * 2 + view.offset) * (view.relief - layer * 4) - Math.sin(x / 49 + view.offset) * 9;
+        const y = backGround - (terrainRidge(terrainFrom,x,layer,view)*(1-terrainMix)+terrainRidge(terrainTo,x,layer,view)*terrainMix);
         c.lineTo(x, y);
       }
       c.lineTo(w, ground + 5); c.closePath(); c.fill(); c.globalAlpha = 1;restoreLayer();
     }
     if(this.composition)this.paintDistantComposition(w,ht,p,view);
-    const treeTypes=['road','village','forest','camp','ruins','island','dream'],treePresence=travel?.mix?Number(treeTypes.includes(travel.mix.from.type))*(1-travel.mix.progress)+Number(treeTypes.includes(travel.mix.to.type))*travel.mix.progress:1;
-    for (let i = 0; i < (treeTypes.includes(terrain.type)&&treePresence>0?21:0); i++) {
-      const x = view.values[i%48] * (w + 60) - 30;
-      const size = 35 + view.values[(i+15)%48]*53;
-      this.tree(x, ground - 11 - i % 3 * 5, size, i % 2 ? '#2e4938' : '#3b5740', .45*treePresence);
+    for(let i=0;i<treeCount;i++){
+      const x=w*(.06+i*.88/Math.max(1,treeCount-1));
+      this.tree(x,backGround-8,terrainView.family==='forest'?65+view.values[15+i]*24:32+view.values[15+i]*15,'#2e4938',.65);
     }
-    if(this.composition)this.paintSurface(w,ht,p,view,weather,water);
+    paintTerrainBackdrop(c,terrainView,w,backGround,p);
+    if(this.composition)this.paintSurface(w,ht,p,view,weather,water,terrainView);
     const house=index=>!h.transit&&s.rules?.scenery!==false&&s.rules?.facades!==false&&terrain.facades?.profiles[index]||houseProfile(s.rules?.scenery===false?0:s.seed,s.rules?.scenery===false?{id:terrain.type,type:terrain.type}:terrain,index,view);
     if(travel?.mix)paintTransitLandmarks(c,s,travel.mix,w,backGround);
     else if(view.district)this.district(w,backGround,view,terrain.type,s.tick,house,s.rules.property!==false&&a.objects.some(o=>o.kind==='workshop'&&o.state==='burned'&&(s.rules.facades===false||!a.facades?.profiles.find(p=>p.id===o.building)?.structure)));
     else if (terrain.type === 'village') { for(let i=0;i<3;i++)this.house(w*(.15+i*.3+view.values[10+i]*.1),backGround,.8+view.values[20+i]*.5,undefined,undefined,house(i)); }
+    else if(terrain.type==='citadel'&&terrain.facades?.profiles?.length){for(let i=0;i<terrain.facades.profiles.length;i++)this.house(w*(i+1)/(terrain.facades.profiles.length+1),backGround,.85,undefined,undefined,house(i));}
     else if(['port','undercity'].includes(terrain.type)){this.house(w*.22,backGround,.9,undefined,undefined,house(0));this.house(w*.75,backGround,1.1,undefined,undefined,house(1));}
-    if (terrain.type === 'forest') for (let i = 0; i < 8; i++) this.tree(w * i / 7, ground, 80 + i % 3 * 24, '#243f2c', .9);
     canvas.dataset.landmarkIds=paintDistantTowers(c,s,a,w,backGround,{camera:this.camera,dpr}).map(t=>t.id).join(',');
     if (terrain.type === 'ruins') { this.ruin(w * .33, backGround); if(h.transit||!paintLocalTower(c,s,a,w,backGround,{camera:this.camera,dpr}))this.ruin(w * .72, backGround); }
-    if(underground){c.fillStyle=p[3];c.beginPath();c.moveTo(0,0);c.lineTo(w,0);for(let x=w;x>=0;x-=35)c.lineTo(x,15+(x*17%45));c.closePath();c.fill();for(let i=0;i<9;i++){const x=i*w/8;c.beginPath();c.moveTo(x-10,0);c.lineTo(x+7,0);c.lineTo(x-3,32+i%3*14);c.fill();}if(terrain.type==='dungeon'){this.ruin(w*.3,backGround);this.ruin(w*.7,backGround);}else for(let i=0;i<5;i++){c.fillStyle=i%2?'#729b98':'#a29c75';c.fillRect(i*w/5+30,ground-16,3,13);c.beginPath();c.ellipse(i*w/5+31,ground-17,9,4,0,Math.PI,Math.PI*2);c.fill();}}
-    if(terrain.type==='citadel'){for(let i=0;i<5;i++){const x=w*.16+i*w*.15;this.shadowCasters.push({x,y:backGround,width:32,height:65+i%2*25});c.fillStyle='#7f8873';c.fillRect(x-16,backGround-65-i%2*25,32,65+i%2*25);c.fillStyle='#39483c';c.fillRect(x-5,backGround-50-i%2*25,10,14);for(let k=0;k<3;k++)c.fillRect(x-18+k*12,backGround-73-i%2*25,9,8);}}
-    if(terrain.type==='clockwork'){for(let i=0;i<6;i++){const x=i*w/5;c.fillStyle='#717b6a';c.fillRect(x-19,backGround-60-i%2*15,38,60+i%2*15);c.strokeStyle='#b4b090';c.lineWidth=3;c.beginPath();c.arc(x,backGround-45,15,0,7);c.stroke();for(let t=0;t<8;t++){const angle=t*Math.PI/4+s.tick*.08;c.beginPath();c.moveTo(x+Math.cos(angle)*10,backGround-45+Math.sin(angle)*10);c.lineTo(x+Math.cos(angle)*21,backGround-45+Math.sin(angle)*21);c.stroke();}}}
-    if(terrain.type==='port'){c.strokeStyle='#9b9473';c.lineWidth=3;c.beginPath();c.moveTo(w*.58,backGround);c.lineTo(w*.58,backGround-95);c.lineTo(w*.7,backGround-78);c.lineTo(w*.65,backGround-28);c.stroke();}
     for(const m of boundaries){const restore=billboardFrame(c,this.camera,m.x+m.side*5,backGround-5,dpr);paintBoundaryMotifs(c,[m],backGround);restore();}
     if(!this.composition){const c=surfaceContext(this.ctx,this.camera);c.fillStyle = p[3]; c.fillRect(-96, ground, w+192, ht - ground+96+Math.ceil(Math.abs(this.camera.f)));
     if(weather.id==='snow'){c.fillStyle='#c5d5ca';c.fillRect(0,ground,w,3);}
@@ -409,14 +408,15 @@ export class Scene {
     if(!this.composition.alpine||this.composition.underground)return;const c=this.ctx,base=this.composition.buildingGround;
     c.save();for(let i=0;i<5;i++){const x=(i-.25)*width/4,peak=Math.max(12,base-height*(.32+view.values[25+i]*.24)),spread=width*(.2+view.values[30+i]*.1);c.globalAlpha=.48;c.fillStyle=i%2?p[2]:'#81918c';c.beginPath();c.moveTo(x-spread,base);c.lineTo(x,peak);c.lineTo(x+spread,base);c.closePath();c.fill();c.globalAlpha=.35;c.fillStyle=p[1];c.beginPath();c.moveTo(x,peak);c.lineTo(x-spread*.18,peak+(base-peak)*.24);c.lineTo(x+spread*.08,peak+(base-peak)*.18);c.lineTo(x+spread*.19,peak+(base-peak)*.25);c.closePath();c.fill();}c.restore();
   }
-  paintSurface(width,height,p,view,weather,water){
+  paintSurface(width,height,p,view,weather,water,terrainView){
     const c=surfaceContext(this.ctx,this.camera),plan=this.composition,back=plan.buildingGround,front=plan.actorGround;
     c.save();if(plan.coast&&!plan.underground&&!water){c.fillStyle='#4d7980';c.fillRect(0,back-22,width,26);c.strokeStyle='#9bb5aa';c.globalAlpha=.3;c.lineWidth=1;for(let i=0;i<12;i++){const x=view.values[20+i]*width,y=back-18+(i%3)*6;c.beginPath();c.moveTo(x,y);c.lineTo(x+18+view.values[32+i]*24,y);c.stroke();}c.globalAlpha=1;}
-    c.fillStyle=({waterfront:'#525f55',alpine:'#56625e',ruins:'#454e48',underground:'#35413c'})[plan.kind]||p[3];c.fillRect(-96,back,width+192,height-back+96+Math.ceil(Math.abs(this.camera.f)));
-    c.fillStyle=({waterfront:'#747960',alpine:'#879082',ruins:'#727465',underground:'#67776a'})[plan.kind]||'#718267';c.globalAlpha=.48;c.beginPath();c.moveTo(-96,front-5);c.lineTo(width+96,front-5);c.lineTo(width+96,height+96+Math.ceil(Math.abs(this.camera.f)));c.lineTo(-96,height+96+Math.ceil(Math.abs(this.camera.f)));c.closePath();c.fill();c.globalAlpha=1;
+    c.fillStyle=terrainView.type==='desert'?p[3]:({waterfront:'#525f55',alpine:'#56625e',ruins:'#454e48',underground:'#35413c'})[plan.kind]||p[3];c.fillRect(-96,back,width+192,height-back+96+Math.ceil(Math.abs(this.camera.f)));
+    c.fillStyle=terrainView.type==='desert'?'#b39a6e':({waterfront:'#747960',alpine:'#879082',ruins:'#727465',underground:'#67776a'})[plan.kind]||'#718267';c.globalAlpha=.48;c.beginPath();c.moveTo(-96,front-5);c.lineTo(width+96,front-5);c.lineTo(width+96,height+96+Math.ceil(Math.abs(this.camera.f)));c.lineTo(-96,height+96+Math.ceil(Math.abs(this.camera.f)));c.closePath();c.fill();c.globalAlpha=1;
     c.strokeStyle=plan.kind==='waterfront'?'#3d4c44':p[2];c.lineWidth=1;c.beginPath();c.moveTo(0,back+.5);c.lineTo(width,back+.5);c.stroke();
     const count=Math.min(40,Math.ceil(width/13));for(let i=0;i<count;i++){const x=(i+.2+view.values[i%48]*.6)*width/count,y=front+7+view.values[(i+13)%48]*Math.max(1,height-front-10);c.globalAlpha=.25;
-      if(plan.kind==='waterfront'){c.strokeStyle='#a3a284';c.beginPath();c.moveTo(x,back+2);c.lineTo(x+3,height);c.stroke();}
+      if(terrainView.type==='desert'){c.strokeStyle='#c5ae7e';c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+6,y-2,x+13,y);c.stroke();}
+      else if(plan.kind==='waterfront'){c.strokeStyle='#a3a284';c.beginPath();c.moveTo(x,back+2);c.lineTo(x+3,height);c.stroke();}
       else if(['alpine','ruins','underground'].includes(plan.kind)){c.fillStyle=i%2?'#9ca18e':'#323e36';c.fillRect(x,y,4+view.values[(i+7)%48]*8,2);}
       else{c.strokeStyle='#83996d';c.beginPath();c.moveTo(x,back+1);c.lineTo(x-1,back-3-view.values[i%48]*4);c.stroke();c.fillStyle=p[1];c.fillRect(x,y,4,1);}
     }
@@ -555,7 +555,7 @@ export class Scene {
     if(this.camera.perspectiveDegrees){const side=Math.sign(this.camera.perspectiveDegrees),edge=side*half,depth=Math.min(10,Math.abs(this.camera.perspectiveDegrees)*1.6);c.fillStyle='#263c36';c.globalAlpha=.28;c.beginPath();c.moveTo(edge,-height);c.lineTo(edge-side*depth,-height-3);c.lineTo(edge-side*depth,-3);c.lineTo(edge,0);c.closePath();c.fill();c.globalAlpha=1;}
     c.fillStyle=profile.roofColor||roof;paintRoof(c,profile,width,height,roofHeight);c.strokeStyle='#586b59';c.lineWidth=1;c.stroke();
     if(profile.chimney){c.fillStyle='#59665b';c.fillRect(half*.5,-height-24,8,26);c.fillStyle='#788374';c.fillRect(half*.5-1,-height-26,10,4);
-      if(profile.smoke&&occupied){c.fillStyle='#b8beb0';c.globalAlpha=.17;for(let i=0;i<3;i++){c.beginPath();c.ellipse(half*.5+4+Math.sin(this.state.tick*.08+i)*3,-height-31-i*10,4+i*2,5+i*2,0,0,7);c.fill();}c.globalAlpha=1;}}
+      if(facadeSmoke(this.state,this.state.areas[this.state.hero.area],profile)&&occupied){c.fillStyle='#b8beb0';c.globalAlpha=.17;for(let i=0;i<3;i++){c.beginPath();c.ellipse(half*.5+4+Math.sin(this.state.tick*.08+i)*3,-height-31-i*10,4+i*2,5+i*2,0,0,7);c.fill();}c.globalAlpha=1;}}
     if(layout){this.facade(profile,layout,night,occupied);if(tavern)paintHomeBuilding(c,this.state.areas[tavern.room]?.extension,half,height);if(workshop)this.workshopSign(half,height);if(tavern){if(this.state.rules?.['world-signs']!==false)this.tavernSign(half,height);else{c.fillStyle='#403d30';c.fillRect(half-2,-height+8,31,15);c.fillStyle='#dac995';c.font='8px monospace';c.fillText('ТРАКТИР',half,-height+18);}}c.restore();return;}
     const doorX=(profile.door||0)*half*.55;const windows=profile.windows||2;
     for(let floor=0;floor<(profile.floors||1);floor++)for(let i=0;i<windows;i++){
