@@ -1,3 +1,4 @@
+import {emitPaperFire} from './paper-fire-events.js';
 import {enabled} from '../rules.js';
 export const ruinsOn=s=>enabled(s,'building-ruins')&&enabled(s,'facades');
 export const structureFor=(s,a,o)=>a?.facades?.profiles.find(p=>p.id===o?.building);
@@ -11,6 +12,7 @@ export function damageStructure(s,a,p,cause){
   if(o.state!=='burned'){o.state='burned';o.damagedAt=s.tick;o.repair=null;}else o.damagedAt ??=s.tick;
   o.structuralDamage={version:1,building:p.id,cause,tick:s.tick};
  }
+ if(cause==='fire')emitPaperFire(s,a,{kind:'building',building:p.id});
  return true;
 }
 export function restoreStructure(s,a,o,actor){

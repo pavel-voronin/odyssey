@@ -98,6 +98,9 @@ import {actorView,actorJournal,bindObservedJournal} from './actor-view.js';
 import {initializeSpatial,registerSpatialArea} from './modules/spatial.js';
 import {goodsTick} from './modules/goods.js';
 import {craftStudyPlan,craftStudyAction} from './modules/craft-practice.js';
+import {textRecoveryPlan,textRecoveryAction} from './modules/text-recovery.js';
+import {installPaperFireHandler} from './modules/paper-fire-events.js';
+import {damagePaperFromSource} from './modules/paper-fire.js';
 import {assetDefensePlan,hireStoreGuard,fortifyStore,evacuateStore} from './modules/asset-defense.js';
 import {patronagePlan,acceptPatronage,patronStock} from './modules/patronage.js';
 import {productionPartnerPlan,reviewProduction} from './modules/production-partnership.js';
@@ -241,6 +244,7 @@ export function random(s) {
   return s.rng / 4294967296;
 }
 const roll = (s, n) => Math.floor(random(s) * n);
+installPaperFireHandler((s,a,source)=>damagePaperFromSource(s,a,source,{log}));
 function context(s, stream) { return { methodRevision, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
@@ -427,6 +431,7 @@ function plan(s) {
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
   if(offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'),{lesson:false})))return planningSpent;
+  if(offer('textRecoveryPlan',()=>textRecoveryPlan(s,context(s,'paper-fire'))))return planningSpent;
   if(a.interior){if(a.interior.kind==='workshop'&&(offer('itemRepairPlan',()=>itemRepairPlan(s,context(s,'item-wear')))||offer('toolPlan',()=>toolPlan(s,context(s,'workshop-tools')))||offer('refitPlan',()=>refitPlan(s,context(s,'knife-refit')))||offer('forgePlan',()=>forgePlan(s,context(s,'forging')))))return planningSpent;if(offer('lodgingPlan',()=>lodgingPlan(s,context(s,'lodging'))))return planningSpent;if(a.interior.kind==='room'&&!q&&(offer('librarySecurityPlan',()=>librarySecurityPlan(s,context(s,'library-security')))||offer('libraryPlan',()=>libraryPlan(s,context(s,'libraries')))||offer('textPlan',()=>textPlan(s,context(s,'texts')))||offer('homePlan',()=>homePlan(s,context(s,'homes')))))return planningSpent;if(offer('tavernPlan',()=>tavernPlan(s,context(s,'interiors'))))return planningSpent;}
   if(a.temporaryCamp){leaveCamp(s,context(s,'fieldcamp'));return planningSpent;}
   if((partyDemand(s)==='food'||enabled(s,'body')&&h.hunger>75)&&offer('foodPlan',()=>foodPlan(s,context(s,'supply'))))return planningSpent;
@@ -1084,6 +1089,7 @@ function actObserved(s) {
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))execute('homeBuildingAction',()=>homeBuildingAction(s,context(s,'home-building')));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))execute('homeAction',()=>homeAction(s,context(s,'homes')));
   else if (g.kind === 'storyAction') execute('storyAction',()=>storyAction(s,g.story,context(s,'stories')));
+  else if(g.kind==='textRecover')execute('textRecoveryAction',()=>textRecoveryAction(s,context(s,'paper-fire')));
   else if(g.kind==='assetHire')execute('hireStoreGuard',()=>hireStoreGuard(s,context(s,'asset-risk')));
   else if(g.kind==='assetFortify')execute('fortifyStore',()=>fortifyStore(s,context(s,'asset-risk')));
   else if(g.kind==='assetEvacuate')execute('evacuateStore',()=>evacuateStore(s,{...context(s,'asset-risk'),recoverCargo}));

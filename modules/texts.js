@@ -60,6 +60,7 @@ export function readText(s,p,id){
  return rememberTextReading(s,p,item);
 }
 export function rememberTextInformation(s,p,work,info=work.content,source=work.author,reported=false){
+ if(work.content.kind==='fragment'){const c=work.content.clue;if(c?.kind==='mechanism-sequence'&&!reported)learnSequence(s,p,c,{kind:'surviving-pages',person:source,tick:s.tick,id:work.id});info={area:work.content.area,name:work.content.name,observed:work.content.observed};}
  if(work.content.kind==='mechanism-sequence'){
   if(!Array.isArray(info.order)||!info.order.length)return;
   learnSequence(s,p,info,{kind:reported?'heard-text-reader':'understood-text',person:source,tick:s.tick,id:(reported?'report/'+source+'/':'')+work.id});return;
@@ -69,7 +70,7 @@ export function rememberTextInformation(s,p,work,info=work.content,source=work.a
  const h=textActor(s,p.id);if(h&&typeof n.available==='boolean'){h.memory.services ||= {};const key=n.area+'/employment';if((h.memory.services[key]?.seen??-1)<=n.observed)h.memory.services[key]={version:1,area:n.area,kind:'employment',available:n.available,provider:null,reason:null,seen:n.observed,text:work.id,source,...(reported?{reported:true}:{} )};}
 }
 export function rememberTextReading(s,p,item){
- const work=textWork(s,item);if(!work||p.textCraft?.readings.some(e=>e.content===work.id))return false;
+ const work=textWork(s,item);if(!work||item.textCopy.condition!=='intact'||p.textCraft?.readings.some(e=>e.content===work.id))return false;
  const knowledge=registerLiteracy(s,p,textActor(s,p.id),'read-text',work.id);if(knowledge)knowledge.lastActionTick=s.tick;
  textMemory(p).readings.push({content:work.id,copy:item.id,at:s.tick,author:work.author,revision:work.revision});rememberTextInformation(s,p,work);
  const h=textActor(s,p.id);if(h)h.lastAction='think';return true;
@@ -82,3 +83,13 @@ export function giveText(s,from,to,id){
  if(!sourceActor&&!npcAction(s,from,'personal')||!targetActor&&!npcAction(s,to,'personal'))return false;
  const source=bag(s,from);source.splice(source.indexOf(item),1);bag(s,to).push(item);actorItemLocation(s,item,to.id);if(from.textCraft?.offer?.item===id)from.textCraft.offer=null;item.history.push({tick:s.tick,text:`Передано: ${from.name} → ${to.name}. Знание не передаётся вместе с бумагой.`});spend(s,from,1);spend(s,to,1);return true;
 }
+
+export function recoverText(s,p,targetID,sourceID,paperID){
+ const b=ready(s,p),items=heldTexts(s,p?.id),target=items.find(i=>i.id===targetID),paper=items.find(i=>i.id===paperID&&i.kind==='writingPaper'),c=target?.textCopy,w=textWork(s,target),source=sourceID&&items.find(i=>i.id===sourceID);
+ if(!enabled(s,'paper-fire')||!b||!w||!paper||c.owner!==p.id||c.condition!=='damaged'||c.damage?.kind!=='paper-fire'||c.salvaged?.cause===c.damage.cause||!canReadText(s,p,w.language)||!canWriteText(s,p,w.language)||activeLoan(target))return null;
+ const full=source&&source.id!==target.id&&source.textCopy?.condition==='intact'&&source.textCopy.content===c.content&&source.textCopy.owner===p.id&&!activeLoan(source);
+ if(!full&&!c.fireResidue?.info)return null;
+ let work=w;if(!full){const lib=s.literature,id='text-work/'+p.id+'/'+(++lib.serial),info=structuredClone(c.fireResidue.info);work={version:1,id,author:p.id,editor:p.id,revision:1,parent:w.id,written:s.tick,language:w.language,title:'Спасённые страницы · '+w.title,source:{kind:'surviving-pages',observer:p.id,area:info.area,at:s.tick,item:target.id,cause:c.damage.cause},content:info};lib.works[id]=work;}
+ const result=inscribe(s,p,paper,work,full?source.id:target.id);c.salvaged={at:s.tick,by:p.id,cause:c.damage.cause,result:result.id,source:full?source.id:target.id,mode:full?'full':'fragment'};result.history.push({tick:s.tick,text:full?'Новый экземпляр восстановлен с уцелевшей физической копии.':'Спасённые страницы перенесены на настоящую новую бумагу. Полнота исходного знания утрачена.'});return result;
+}
+function activeLoan(item){return item.libraryLoan?.returned===null||item.libraryTheft?.returned===null;}

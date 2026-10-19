@@ -1,3 +1,5 @@
+import {validatePaperFires} from './paper-fire-schema.js';
+import {fragmentInfo} from './paper-fragment-state.js';
 import {validSequence} from './sequence-memory.js';
 export function validateTexts(s,fail){
  const integer=n=>Number.isSafeInteger(n)&&n>=0,lib=s.literature;
@@ -5,12 +7,13 @@ export function validateTexts(s,fail){
   if(lib?.version!==1||!integer(lib.serial)||!lib.works||typeof lib.works!=='object'||Array.isArray(lib.works)||Object.keys(lib.works).length>lib.serial)fail('literature');
   for(const [id,w]of Object.entries(lib.works)){
    const key='literature.work.'+id,n=w?.content,src=w?.source;
-   if(w?.version!==1||w.id!==id||!id.startsWith('text-work/'+w.author+'/')||!s.people[w.author]||w.editor!==w.author||w.revision!==1||w.parent!==null||!integer(w.written)||w.written>s.tick||typeof w.language!=='string'||!w.language||typeof w.title!=='string'||src?.observer!==w.author||!s.areas[src?.area]||n?.area!==src.area||typeof n.name!=='string'||typeof n.text!=='string')fail(key);
+   if(w?.version!==1||w.id!==id||!id.startsWith('text-work/'+w.author+'/')||!s.people[w.author]||w.editor!==w.author||w.revision!==1||w.parent!==null&&n?.kind!=='fragment'||!integer(w.written)||w.written>s.tick||typeof w.language!=='string'||!w.language||typeof w.title!=='string'||src?.observer!==w.author||!s.areas[src?.area]||n?.area!==src.area||typeof n.name!=='string'||typeof n.text!=='string')fail(key);
    if(n.kind==='employment-note'){if(src.kind!=='own-market-observation'||src.at!==w.written||src.x!==42||n.observed!==w.written||typeof n.available!=='boolean')fail(key);}
    else if(n.kind==='mechanism-sequence'){
     const g=s.edges[n.key]?.mechanism;
     if(src.kind!=='personal-sequence-knowledge'||!integer(src.at)||src.at>w.written||src.at!==n.observed||src.x!==n.x||!src.basis||typeof src.basis.kind!=='string'||!s.people[src.basis.person]||!integer(src.basis.tick)||src.basis.tick>src.at||typeof src.basis.id!=='string'||g?.id!==n.node||!g.sequence||g.lever.area!==n.area||g.lever.x!==n.x||!validSequence(n.order)||n.order.length!==3||n.complete!==true)fail(key);
-   }else fail(key);
+   }else if(n.kind==='fragment'){const parent=lib.works[w.parent],fire=s.paperFires?.events[src.cause];if(!parent||parent.id===w.id||src.kind!=='surviving-pages'||src.at!==w.written||!fire||fire.at>w.written||!fire.damaged.some(d=>d.item===src.item&&d.mode==='fragment')||n.observed!==parent.content.observed||Object.hasOwn(n,'available')||!n.clue||n.clue.area!==n.area||n.clue.name!==n.name||n.clue.observed!==n.observed)fail(key+'.fragment');if(JSON.stringify(n)!==JSON.stringify(fragmentInfo(parent)))fail(key+'.fragment.content');if(n.clue.kind==='mechanism-sequence'&&(!validSequence(n.clue.order)||n.clue.order.length>2||n.clue.complete!==false))fail(key+'.fragment.sequence');}
+   else fail(key);
   }
  }
  for(const p of Object.values(s.people)){
@@ -30,6 +33,7 @@ export function validateTexts(s,fail){
  for(const h of [s.hero,...Object.values(s.actorStates).filter(h=>h.lineage!==s.hero.lineage)])for(const c of h.companions||[])items.push(...(c.packCargo?.items||[]));
  for(const p of Object.values(s.people))for(const c of [...(p.pets||[]),...(p.petBoarding?.pet?[p.petBoarding.pet]:[])])items.push(...(c.packCargo?.items||[]));
  items.push(...(s.merchant.items||[]));for(const a of Object.values(s.areas))for(const o of a.objects)items.push(...(o.items||[]),...(o.paymentItems||[]),...((o.existingPet||o.packPetBody||o.petBody)?.packCargo?.items||[]));
+ validatePaperFires(s,fail,items);
  for(const item of items){
   const m=item.writingMaterial,c=item.textCopy;if(m===undefined&&c===undefined&& !['textCopy','writingPaper'].includes(item.kind))continue;
   const key='text.item.'+item.id;
@@ -37,6 +41,6 @@ export function validateTexts(s,fail){
   if(item.kind==='writingPaper'){if(c!==undefined||item.base!=='paper')fail(key+'.blank');continue;}
   const w=lib?.works[c?.content];
   if(item.kind!=='textCopy'||item.base!=='booklet'||c?.version!==1||!w||c.revision!==w.revision||c.owner!=='merchant'&&!s.people[c.owner]||!s.people[c.writer]||!integer(c.written)||c.written<m.created||c.written<w.written||c.written>s.tick||c.sourceCopy!==null&&(typeof c.sourceCopy!=='string'||c.sourceCopy===item.id)||!['intact','damaged'].includes(c.condition)||item.physical.holder.kind==='person'&&c.owner!==item.physical.holder.id&&!(item.libraryLoan?.version===1&&item.libraryLoan.returned===null||item.libraryTheft?.version===1&&item.libraryTheft.returned===null)||item.physical.holder.kind==='merchant'&&c.owner!=='merchant')fail(key+'.copy');
-  if(c.condition==='intact'&&c.damage!==null||c.condition==='damaged'&&(!c.damage||c.damage.kind!=='rain-while-open'||!s.people[c.damage.actor]||!s.areas[c.damage.area]||!integer(c.damage.tick)||c.damage.tick<c.written||c.damage.tick>s.tick))fail(key+'.damage');
+  if(c.condition==='intact'&&c.damage!==null||c.condition==='damaged'&&(!c.damage||!['rain-while-open','paper-fire'].includes(c.damage.kind)||c.damage.kind==='rain-while-open'&&!s.people[c.damage.actor]||c.damage.kind==='paper-fire'&&!s.paperFires?.events[c.damage.cause]||!s.areas[c.damage.area]||!integer(c.damage.tick)||c.damage.tick<c.written||c.damage.tick>s.tick))fail(key+'.damage');
  }
 }

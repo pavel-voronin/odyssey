@@ -1,5 +1,6 @@
+import {textRecoveryTask} from './text-recovery.js';
 import {textsOn,textActor,heldTexts,canReadText,canWriteText,textWork} from './text-state.js';
-import {buyTextPaper,writeWorkNotice,copyText,readText,giveText,writeSequenceManual} from './texts.js';
+import {buyTextPaper,writeWorkNotice,copyText,readText,giveText,writeSequenceManual,recoverText} from './texts.js';
 import {localContact} from './npc-contacts.js';
 import {physicalDistance} from '../geometry.js';
 import {marketWallet} from './market.js';
@@ -30,6 +31,6 @@ export function textAction(s,ctx){
  if(g.kind==='textRead'&&heldTexts(s,p.id).find(i=>i.id===g.item)?.textCopy?.damage?.tick===s.tick)ctx.log(s,'Открытая запись промокла под дождём. Содержание не разобрать; другие экземпляры от этого не изменились.','story');
  h.goal=null;if(result)ctx.log(s,g.kind==='textRead'?'Понятные сведения сохранены в памяти. Это запись опыта автора, которую ещё предстоит сопоставить с действительностью.':g.kind==='textGift'?'Получен тот же бумажный экземпляр; содержание ещё предстоит прочесть.':'Бумага и работа оставили настоящий экземпляр записи.','story');return Boolean(result);
 }
-function perform(s,p,t,ctx=null){if(t.kind==='textPaper')return buyTextPaper(s,p,ctx);if(t.kind==='sequenceWrite')return writeSequenceManual(s,p,t.item,t.node);if(t.kind==='textWrite')return writeWorkNotice(s,p,t.item);if(t.kind==='textCopy')return copyText(s,p,t.source,t.item);if(t.kind==='textRead')return readText(s,p,t.item);return false;}
-export const textNPCTask=(s,p)=>ownTask(s,p);
-export function textNPCAction(s,p){const t=p.agenda.task;if(!['textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(t?.kind))return false;if(!textsOn(s))return true;perform(s,p,t);p.agenda.task=null;p.agenda.due=s.tick;return true;}
+function perform(s,p,t,ctx=null){if(t.kind==='textRecover')return recoverText(s,p,t.item,t.source,t.paper);if(t.kind==='textPaper')return buyTextPaper(s,p,ctx);if(t.kind==='sequenceWrite')return writeSequenceManual(s,p,t.item,t.node);if(t.kind==='textWrite')return writeWorkNotice(s,p,t.item);if(t.kind==='textCopy')return copyText(s,p,t.source,t.item);if(t.kind==='textRead')return readText(s,p,t.item);return false;}
+export const textNPCTask=(s,p)=>textRecoveryTask(s,p)||ownTask(s,p);
+export function textNPCAction(s,p){const t=p.agenda.task;if(!['textPaper','textWrite','textCopy','textRead','sequenceWrite','textRecover'].includes(t?.kind))return false;if(!textsOn(s))return true;perform(s,p,t);p.agenda.task=null;p.agenda.due=s.tick;return true;}

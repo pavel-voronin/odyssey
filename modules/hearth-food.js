@@ -1,3 +1,4 @@
+import {emitPaperFire} from './paper-fire-events.js';
 import {woundStride} from './wound-state.js';
 import {homeCookingAllows} from './home-place.js';
 import {enabled} from '../rules.js';
@@ -71,7 +72,7 @@ export function brothWork(s,h){
  b.lastWork=s.tick;b.work++;h.energy=Math.max(0,h.energy-1);h.lastAction='work';
  if(b.work<BROTH_WORK)return{finished:false};
  b.status='ready';b.finished=s.tick;b.warmUntil=s.tick+BROTH_WARM;b.expires=s.tick+BROTH_LIFE;b.initialPortions=b.inputPortions;b.remaining=b.initialPortions;a.hearthKitchen.preparedPortions+=b.initialPortions;pending.completed=s.tick;p.foodCooking.pending=null;
- history(p,{id:b.id,tick:s.tick,area:a.id,outcome:'cooked',ingredients:b.ingredients,portions:b.initialPortions});return{finished:true,batch:b};
+ history(p,{id:b.id,tick:s.tick,area:a.id,outcome:'cooked',ingredients:b.ingredients,portions:b.initialPortions});emitPaperFire(s,a,{kind:'cooking',batch:b.id});return{finished:true,batch:b};
 }
 export function eatBroth(s,h,wanted=1){
  const b=edibleBroth(s,h),a=s.areas[h.area],fire=actualHearth(s,a);
