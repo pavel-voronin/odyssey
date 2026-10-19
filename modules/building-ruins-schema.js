@@ -5,11 +5,11 @@ export function validateBuildingRuins(s,fail){
    const r=p.structure,key='building.structure.'+p.id;if(r===undefined)continue;
    if(r?.version!==1||!tick(r.created)||!tick(r.checked)||r.checked<r.created||!Number.isInteger(r.emptyDays)||r.emptyDays<0||r.emptyDays>24||!part(r.roof)||!part(r.walls)||!Array.isArray(r.history)||r.history.length>16)fail(key);
    for(const [i,e]of r.history.entries()){
-    if(!tick(e.tick)||e.tick<r.created||i>0&&e.tick<r.history[i-1].tick||!['neglect','fire','earthquake','repair','observed-damage'].includes(e.kind)||!part(e.roof)||!part(e.walls))fail(key+'.history');
+    if(!tick(e.tick)||e.tick<r.created||i>0&&e.tick<r.history[i-1].tick||!['neglect','fire','earthquake','repair','recovery','dismantle','observed-damage'].includes(e.kind)||!part(e.roof)||!part(e.walls))fail(key+'.history');
     if(e.kind==='observed-damage'&&(e.tick!==r.created||i!==0||e.roof!==1||e.walls!==2||!a.objects.some(o=>o.id===e.source&&o.building===p.id)))fail(key+'.observed');
     if(e.kind==='repair'&&(!s.people[e.actor]||!s.people[e.payer]||!tick(e.paidAt)||e.paidAt>e.tick||e.materialCost!==18||e.roof!==3||e.walls!==3))fail(key+'.repair');
     if(e.kind==='fire'&&(e.roof>1||e.walls>2)||e.kind==='neglect'&&e.roof===3)fail(key+'.damage');
-    if(i>0&&e.kind!=='repair'&&(e.roof>r.history[i-1].roof||e.walls>r.history[i-1].walls))fail(key+'.unearned-restoration');
+    if(i>0&&!['repair','recovery'].includes(e.kind)&&(e.roof>r.history[i-1].roof||e.walls>r.history[i-1].walls))fail(key+'.unearned-restoration');
    }
    const last=r.history.at(-1);if(last?(last.roof!==r.roof||last.walls!==r.walls):r.roof!==3||r.walls!==3)fail(key+'.current');
   }

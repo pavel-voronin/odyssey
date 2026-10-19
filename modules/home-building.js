@@ -1,3 +1,4 @@
+import {ruinReturnNPCTask,ruinReturnNPCAction,ruinReturnPlan,ruinReturnAction} from './ruin-return.js';
 import {dwellingNPCTask,dwellingNPCAction,dwellingPlan,dwellingAction} from './dwellings.js';
 import {constructionWork} from './construction-work.js';
 import {enabled} from '../rules.js';
@@ -22,6 +23,7 @@ export function noteRoomDemand(s,door,occupants){
 // Invoked inside the owner's ordinary personal planning turn. A thought does
 // not purchase raw stock, increase capacity or create a second building title.
 export function homeBuildingNPCTask(s,p){
+ const oldHome=ruinReturnNPCTask(s,p);if(oldHome)return oldHome;
  const own=dwellingNPCTask(s,p);if(own)return own;
  if(!homeBuildingOn(s)||p.role!=='Хозяин трактира'||!ready(p)||npcController(s,p)!=='personal')return null;
  for(const a of Object.values(s.areas)){
@@ -52,6 +54,7 @@ function work(s,a,r,id){
  if(r.steps.length===6)complete(s,a,r);return true;
 }
 export function homeBuildingNPCAction(s,p){
+ if(p.agenda.task?.ruin)return ruinReturnNPCAction(s,p);
  if(p.agenda.task?.dwelling)return dwellingNPCAction(s,p);
  const t=p.agenda.task;if(!['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(t?.kind))return false;
  if(!homeBuildingOn(s))return true;
@@ -74,6 +77,7 @@ export function homeBuildingNPCAction(s,p){
  if(r.status==='done'){p.agenda.task=null;p.agenda.due=s.tick+48;}return true;
 }
 export function homeBuildingPlan(s,ctx){
+ if(ruinReturnPlan(s,ctx))return true;
  if(dwellingPlan(s,ctx))return true;
  const h=s.hero;if(!homeBuildingOn(s)||h.goal||!body(h)||danger(s,h))return false;
  for(const a of Object.values(s.areas)){
@@ -87,6 +91,7 @@ export function homeBuildingPlan(s,ctx){
  }return false;
 }
 export function homeBuildingAction(s,ctx){
+ if(s.hero.goal?.ruin)return ruinReturnAction(s,ctx);
  if(s.hero.goal?.dwelling)return dwellingAction(s,ctx);
  const h=s.hero,g=h.goal,a=s.areas[g?.buildingRoom],r=a?.extension;
  if(!homeBuildingOn(s)||!r||!body(h)||danger(s,h)){h.goal=null;return false;}

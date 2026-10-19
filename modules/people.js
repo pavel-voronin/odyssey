@@ -1,3 +1,4 @@
+import {ruinRecoveryOn} from './ruin-return-state.js';
 import {harvestFactor} from './harvest-failure-state.js';
 import {neighborHousingPlan,neighborHousingAction,neighborRestPlan,neighborHostTurn} from './neighbor-housing.js';
 import {prepareFoundation,foundationAction,foundedFoodPlan} from './foundation.js';
@@ -338,6 +339,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='askAid'&&!enabled(s,'personal-aid'))p.agenda.task=null;
     if(p.agenda.task?.kind==='refitBench'&&!npcRefitWait(s,p))continue;
     if(p.agenda.task?.kind==='itemRepairBench'&&!npcItemRepairWait(s,p))continue;
+    if(p.agenda.task?.ruin&&!ruinRecoveryOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;
     if(p.agenda.task?.kind==='propertyRepair'&&(!enabled(s,'property')||!enabled(s,'property-damage')))continue;
     if(p.agenda.task?.kind==='toolMend'&&(!enabled(s,'workshop-tools')||!enabled(s,'property')||p.agenda.task.methodSource==='npc-paid-lessons'&&!enabled(s,'mentor-journeys'))){p.agenda.toolMendPending=p.agenda.task;p.agenda.task=null;}
