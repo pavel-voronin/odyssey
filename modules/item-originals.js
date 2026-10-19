@@ -21,7 +21,7 @@ export function presentItem(input,id){
  return null;
 }
 export function itemLocation(s,item,holder){
- if(item?.textCopy&&holder.kind==='person')item.textCopy.owner=holder.id;else if(item?.textCopy&&holder.kind==='merchant')item.textCopy.owner='merchant';
+ if(item?.textCopy&&holder.kind==='person'&&!(item.libraryLoan?.version===1&&item.libraryLoan.returned===null))item.textCopy.owner=holder.id;else if(item?.textCopy&&holder.kind==='merchant')item.textCopy.owner='merchant';
  if(!item||!originalsOn(s)&&!item.physical&&!item.durability&&!containersOn(s))return;
  let container;if(containersOn(s)){if(holder.kind==='person'){const h=s.hero.lineage===holder.id?s.hero:s.actorStates?.[holder.id];container=s.people[holder.id]?.prosthetic?.item===item?'prosthesis/'+holder.id:Object.values(h?.equipment||{}).includes(item)?'equipment/'+holder.id:'pack/'+holder.id;}else if(holder.kind==='mount')container='mount/'+holder.id;else if(holder.kind==='companion')container='pet/'+holder.id;else if(holder.kind==='cache')container='cache/'+holder.area+'/'+holder.object;else if(holder.kind==='merchant')container='merchant/'+holder.id;}item.physical={version:1,holder:{...holder,...(container?{container}:{})},movedAt:s.tick};
 }

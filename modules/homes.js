@@ -63,6 +63,6 @@ export function homeAction(s,ctx){
 export function transferHomeItem(s,a,id,take,ctx){
  const h=s.hero;if(!homesOn(s)||!homeAdmission(s,a,h.lineage)||h.area!==a.id||h.combat||h.transit||h.energy<1||physicalDistance(a,h.x,56)>3||a.home.lastStoreTick>=s.tick)return false;
  const chest=a.objects.find(o=>o.id===a.home.chest),from=take?chest.items:h.bag,to=take?h.bag:chest.items,item=from.find(i=>i.id===id);
- if(!item||take&&!fitsPack(s,h.lineage,{items:[...h.bag,item]})||!take&&chest.items.reduce((n,i)=>n+itemUnits(i),0)+itemUnits(item)>chest.capacity)return false;
+ if(chest.library?.copies.includes(id)||!item||take&&!fitsPack(s,h.lineage,{items:[...h.bag,item]})||!take&&chest.items.reduce((n,i)=>n+itemUnits(i),0)+itemUnits(item)>chest.capacity)return false;
  from.splice(from.indexOf(item),1);to.push(item);if(take)actorItemLocation(s,item);else itemLocation(s,item,{kind:'cache',area:a.id,object:chest.id});a.home.lastStoreTick=s.tick;h.energy--;h.lastAction='collect';h.goal=null;ctx.log(s,take?'Своя вещь взята из домашнего сундука.':'Своя вещь оставлена в домашнем сундуке; в дороге её больше нет.','item');return true;
 }

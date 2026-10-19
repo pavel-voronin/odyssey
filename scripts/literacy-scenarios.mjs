@@ -8,7 +8,7 @@ export function prepareTextPerson(f,p){
 }
 export function literacyFixture({foreign=false}={}){
  const f=twoTextCopies(textFixture()),{s,author,reader,a}=f;setModule(s,'literacy',true);
- const pupil=Object.values(s.people).find(p=>p.alive&&p.id!==f.h.lineage&&(foreign?p.agenda?.job==='merchant'&&p.culture!==author.culture:p.agenda?.job==='farmer'&&p.culture===author.culture));assert.ok(pupil);
+ const pupil=Object.values(s.people).find(p=>p.alive&&!p.ferryDuty&&!p.ferryTicket&&p.id!==f.h.lineage&&(foreign?p.agenda?.job==='merchant'&&p.culture!==author.culture:p.agenda?.job==='farmer'&&p.culture===author.culture));assert.ok(pupil);
  prepareTextPerson(f,pupil);a.civic.treasury-=8;pupil.agenda.wealth+=8; // Finite prepared study funds.
  author.agenda.task=null;author.agenda.due=1e9;s.tick++;assert.equal(giveText(s,author,pupil,f.second.id),true);
  return{...f,pupil,teacher:author,buyer:reader};

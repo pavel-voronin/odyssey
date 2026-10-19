@@ -1,3 +1,4 @@
+import {libraryNPCTask,libraryNPCAction} from './libraries.js';
 import {advanceNPCRoadCamp} from './road-stops.js';
 import {displacedOwnerTurn} from './building-control.js';
 import {rivalryNPCTurn} from './craft-rivalry.js';
@@ -130,7 +131,7 @@ function plan(s,p,ctx){
   const salvage=npcCachePlan(s,p);if(salvage){m.task=salvage;return;}
   if(caseRecordStudyPlan(s,p))return;
   const letters=literacyNPCTask(s,p);if(letters){m.task=letters;return;}
-  const text=textNPCTask(s,p);if(text){m.task=text;return;}
+  const library=libraryNPCTask(s,p);if(library){m.task=library;return;}const text=textNPCTask(s,p);if(text){m.task=text;return;}
   if(m.visits<3&&m.sociability>.7&&s.tick>(m.lastVisit||0)+768){
     const memory=enabled(s,'npc-contacts')?knownRelatives(s,p,ctx)[0]:null;
     const relative=enabled(s,'npc-contacts')?null:Object.values(s.people).find(other=>other.id!==p.id&&other.alive&&other.area&&other.area!==p.area&&isTown(s.areas[other.area])&&(other.parents.includes(p.id)||p.parents.includes(other.id)||p.parents.some(id=>other.parents.includes(id)))&&ctx.route(s,p.area,other.area).length<=3&&safePath(s,ctx.route(s,p.area,other.area),p));
@@ -319,6 +320,7 @@ export function peopleTick(s,ctx){
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
     if(feastNPCAction(s,p,ctx))continue;
     if(literacyNPCAction(s,p))continue;
+    if(libraryNPCAction(s,p))continue;
     if(textNPCAction(s,p))continue;
     if(homeBuildingNPCAction(s,p))continue;
     if(verdictReviewNPCAction(s,p))continue;

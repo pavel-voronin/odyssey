@@ -1,3 +1,4 @@
+import {libraryPartyTurn} from './libraries.js';
 import {custodyTrace} from './pet-custody-state.js';
 import {petPack,packPetTrace} from './pack-pet-state.js';
 import {partyCare} from './party-needs.js';
@@ -10,7 +11,7 @@ export function partyTick(s, ctx) {
   const h = s.hero;
   for (const companion of enabled(s, 'companions') ? [...h.companions] : []) {
     if(companion.person&&!npcAction(s,s.people[companion.person],'party','upkeep'))continue;
-    if(companion.person)partyCare(s,companion,ctx);
+    if(companion.person){partyCare(s,companion,ctx);libraryPartyTurn(s,s.people[companion.person]);}
     if (h.hunger > 90 && s.tick % 20 === 0) companion.loyalty = Math.max(0, companion.loyalty - 4);
     if (companion.loyalty <= 0&&!companion.person) { if(petPack(companion)||companion.petCustody)custodyTrace(s,companion,'left');h.companions = h.companions.filter(c => c !== companion); ctx.log(s, `${companion.name} покидает голодный отряд.`, 'companion'); }
   }

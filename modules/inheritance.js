@@ -1,3 +1,4 @@
+import {inheritLibraryBooks} from './libraries.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {relatedPeople,localContact} from './npc-contacts.js';
@@ -15,9 +16,10 @@ export function openInheritance(s,h,cache=null,ctx={}){
  const total=Math.max(0,wallet-(cache?.gold||0));
  const estate=p.estate={version:1,id:`estate/${p.id}/${s.tick}`,opened:s.tick,heir:heir?.id??null,total,cash:total,paid:0,status:'pending',assets:[]};
  inheritMapCopies(s,p,heir,deathArea,deathX,estate,p.deathJourney||h.transit);
+ inheritLibraryBooks(s,p,heir,estate,cache);
  if(heir&&p.routeMaps?.documents.length){const next=routeMapMemory(heir);for(const d of p.routeMaps.documents){d.owner=heir.id;next.documents.push(d);estate.assets.push({kind:'route-map',area:deathArea,id:d.id});}p.routeMaps.documents=[];}
  if(cache){cache.estate=estate.id;cache.inheritor=heir?.id??null;estate.assets.push({kind:'death-cache',area:h.area,id:cache.id});
-  for(const item of cache.items||[]){item.inheritance={estate:estate.id,owner:heir?.id??null};estate.assets.push({kind:'item',area:h.area,id:item.id,cache:cache.id});}
+  for(const item of cache.items||[]){if(item.libraryLoan?.returned===null&&item.textCopy?.owner!==p.id)continue;item.inheritance={estate:estate.id,owner:heir?.id??null};estate.assets.push({kind:'item',area:h.area,id:item.id,cache:cache.id});}
  }
  for(const a of Object.values(s.areas))for(const o of a.objects){
   if(o.kind==='workshop'&&o.owner===p.id){

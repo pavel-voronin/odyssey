@@ -1,3 +1,4 @@
+import {libraryPlan,libraryAction} from './modules/libraries.js';
 import {peopleCarryTurn,endPeopleCarry} from './modules/people-carry.js';
 import {buildingControlTick} from './modules/building-control.js';
 import {ferryWorldTick} from './modules/ferry-actions.js';
@@ -436,6 +437,7 @@ function plan(s) {
   if(!q&&pactTalkPlan(s,context(s,'branch-pacts')))return;
   if(!q&&feastPlan(s,context(s,'local-feasts')))return;
   if(!q&&literacyPlan(s,context(s,'literacy')))return;
+  if(!q&&libraryPlan(s,context(s,'libraries')))return;
   if(!q&&textPlan(s,context(s,'texts')))return;
   if(!q&&homeBuildingPlan(s,context(s,'home-building')))return;
   if(!q&&homePlan(s,context(s,'homes')))return;
@@ -1001,6 +1003,7 @@ function actObserved(s) {
   else if(g.kind==='pactTalk')pactTalkAction(s,context(s,'branch-pacts'));
   else if(g.kind==='feastJoin')feastAction(s,context(s,'local-feasts'));
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));
+  else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))libraryAction(s,context(s,'libraries'));
   else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))textAction(s,context(s,'texts'));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))homeBuildingAction(s,context(s,'home-building'));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))homeAction(s,context(s,'homes'));

@@ -1,3 +1,4 @@
+import {validateLibraries} from './modules/library-schema.js';
 import {validatePeopleCarry} from './modules/people-carry-schema.js';
 import {validateBuildingControl} from './modules/building-control-schema.js';
 import {validateFerry} from './modules/ferry-schema.js';
@@ -166,7 +167,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateTexts(s,fail);
+ validateTexts(s,fail);validateLibraries(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);

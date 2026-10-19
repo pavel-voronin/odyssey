@@ -10,8 +10,8 @@ import {brothLesson} from '../modules/cooking.js';
 import {foodStores} from '../modules/food-stores.js';
 import {syncActiveActor} from '../actor-projection.js';
 export const homeContext={...commonContext,receiveItem,workspaceAccess:s=>workspaceAccess(s,commonContext)};
-export function homeFixture({hearth=false,book=true}={}){
- const f=lodgingFixture(),{s,h,p,room}=f;
+export function homeFixture({hearth=false,book=true,seed=0}={}){
+ const f=lodgingFixture(seed),{s,h,p,room}=f;
  const on=['homes','lodging','interiors','people','npc-control','npc-contacts','identity','equipment','containers','goods-cycle','local-market','property','forging','local-food','supply','hearth-food'];for(const m of MODULES)setModule(s,m.id,on.includes(m.id));
  h.inventory.rations=4;h.inventory.herbs=2;h.bag=[];h.quests=[];h.companions=[];h.goal=null;h.energy=40;h.hp=h.maxHp;h.hunger=5;h.memory.shopAfter=1e9;h.life.reflectAfter=1e9;h.destiny.completed=true;s.areas.a1.danger=0;
  for(const person of Object.values(s.people))if(![h.lineage,p.id].includes(person.id))person.status='absent';
