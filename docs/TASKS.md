@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. B-03.2 выполнена этапом258: действительный недополученный урожай оставляет местный work receipt; по нему источник отправляет меньший конечный избыток≥2 вместо отмены только из-за порога8, сохраняя прежний резерв и существенную потребность≥8. Погрузка повторно проверяет источник/материал/запас; настоящий рейс везёт лишь погруженное, история хранит фактическую недопоставку. Независимый город сохраняет выпуск, известный обход и своевременная конечная помощь меняют личный исход. PARTIAL24/24 exit0,1946мс, artifacts/checks/baf9fb53693cde0d.log; modules/harvest-shortfall,goods,demand-freight,freight,harvest-failure-schema,goods-sheet,rules/save-schema, docs/CONTRACTS, DEVELOPMENT/258; https://odyssey.kolpaque.dev revision15bad55e2a511d71/HTTPS. B-03.3 ещё не выполнена.
+Текущего этапа нет. B-03.3 выполнена этапом259: один actual ON tick записывает окончание истёкшего неурожая и местное известие, возвращается только обычный множитель производства. Гибель людей, оплаченный дом/материал/титул/вещи, реальное производственное обязательство, казна и груз сохраняются; пополнение только настоящим трудом/доставкой. Следующее явление не выбирает опустевшие поля без живых местных работников. PARTIAL19/19 exit0,1441мс, artifacts/checks/0375c30bfa3a227f.log; modules/harvest-failure/state/schema,harvest-failure-sheet, docs/CONTRACTS, DEVELOPMENT/259; https://odyssey.kolpaque.dev revision346c903cbc68ed82/HTTPS. Другие бедствия и R-05.3 остаются отдельными.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 15 | B-03.3 | окончание без отката | 8 | 6 | 1.33 | B-03.2 |
 | 16 | ERA-02.2 | политический вариант, после S-01/R-07/R-09 | 8 | 6 | 1.33 | ERA-02.1, B-03.1 |
 | 17 | ERA-03.1 | имя о свободных путях требует соответствующего изменения прав, магическое имя — магическо… | 6 | 4 | 1.50 | ERA-02.2 |
 | 18 | R-05.3 | возвращение в руины | 9 | 7 | 1.29 | R-05.2, R-04.3 |
@@ -1627,3 +1626,10 @@ B-03.1 выполнена этапом257: один сезонный неуро�
 B-03.2 выполнена этапом258: действительный недополученный урожай оставляет местный work receipt; по нему источник отправляет меньший конечный избыток≥2 вместо отмены только из-за порога8, сохраняя прежний резерв и существенную потребность≥8. Погрузка повторно проверяет источник/материал/запас; настоящий рейс везёт лишь погруженное, история хранит фактическую недопоставку. Независимый город сохраняет выпуск, известный обход и своевременная конечная помощь меняют личный исход. PARTIAL24/24 exit0,1946мс, artifacts/checks/baf9fb53693cde0d.log; modules/harvest-shortfall,goods,demand-freight,freight,harvest-failure-schema,goods-sheet,rules/save-schema, docs/CONTRACTS, DEVELOPMENT/258; https://odyssey.kolpaque.dev revision15bad55e2a511d71/HTTPS. B-03.3 ещё не выполнена.
 
 6selected groups≤16executed acts/ticks, подготовленные последние физические отрезки/одна голодная граница, предел30sec: три города/5of12/source reserve/no duplicate/wage once; independent6output/known alternate route/same cargo; finite timely relief/одна настоящая need action/разные исходы; in-flight exact replay/OFF; no actual trace/minor demand/stale reserve refusal/pure local sheet; corrupt trace/manifest/reserve/source rejection.6bounded harvest-failure+11short goods dependencies+smoke/build. Existing exact source-shortage regression отдельно, весь старый80tick freight file не запускался. Native320map/pantry0UIticks/exact save/nooverflow. No migration/reset/restore constructor; никаких новых долгов/общего континентального штрафа/статистики выживания населения.
+
+
+### B-03.3 · подтверждение реализации259
+
+B-03.3 выполнена этапом259: один actual ON tick записывает окончание истёкшего неурожая и местное известие, возвращается только обычный множитель производства. Гибель людей, оплаченный дом/материал/титул/вещи, реальное производственное обязательство, казна и груз сохраняются; пополнение только настоящим трудом/доставкой. Следующее явление не выбирает опустевшие поля без живых местных работников. PARTIAL19/19 exit0,1441мс, artifacts/checks/0375c30bfa3a227f.log; modules/harvest-failure/state/schema,harvest-failure-sheet, docs/CONTRACTS, DEVELOPMENT/259; https://odyssey.kolpaque.dev revision346c903cbc68ed82/HTTPS. Другие бедствия и R-05.3 остаются отдельными.
+
+6selected groups≤16isolated actions after bounded existing constructor preparation; expiry/cooldown checkpoint без длинных жизней, предел30sec: actual NPC hunger death/no resurrection/free treasury; paid partial HOME/material/work/title/common house preserved then actual completion; actual funded obligation/reserved material/cash; normal6output and same5cargo arrival; actual small household deaths/changed later candidate; OFF/exact restore/UI purity/one present end/corrupt early notice.12previous bounded harvest/dependency groups+smoke/build. Native320quests0UI ticks/exact save/nooverflow. Current144 optional ended без migration/reset/restore writer. Не объявляется автоматически восстановленный мир или выполнение возврата к руинам.

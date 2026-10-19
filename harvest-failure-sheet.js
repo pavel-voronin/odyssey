@@ -1,3 +1,3 @@
-import {localHarvestFailure} from './modules/harvest-failure-state.js';
+import {localHarvestFailure,localHarvestRecovery} from './modules/harvest-failure-state.js';
 import {DAY_TICKS} from './calendar.js';
-export function harvestFailureHTML(s){const a=s.areas[s.hero.area],e=localHarvestFailure(s,a);return e?'<p class="detail-label">СЕЗОННЫЙ НЕУРОЖАЙ</p><p>Местные поля дают половину обычного урожая. Осталось '+Math.ceil((e.until-s.tick)/DAY_TICKS)+' д. Уже собранная еда остаётся у своих владельцев; заработок, покупки и поиск другой еды продолжаются.</p>':'';}
+export function harvestFailureHTML(s){const a=s.areas[s.hero.area],e=localHarvestFailure(s,a);return e?'<p class="detail-label">СЕЗОННЫЙ НЕУРОЖАЙ</p><p>Местные поля дают половину обычного урожая. Осталось '+Math.ceil((e.until-s.tick)/DAY_TICKS)+' д. Уже собранная еда остаётся у своих владельцев; заработок, покупки и поиск другой еды продолжаются.</p>':localHarvestRecovery(s,a)?'<p class="detail-label">ПОСЛЕ НЕУРОЖАЯ</p><p>Снова возможен обычный урожай. Кладовые пополнятся от работы и доставки; прежние потери, вложения и обязательства остаются частью жизни.</p>':'';}

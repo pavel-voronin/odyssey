@@ -7,6 +7,7 @@ export function harvestCandidates(s){
  const zones=new Map();
  for(const a of Object.values(s.areas)){
   if(!a.civic||a.interior||a.temporaryCamp||a.realm==='underground'||!(a.goods?.sources?.field.capacity>0))continue;
+  const places=[a.id,...(a.districts||[])];if(!places.some(id=>(s.areas[id]?.population||[]).some(id=>{const p=s.people[id];return p?.alive&&p.agenda&&p.role!=='ребёнок'&&places.includes(p.area)&&['resident','wandering'].includes(p.status);})))continue;
   const d=worldDate(s,s.tick,a),risk=d.climate==='arid'&&d.season==='summer'?3:d.climate==='tropical'&&d.season==='dry'?2:d.climate==='temperate'&&d.season==='summer'?1:0;
   if(!risk)continue;const zone=harvestZone(s,a),soil=1+hash(s.seed,'dry-soil/'+zone)%3,exposure=risk+soil;
   if(exposure<4)continue;
@@ -18,6 +19,12 @@ export function harvestCandidates(s){
 export function harvestFailureTick(s,ctx={}){
  if(!harvestFailureOn(s))return;
  const t=s.harvestFailures ||= {version:1,created:s.tick,nextAt:s.tick+DAY_TICKS,after:s.tick,serial:0,events:[]};
+ for(const e of t.events){
+  if(e.ended||s.tick<e.until)continue;
+  // Record only this actual present ending. No stock/body/title restoration.
+  const notices=e.areas.map(id=>areaObservation(s,s.areas[id],'harvest-end')),witnesses=[...new Set(notices.flatMap(n=>n.witnesses))],knownBy=[...new Set(notices.flatMap(n=>n.knownBy))],a=s.areas[e.areas[0]],id=e.id+'/end',text='В области '+a.name+' закончился сезонный неурожай. Снова возможен обычный урожай; для пополнения кладовых нужны рабочие руки и доставка.';
+  e.ended={version:1,at:s.tick,notice:id};s.changes.push({id,tick:s.tick,kind:'harvest-recovery',area:a.id,cause:e.id,text,witnesses,knownBy});if(knownBy.includes(s.hero.lineage))ctx.log?.(s,text,'supply');
+ }
  if(s.tick<t.nextAt)return;t.nextAt=s.tick+DAY_TICKS;
  if(s.tick<t.after||t.events.some(e=>s.tick<e.until))return;
  const c=harvestCandidates(s)[0];if(!c)return;
