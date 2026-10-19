@@ -1,3 +1,4 @@
+import {copyMasterTurn} from './copy-orders.js';
 import {npcCausewayPlan,causewayAction} from './causeway-actions.js';
 import {materialNPCTurn} from './local-material-actions.js';
 import {npcSocketPlan,socketMasterTurn,socketAction} from './socket-service.js';
@@ -310,6 +311,7 @@ export function peopleTick(s,ctx){
     if(personNeeds(s,p,ctx))continue;
     if(neighborHostTurn(s,p,ctx))continue;
     if(estateResponse(s,p))continue;
+    if(copyMasterTurn(s,p))continue;
     if(socketMasterTurn(s,p))continue;
     if(materialNPCTurn(s,p,ctx))continue;
     prepareFoundation(s,p);
@@ -344,7 +346,7 @@ export function peopleTick(s,ctx){
     if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
     if(['literacyStudy','textAloud','literacySell'].includes(p.agenda.task?.kind)&&!literacyEnabled(s))continue;
     if(p.agenda.task?.kind==='literacySell'&&p.agenda.task.valueReason&&!textValuesOn(s))continue;
-    if(['textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
+    if(['textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
     if(p.agenda.task?.dwelling&&!homeBuildingOn(s))continue;
     if(['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(p.agenda.task?.kind)&&!homeBuildingOn(s))continue;
     if(p.agenda.task?.kind==='caseRecordStudy'&&!enabled(s,'verdict-knowledge'))continue;

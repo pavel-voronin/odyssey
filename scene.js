@@ -297,6 +297,7 @@ export class Scene {
         c.strokeStyle = '#9db57e'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, ground); c.lineTo(x, ground - 14); c.stroke();
         c.fillStyle = '#c2d6a0'; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(x + (i % 2 ? 5 : -4), ground - 5 - i * 4, 5, 2.5, i % 2 ? -.6 : .6, 0, 7); c.fill(); }
       }
+      if(o.kind==='copyDesk'&&!o.taken){c.fillStyle='#8d765c';c.fillRect(x-7,ground-12,14,3);c.fillRect(x-5,ground-9,2,9);c.fillRect(x+3,ground-9,2,9);c.fillStyle='#e6dbc0';c.fillRect(x-4,ground-15,8,3);}
       if (['loot','heirloom','estateFunds'].includes(o.kind) && !o.taken&&!o.spent) { c.fillStyle = '#b7a071'; c.beginPath(); c.ellipse(x, ground - 5, 6, 5, 0, 0, 7); c.fill(); }
       if(o.kind==='roadRupture'){const broken=s.edges[o.key]?.rupture?.state==='broken';c.strokeStyle=broken?'#b57c5b':'#87916a';c.lineWidth=3;c.beginPath();c.moveTo(x-12,ground-2);c.lineTo(x-3,ground+3);c.lineTo(x+2,ground-4);c.lineTo(x+12,ground+1);c.stroke();if(broken){c.fillStyle='#61554a';c.fillRect(x-10,ground-8,7,5);c.fillRect(x+4,ground-6,8,4);}}
       if(o.kind==='wagon'&&!o.journey){c.fillStyle=o.condition>0?'#94794e':'#625b50';c.fillRect(x-14,ground-19,28,12);c.strokeStyle='#d0b47b';c.strokeRect(x-14,ground-19,28,12);c.fillStyle='#342e29';for(const dx of [-10,10]){c.beginPath();c.arc(x+dx,ground-4,5,0,Math.PI*2);c.fill();}c.strokeStyle='#b29565';c.beginPath();c.moveTo(x+14,ground-11);c.lineTo(x+24,ground-8);c.stroke();}

@@ -1101,7 +1101,7 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
-  else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))execute('textAction',()=>textAction(s,context(s,'texts')));
+  else if(['textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))execute('textAction',()=>textAction(s,context(s,'texts')));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))execute('homeBuildingAction',()=>homeBuildingAction(s,context(s,'home-building')));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))execute('homeAction',()=>homeAction(s,context(s,'homes')));
   else if (g.kind === 'storyAction') execute('storyAction',()=>storyAction(s,g.story,context(s,'stories')));
