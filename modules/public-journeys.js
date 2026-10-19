@@ -1,3 +1,4 @@
+import {boardFerry} from './ferry-actions.js';
 import {advanceNPCRoadCamp} from './road-stops.js';
 import {metricTravelRate} from './metric-route.js';
 import {areaScale,areaOffset,campPassage,physicalDistance} from '../geometry.js';
@@ -36,6 +37,7 @@ function report(s,p,text,ctx,kind='journey'){
 function configure(s,j,p){
   const next=j.path[j.index+1];j.remaining=j.segmentTicks=Math.ceil(20*areaScale(s.areas[p.area]));j.startX=p.x;
   j.endX=next?(Number(next.slice(1))>Number(p.area.slice(1))?100:0):42;p.facing=Math.sign(j.endX-p.x)||p.facing||1;
+  if(s.ferry&&next&&s.edges[[p.area,next].sort().join('|')]?.ferry===s.ferry?.id){j.endX=50;j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,50)/6));}
   const metric=next&&s.edges[[p.area,next].sort().join('|')]?.metric;if(metric)j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,j.endX)/metricTravelRate(s,p,metric).speed));
   const passage=next&&campPassage(s,p.area,next,p.id);if(passage){j.endX=passage.x??p.x;j.remaining=j.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,j.endX)/6));p.facing=Math.sign(j.endX-p.x)||p.facing||1;}
 }
@@ -72,6 +74,7 @@ export function advancePublicJourney(s,j,ctx){
   if(!npcAction(s,p,'journey'))return;
   j.lastTick=s.tick;j.elapsed++;
   if((p.roadStop||p.roadTransit)&&roadNeeds(s,p,ctx)){if(!p.alive)finish(s,j,p,ctx,'dead');return;}
+  if(p.ferryArrival){const a=p.ferryArrival;if(j.path[j.index+1]===a.to)j.index++;delete p.ferryArrival;observe(s,p);configure(s,j,p);return;}
   if(advanceNPCRoadCamp(s,p,ctx))return;
   if(p.status!=='travelling'||p.area!==j.path[j.index]){if(enabled(s,'npc-control'))finish(s,j,p,ctx,'stopped');return;}
   if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&j.elapsed>720){finish(s,j,p,ctx,'stopped');return;}
@@ -95,6 +98,7 @@ export function advancePublicJourney(s,j,ctx){
   const next=j.path[j.index+1];
   if(!next){finish(s,j,p,ctx,j.returning?'returned':'arrived');return;}
   if(!roadStillPresent(s,p.area,next)){forgetNPCRoad(p,p.area,next);turnBack(s,j,p,ctx);return;}
+  if(s.ferry&&s.edges[[p.area,next].sort().join('|')]?.ferry===s.ferry.id){boardFerry(s,p.id,next,ctx,{work:(p.agenda?.wealth||0)<6});return;}
   const ford=camp?{status:'clear'}:npcFordGate(s,p,next,j.endX===100?5:95,j,j.path.at(-1));if(ford.status!=='clear'){if(ford.status==='bypass'){j.path=[...j.path.slice(0,j.index),...ford.path];configure(s,j,p);}else if(['defer','unavailable','aborted'].includes(ford.status))turnBack(s,j,p,ctx);return;}
   const direction=j.endX===100?1:-1;p.area=next;p.x=camp?.arrival??(direction>0?5:95);j.index++;observe(s,p);configure(s,j,p);
 }

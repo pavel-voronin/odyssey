@@ -1,3 +1,6 @@
+import {ferryWorldTick} from './modules/ferry-actions.js';
+import {ferryOn} from './modules/ferry-state.js';
+import {createPortFerry} from './modules/ferry-source.js';
 import {createStableHorse} from './modules/horse-source.js';
 import {horseWorldTick,horseTurn,syncHorse,detachHorse} from './modules/horse-actions.js';
 import {groupHorse,horseMotion,ridingOn} from './modules/horse-state.js';
@@ -222,6 +225,7 @@ function connect(s, a, b,metadata={}) {
 function addArea(s, type, name, depth = 0,metadata={}) {
   const id = 'a' + s.nextArea++;
   const area = { id, type, name, depth, paletteVersion:2, links: [], visited: false, discovered: false, visits: 0, objects: [], expanded: false };
+  if(metadata.boatDeck){Object.assign(area,{boatDeck:metadata.boatDeck,expanded:true,length:50,forage:{stock:0,max:0,x:18,lastGrowth:s.tick,kind:'Палуба'},continent:metadata.continent,realm:metadata.realm,era:metadata.era,culture:metadata.culture,danger:0});s.areas[id]=area;registerSpatialArea(s,area);return id;}
   if(metadata.routeSite){Object.assign(area,{routeSite:metadata.routeSite,expanded:true,length:50,forage:{stock:0,max:0,x:18,lastGrowth:s.tick,kind:'Обочина дороги'},continent:metadata.continent,realm:metadata.realm,era:metadata.era,culture:metadata.culture,danger:0});s.areas[id]=area;registerSpatialArea(s,area);return id;}
   if(enabled(s,'long-roads')&&type==='road'&&depth>=2&&depth%4===2){area.length=260;area.roadProfile='long-tract';}
   const layoutShell=type==='dungeon'&&metadata.layoutRoom===true;
@@ -294,7 +298,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   const camp = addArea(s, 'camp', origin[4], 1);
   connect(s, road, town); connect(s, town, forest); connect(s, forest, ruins); connect(s, forest, camp);
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
-  createStableHorse(s);
+  createStableHorse(s);createPortFerry(s,{addArea,connect});
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);
@@ -310,7 +314,7 @@ function enter(s, id) {
   initializeLodging(s);
   const firstVisit=!visitedArea(s,a);h.area = id;syncCoverPosition(s);petPassageEntered(s);recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
   observePlaceRule(s,context(s,'place-rules'));
-  if(a.temporaryCamp||a.routeSite)return;
+  if(a.temporaryCamp||a.routeSite||a.boatDeck)return;
   if (firstVisit) { gainXp(s, 3 + (hasHabit(h, 'diary') ? 2 : 0)); log(s, `Открыто место: ${a.name}.`, 'discover'); }
   if (!h.memory.places.includes(id)) {const bonus=enchantedDiscovery(s,a,context(s,'enchantments'));if(bonus)gainXp(s,bonus);h.memory.places.push(id);}
   for (const link of a.links) if(!s.areas[link]?.temporaryCamp)revealArea(s,link);
@@ -750,7 +754,7 @@ export function advanceWorld(s) {
  initializeInteriors(s);
  initializeLodging(s);
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
- worldTick(s);horseWorldTick(s);syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
+ worldTick(s);horseWorldTick(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
   applyActorExternal(s,h);weaponTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
@@ -891,6 +895,7 @@ function actObserved(s) {
   if (h.area !== g.area) {
     const original=knownRoute(s,h.area,g.area),path=petPassagePath(s,g,fordDetour(s,h,g,g.area,original),id=>areaAvoided(s,id));next=path[1];if(!next){h.goal=null;return s;}
     target = Number(next.slice(1)) > Number(h.area.slice(1)) ? 100 : 0;
+    if(ferryOn(s)&&s.ferry?.ports.includes(h.area)&&s.edges[[h.area,next].sort().join('|')]?.mode==='sea')target=50;
     const passage=interiorPassage(s,h.area,next);if(passage){target=passage.x;if(!passage.allowed){if(['mechanism','lift'].includes(passage.kind)){if(passage.kind==='lift'?blockedLiftPlan(s,next,context(s,'mechanisms')):teamLeverPlan(s,next,context(s,'mechanisms'))||blockedGratePlan(s,next,context(s,'mechanisms')))return s;if(physicalDistance(a,h.x,target)<=1){h.goal=null;return s;}}else{h.goal=null;h.tavernAfter=s.tick+240;log(s,'Дверь закрыта. Он возвращается к другим делам.','plan');return s;}}}
   }
   if(positionAction(s,{...context(s,'dungeon-positions'),move,fight,enemyResponse:(world,enemy)=>{contactDelve(world,enemy);enemyResponse(world,enemy);}}))return s;

@@ -1,3 +1,4 @@
+import {ferryPoint} from './ferry-state.js';
 import {routeSiteAnchor,metricMapPoint} from './metric-map.js';
 import {geographyAnchor} from './geography-anchor.js';
 import {rootWorld} from '../world-ref.js';
@@ -82,6 +83,7 @@ export function actorSpatialAddress(input,h=input.hero){
  // NPC/group presence belongs to its existing controller, not the last drawn scene.
  const location=h.alive&&!selfDrivenActor(s,h)&&s.people[h.lineage]?personLocation(s,h.lineage):h;
  if(!location)return unknown(null,null,'missing-presence');
- if(location.transit){const t=location.transit;if(t.unknown)return unknown(null,null,'unknown-transit');const id=key(t.from,t.to),passage=spatialPassage(s,id),mapped=metricMapPoint(s,t);return {version:1,...(mapped||{}),status:mapped?'known':passage.status==='unknown'?'unknown':'partial',kind:'transit',actor:h.lineage,edge:passage.id||null,from:t.from,to:t.to,mode:t.mode??null,scene:null,point:mapped?.point??null,physicalProgress:t.metric?{travelled:t.metric.travelled,distance:t.metric.distance,unit:t.metric.unit}:null,departureVersion:t.metric?.departureVersion??null,geometryBasis:mapped?.geometryBasis??(t.metric?'departure-snapshot':'current-edge'),time:{remaining:t.remaining??null,total:t.total??null,unit:'tick'},passage};}
+ if(location.transit){const t=location.transit;if(t.unknown)return unknown(null,null,'unknown-transit');const id=key(t.from,t.to),passage=spatialPassage(s,id),mapped=t.ferry?ferryPoint(s,t):metricMapPoint(s,t);return {version:1,...(mapped||{}),status:mapped?'known':passage.status==='unknown'?'unknown':'partial',kind:'transit',actor:h.lineage,edge:passage.id||null,from:t.from,to:t.to,mode:t.mode??null,scene:null,point:mapped?.point??null,physicalProgress:t.ferry?{travelled:s.ferry.travelled,distance:s.ferry.distance,unit:'world'}:t.metric?{travelled:t.metric.travelled,distance:t.metric.distance,unit:t.metric.unit}:null,departureVersion:t.metric?.departureVersion??null,geometryBasis:mapped?.geometryBasis??(t.metric?'departure-snapshot':'current-edge'),time:{remaining:t.remaining??null,total:t.total??null,unit:'tick'},passage};}
+ if(s.areas[location.area]?.boatDeck){const mapped=ferryPoint(s,{ferry:{id:s.areas[location.area].boatDeck.ship}});if(mapped)return {version:1,...mapped,status:'known',kind:'scene',actor:h.lineage,scene:{area:location.area,x:location.x},layer:s.ferry.geometry.layer,precision:'vessel'};}
  return {...spatialAddress(s,location.area,location.x),kind:'scene',actor:h.lineage};
 }

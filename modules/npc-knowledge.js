@@ -22,7 +22,7 @@ export function observeNPCPlace(s,p){
   };
   remember(a,true);
   for(const id of a.links){const b=s.areas[id],edge=s.edges[key(a.id,id)];
-    if(!b||!['road','door',undefined].includes(edge?.mode)||a.era!==b.era||a.realm!==b.realm)continue;
+    if(!b||!(['road','door',undefined].includes(edge?.mode)||edge?.ferry===s.ferry?.id&&s.ferry?.ports.includes(a.id)&&s.ferry.ports.includes(b.id))||a.era!==b.era||a.realm!==b.realm)continue;
     if(a.temporaryCamp||b.temporaryCamp){const passage=campPassage(s,a.id,b.id,p.id);if(!passage?.allowed||!passage.exit&&physicalDistance(a,p.x,passage.x)>18)continue;}
     const place=remember(b);if(b.temporaryCamp?.site?.version===1)place.campSite={parent:a.id,x:b.temporaryCamp.site.parentX,seen:s.tick};if(s.edges[key(a.id,id)]?.metric||s.geographyFrame){nav.roadCosts ||= {};rememberRoadPrice(s,nav.roadCosts,a.id,id);}const road=nav.roads.find(e=>e.key===key(a.id,id));
     if(road)road.seen=s.tick;else nav.roads.push({key:key(a.id,id),from:a.id,to:id,seen:s.tick});
@@ -49,5 +49,5 @@ export function rememberNPCHazard(s,p){const place=p.navigation?.places.find(e=>
 export function forgetNPCRoad(p,from,to){if(p.navigation)p.navigation.roads=p.navigation.roads.filter(e=>e.key!==key(from,to));}
 export function roadStillPresent(s,from,to){
   const a=s.areas[from],b=s.areas[to],edge=s.edges[key(from,to)];
-  return Boolean(a?.links.includes(to)&&b&&(['road','door',undefined].includes(edge?.mode)||layoutStair(s,from,to))&&a.era===b.era&&a.realm===b.realm&&(!b.temporaryCamp||b.temporaryCamp.site?.version===1));
+  return Boolean(a?.links.includes(to)&&b&&(['road','door',undefined].includes(edge?.mode)||edge?.ferry===s.ferry?.id&&s.ferry?.ports.includes(from)&&s.ferry.ports.includes(to)||layoutStair(s,from,to))&&a.era===b.era&&a.realm===b.realm&&(!b.temporaryCamp||b.temporaryCamp.site?.version===1));
 }

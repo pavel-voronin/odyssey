@@ -1,3 +1,4 @@
+import {heroFerryBoard,ferryBodyTurn} from './ferry-actions.js';
 import {eat} from './supply.js';
 import {carriedFood} from './stores.js';
 import {startMetricTravel,advanceMetricTravel} from './metric-route.js';
@@ -110,6 +111,8 @@ export function beginTransit(s,next,arrivalX,ctx){
   if(!edge||!enabled(s,'travel')&&!lift)return false;
   if(lift&&physicalDistance(s.areas[h.area],h.x,Number(next.slice(1))>Number(h.area.slice(1))?100:0)>1)return true;
   if(edge.mode==='portal'&&!enabled(s,'portals')||edge.mode==='time'&&!enabled(s,'time')){if(s.geographyFrame){h.goal=null;h.lastAction='wait';return true;}return false;}
+  if(edge.ferry&&(s.rules.ferry===false||!enabled(s,'travel'))){h.goal=null;h.lastAction='wait';return true;}
+  if(!lift&&edge.mode==='sea'&&heroFerryBoard(s,next,ctx))return true;
   const cost=lift||profile(h).skill==='sea'&&edge.mode==='sea'?0:edge.cost;
   if(['portal','time'].includes(edge.mode))startInvitation(s,edge.mode,edgeKey(h.area,next));
   let crew=false;
@@ -124,6 +127,7 @@ export function beginTransit(s,next,arrivalX,ctx){
 }
 export function transitTick(s,ctx){
   const h=s.hero,t=h.transit;if(!t)return false;
+  if(t.ferry)return ferryBodyTurn(s,ctx);
   if(t.liftRide&&t.liftRide.lastTick===s.tick)return true;
   if(t.metric&&t.metric.lastTick!==s.tick&&enabled(s,'supply')&&h.hunger>75&&carriedFood(s.people[h.lineage],h.inventory)>0){const g=h.goal;eat(s,ctx);h.goal=g;t.metric.lastTick=s.tick;return true;}
   h.lastAction='travel';if(t.metric){advanceMetricTravel(s,h,t);}else{t.remaining--;if(t.liftRide){t.liftRide.remaining=t.remaining;t.liftRide.lastTick=s.tick;}h.energy=Math.max(0,h.energy-.2);}

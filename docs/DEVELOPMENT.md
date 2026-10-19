@@ -2559,3 +2559,13 @@ Pages221: Actions39178638209 success, HTML HTTP200/build4f0342f; commit5d55622c3
 PARTIAL31/31 exit0,1113мс, artifacts/checks/e6e3af4e717fc4e2.log; revision6cb2373c40e02be9.8малых групп seed0/1 +metric/containers/road-stops/smoke, ≤6actual мировых тиков либо ≤9изолированных действий на случай; 4offline. Browser3кадра320/390/320 осмотрены, одна лошадь/верховой/сумки, save не изменяется. Build пройден; full/SOAK/жизни/перебор не запускались.
 
 Опубликовано https://odyssey.kolpaque.dev:6cb2373c40e02be9;456 payload-хешей/HTTPS подтверждены, проверки переиспользованы. Pages222: Actions39182246359 success, HTML HTTP200/build8a75e4c; commit047afbba669d74ec8026e392b32bd471abab358a.
+
+
+<a id="stage-224"></a>
+## Этап224 · C-01.6 · один портовый паром
+
+Один actual port-constructor/владелец/капитан/палуба,130мер и общий рейс даже без героя; два конечных места и payload30. Билет6 либо нужная снастям работа, один событийный stream/сундук/шторм, NPC public journey и смена наблюдателя. Смерть/затопление сохраняют тело и оригиналы на палубе; сломанный причал останавливает судно. Старый committed voyage заканчивается прежним способом. Карта показывает vessel-snapshot, три тела на одной палубе. Код ferry-state/source/actions/schema, adapters travel/public-journeys/spatial/observation/scene; ferry.v1.
+
+PARTIAL31/31 exit0,1123мс, artifacts/checks/c52eb8eec8010076.log; revision322a8e9cffd253ef.8малых групп seed0/1, ≤18actual ticks/случай/4offline +horse/metric/road-stop/smoke; build. Browser3кадра320/390/320 осмотрены, view не меняет save. Full/SOAK/жизни/перебор не запускались. Опубликовано https://odyssey.kolpaque.dev:322a8e9cffd253ef;461 payload-хеш/HTTPS подтверждены, проверки переиспользованы.
+
+Pages223: Actions39184635613 success, HTML HTTP200/build6cb2373; commit2779756f2276e19b298ce98449b54b6a3c1ce970.

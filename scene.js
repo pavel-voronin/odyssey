@@ -1,3 +1,4 @@
+import {paintFerry} from './ferry-view.js';
 import {horses,horsePosition,riddenHorse} from './modules/horse-state.js';
 import {paintHorse} from './horse-view.js';
 import {withLimbLook} from './modules/limb-state.js';
@@ -69,7 +70,7 @@ export class Scene {
     this.output=this.ctx;this.grade=new SceneGrade(this.output);this.profileMode=profileMode;
     this.roadView=roadView;this.roadMap=new RoadMapRenderer();this.mode='scene';
     this.beastTracks=new ActorTracks();this.deathMotion=new DeathMotion();this.cameraTrack=new CameraTrack();this.onCameraFrame=onCameraFrame;
-    for(const name of ['horse','person','tree','ruin','cart','pet','formedCreature','quadruped','wolf','guard','creature','fire','sign']){const paint=this[name];this[name]=(...args)=>{const ground=name==='person'&&Number.isFinite(args[10]?.supportGround)?args[10].supportGround:args[1],restore=billboardFrame(this.ctx,this.camera,args[0],ground,this.pixelRatio);try{return paint.apply(this,args);}finally{restore();}};}
+    for(const name of ['ferryHull','horse','person','tree','ruin','cart','pet','formedCreature','quadruped','wolf','guard','creature','fire','sign']){const paint=this[name];this[name]=(...args)=>{const ground=name==='person'&&Number.isFinite(args[10]?.supportGround)?args[10].supportGround:args[1],restore=billboardFrame(this.ctx,this.camera,args[0],ground,this.pixelRatio);try{return paint.apply(this,args);}finally{restore();}};}
     this.media=matchMedia('(prefers-reduced-motion: reduce)');this.reduced=this.media.matches;this.frame=null;
     this.motionChanged=event=>{this.reduced=event.matches;this.redraw();};this.media.addEventListener('change',this.motionChanged);
     this.visibilityChanged=()=>this.redraw();document.addEventListener('visibilitychange',this.visibilityChanged);
@@ -93,7 +94,7 @@ export class Scene {
     if(replaced)this.beastTracks=new ActorTracks();
     const identity=`${state.seed}/${state.generation}/${state.hero.lineage}`,sceneKey=state.hero.transit?`travel:${state.hero.transit.from}:${state.hero.transit.to}`:state.hero.area;
     const same = this.area === sceneKey&&this.identity===identity;
-    const x=state.hero.transit?50:state.hero.x;
+    const x=state.hero.transit&&!state.hero.transit.ferry?50:state.hero.x;
     this.beastTracks.update(state,`${identity}/${sceneKey}`);
     if(this.tick!==state.tick||!same||this.previousX!==x||replaced){
       this.actionObserved=!replaced&&same&&state.tick===this.tick+1;
@@ -319,6 +320,7 @@ export class Scene {
       const sleeping=p.roadStop?.phase==='rest'||s.rules?.['npc-road-needs']!==false&&s.rules?.['npc-needs']!==false&&p.needs?.sleeping;this.person(px,ground,look?.cloak||'#ad9872',false,direction,0,false,sleeping,look,s.rules?.lineage===false?null:race(p.race),{kind:sleeping?'rest':moving?'walk':'idle',progress:phase,walking:moving&&!sleeping,distance:Math.abs((track?.to??0)-(track?.from??0))*(w-48)/100});if(sleeping){c.fillStyle='#bcd18e';c.font='12px Georgia';c.fillText('z',px+12,ground-43);}
     }
     canvas.dataset.travellers=String(travellersDrawn);
+    const vessel=a.boatDeck?.ship===s.ferry?.id?s.ferry:null;canvas.dataset.ferry=vessel?.id||'';if(vessel){this.ferryHull(w/2,ground,w-28,vessel);for(const id of [vessel.captain,...Object.keys(vessel.passengers)]){if(id===h.lineage)continue;const person=s.people[id];if(!person?.alive)continue;const look=looks(person,person.appearance);this.person(screenX(person.x),ground,look?.cloak||'#a89e77',false,1,0,false,false,look,s.rules?.lineage===false?null:race(person.race),{kind:'idle',progress:phase});}}else if(s.ferry?.phase==='docked'&&s.ferry.port===a.id)this.ferryHull(screenX(50),ground,90,s.ferry);
     let detailedDrawn=0;
     if(!h.transit)for(const other of Object.values(s.actorStates||{}))if(other!==h&&selfDrivenActor(s,other)&&!other.transit&&other.area===a.id){
       detailedDrawn++;const track=this.beastTracks.tracks.get(other.lineage),from=track?.from??other.x,to=track?.to??other.x,walking=animate&&from!==to&&phase<1,px=screenX(from+(to-from)*phase),direction=track?.direction||other.facing||1;
@@ -575,6 +577,7 @@ export class Scene {
     const contours=this.contours||(this.contours=new ContourCache());this.castContourShadow(contours.world(body.polygons,matrix),{x:matrix.e,y:matrix.f},hero);
     c.save();c.translate(x,y);body.replay(c);c.restore();
   }
+  ferryHull(x,y,width,f){paintFerry(this.ctx,x,y,width,f);}
   horse(x,y,m,pose){this.castShadow(x,y,38,m.hp>0?62:16);paintHorse(this.ctx,x,y,m,pose);}
   paintPerson(x, y, color, hero, direction, stride, attack = false, rest = false, appearance=null, species=null,pose={}) {
     const c=this.ctx,look=appearance||{},gait=pose.walking?walkPose(pose.progress,pose.distance):{feet:[{x:-4,y:0},{x:5,y:0}],bodyY:0,arm:0};
