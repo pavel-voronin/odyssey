@@ -1,3 +1,5 @@
+import {assetRaidTurn} from './asset-raids.js';
+import {strikeRaidGuard} from './raid-guard.js';
 import {personLocation} from '../person-location.js';
 import {personNeeds} from './needs.js';
 import {hostileLifeOn,claimHostileAction} from './hostile-state.js';
@@ -55,10 +57,7 @@ function raid(s,p,e,g,ctx,contacts){
  if(!victim?.alive||victim.needs?.sleeping||!at||physicalDistance(s.areas[p.area],p.x,at.x)>3){record(s,p,'missed',{person:g.person});q.goal=null;return;}
  const defenders=contacts.filter(({p:other})=>other.id!==p.id&&other.alive&&!other.needs?.sleeping&&npcController(s,other)==='personal'&&canStartNPCActivity(s,other)&&other.needs.energy>=10&&(other.agenda.job==='guard'||other.id===victim.id&&other.agenda.duty>.7)).filter(d=>d.at&&physicalDistance(s.areas[p.area],d.at.x,at.x)<=12);
  const defender=defenders.find(d=>d.p.agenda.job==='guard')?.p||defenders[0]?.p;
- if(defender&&npcAction(s,defender,'personal','raid-defense')){
-  defender.raidDefenseTick=s.tick;personNeeds(s,defender,ctx,{onlyUpkeep:true,migration:false});if(defender.alive){defender.needs.energy-=2;const weapon=canHoldWeapon(defender)?guardWeapon(s,defender):null,damage=Math.max(1,Math.floor((2+(weapon?.power||0))*woundForce(s,defender))),before=e.hp;e.hp=Math.max(0,e.hp-damage);p.health=e.hp;record(s,p,'defended',{person:defender.id,before,after:e.hp});
-  q.known.danger={person:defender.id,x:at.x,seen:s.tick};}
- }
+ strikeRaidGuard(s,p,e,defender,ctx,record,at.x);
  const before=carriedFood(victim,victim.actorLink?.inventory),taken=e.hp>0&&consumeCarriedSupplies(victim,null,'food',1)?1:0;
  if(taken){p.roadSupplies.food++;q.supplies.raided++;}
  const receipt={id:p.id+'/raid/'+(++q.raids),person:victim.id,area:p.area,x:at.x,before,after:carriedFood(victim,victim.actorLink?.inventory),amount:taken};witnesses(s,p,victim,at.x,receipt,ctx,contacts);record(s,p,'raid',receipt);q.goal=null;
@@ -67,6 +66,7 @@ function raid(s,p,e,g,ctx,contacts){
 function act(s,p,e,ctx,contacts){
  const q=p.hostileLife,n=p.needs,a=s.areas[p.area];observe(s,p,e,contacts);if(n.sleeping&&n.hunger>=65)n.sleeping=false;
  if(n.hunger>=65&&carriedFood(p,p.actorLink?.inventory)>=1){if(!claimHostileAction(s,p,'eat'))return;consumeCarriedSupplies(p,null,'food',1);n.hunger=Math.max(0,n.hunger-48);n.meals++;q.supplies.eaten++;record(s,p,'meal');ownMessage(s,p,ctx,p.name+' съедает порцию из собственной поклажи. Запас уменьшается.');q.goal=null;return;}
+ if(assetRaidTurn(s,p,e,ctx,contacts))return;
  if(!q.goal||q.goal.kind==='camp'&&n.hunger>=65&&!carriedFood(p,p.actorLink?.inventory)||q.goal.kind==='forage'&&(!q.known.forage?.available||q.known.forage.stock===0))q.goal=choose(s,p,e);
  const g=q.goal;
  if(physicalDistance(a,p.x,g.x)>2){if(!claimHostileAction(s,p,'walk'))return;const before=p.x;p.x+=areaStep(a,p.x,g.x,6*woundStride(s,p));e.x=p.x;e.facing=Math.sign(p.x-before)||e.facing;n.energy=Math.max(0,n.energy-1);n.sleeping=false;woundActivity(s,p,'leg');return;}

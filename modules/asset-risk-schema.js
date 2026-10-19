@@ -1,0 +1,16 @@
+export function validateAssetRisk(s,fail){
+ const int=(n,min=0)=>Number.isSafeInteger(n)&&n>=min,tick=n=>int(n)&&n<=s.tick,x=n=>Number.isFinite(n)&&n>=0&&n<=100;
+ const object=(area,id)=>s.areas[area]?.objects.find(o=>o.id===id&&o.kind==='supplyCache');
+ for(const p of Object.values(s.people)){
+  if(p.storeWatchTick!==undefined&&!tick(p.storeWatchTick))fail(p.id+'.storeWatchTick');
+  const m=p.assetRaid;if(m){if(m.version!==1||!p.hostileLife||!Array.isArray(m.known)||m.known.length>8||!int(m.serial)||!Array.isArray(m.history)||m.history.length>12)fail(p.id+'.assetRaid');for(const k of m.known)if(!object(k.area,k.object)||!x(k.x)||typeof k.owner!=='string'||!int(k.food)||!tick(k.seen)||!int(k.after)||k.guard!==null&&!s.people[k.guard]||!int(k.barrier)||k.barrier>2)fail(p.id+'.assetKnowledge');if(m.plan&&(!object(m.plan.area,m.plan.object)||!x(m.plan.x)||!tick(m.plan.started)||!m.known.some(k=>k.object===m.plan.object)))fail(p.id+'.assetPlan');for(const e of m.history)if(!tick(e.at)||!['avoid','recon','driven','blocked','died','barrier','taken','empty'].includes(e.kind)||typeof e.object!=='string')fail(p.id+'.assetHistory');}
+  const w=p.storeWatch;if(w&&(w.version!==1||!s.people[w.owner]||!object(w.area,w.object)||!tick(w.started)||w.until!==w.started+96||w.wage!==4||w.food!==2||!int(w.walletBefore)||w.walletAfter-w.walletBefore!==4||!int(w.foodAfter)||w.foodBefore-w.foodAfter!==2||!int(w.lastTick,-1)||w.lastTick>s.tick))fail(p.id+'.storeWatch');
+  if(p.storeWatchHistory&&(!Array.isArray(p.storeWatchHistory)||p.storeWatchHistory.length>8||p.storeWatchHistory.some(w=>!object(w.area,w.object)||!tick(w.started)||!tick(w.ended)||w.started>w.ended||w.reason!=='reassigned')))fail(p.id+'.watchHistory');
+  if(p.assetWarnings&&(!Array.isArray(p.assetWarnings)||p.assetWarnings.length>8||p.assetWarnings.some(n=>!tick(n.at)||!s.people[n.actor]?.hostileLife||!object(n.area,n.object)||!['witness','loss'].includes(n.mode)||n.mode==='loss'&&(!int(n.amount,1)||n.amount>4||typeof n.receipt!=='string'))))fail(p.id+'.assetWarnings');
+  const a=p.assetDefenseAttempt;if(a&&(!tick(a.at)||!int(a.until)||a.until<a.at||typeof a.object!=='string'))fail(p.id+'.assetDefenseAttempt');
+ }
+ for(const a of Object.values(s.areas))for(const o of a.objects){
+  if(o.raidLosses){if(o.kind!=='supplyCache'||!Array.isArray(o.raidLosses)||o.raidLosses.length>12)fail(o.id+'.raidLosses');for(const r of o.raidLosses){const m=s.people[r.actor]?.assetRaid,serial=Number(r.id?.split('/').at(-1));if(!m||!tick(r.at)||typeof r.owner!=='string'||!int(r.before)||!int(r.after)||!int(r.amount,1)||r.amount>4||r.before-r.after!==r.amount||r.id!==r.actor+'/asset/'+serial||!int(serial,1)||serial>m.serial||!Array.isArray(r.witnesses)||r.witnesses.length>16||r.witnesses.some(id=>!s.people[id]))fail(o.id+'.raidLoss');}}
+  const f=o.stockade;if(f){const m=f.material;if(o.kind!=='supplyCache'||f.version!==1||!s.people[f.by]||!tick(f.at)||!tick(f.lastTick)||f.lastTick<f.at||!int(f.progress)||f.progress>3||f.required!==3||!int(f.current)||f.current>2||f.max!==2||f.progress<3&&f.current!==0||!m||typeof m.source!=='string'||!int(m.rawAfter)||m.rawBefore-m.rawAfter!==2||!int(m.toolsAfter)||m.toolsBefore-m.toolsAfter!==1)fail(o.id+'.stockade');}
+ }
+}

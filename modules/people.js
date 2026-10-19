@@ -1,3 +1,4 @@
+import {npcStoreWatch} from './asset-defense.js';
 import {patronageOn,npcPatronagePlan,finishPatronWork,patronSale} from './patronage.js';
 import {npcInheritedPayout} from './production-partnership.js';
 import {npcProductionPlan,finishFinancedWork,productionSale,productionFinanceOn} from './production-finance.js';
@@ -287,6 +288,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(npcStoreWatch(s,p,ctx))continue;
     if(npcInheritedPayout(s,p,ctx))continue;
     if(npcQuakeRepair(s,p,ctx))continue;
     if(npcMechanicTurn(s,p,ctx))continue;
