@@ -1,3 +1,5 @@
+import {npcEstateClaimPlan,estateClaimAction,estateResponse} from './estate-claims.js';
+import {estateClaimsOn,shareEstateKnowledge} from './estate-claim-state.js';
 import {ruinRecoveryOn} from './ruin-return-state.js';
 import {harvestFactor} from './harvest-failure-state.js';
 import {neighborHousingPlan,neighborHousingAction,neighborRestPlan,neighborHostTurn} from './neighbor-housing.js';
@@ -133,6 +135,7 @@ function plan(s,p,ctx){
   if(planAidRequest(s,p,ctx))return;
   if(homeBuildingNPCTask(s,p))return;
   const credit=npcCreditTask(s,p);if(credit){m.task=credit;return;}
+  const estateClaim=npcEstateClaimPlan(s,p);if(estateClaim){m.task=estateClaim;return;}
   const moneyCache=npcMoneyCachePlan(s,p);if(moneyCache){m.task=moneyCache;return;}
   const routeMap=npcRouteMapPlan(s,p);if(routeMap){m.task=routeMap;return;}
   const mapCopy=npcMapCopyPlan(s,p);if(mapCopy){m.task=mapCopy;return;}
@@ -216,6 +219,7 @@ function moveTask(s,p,ctx){
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
   if(t.kind==='refugeSurvey'){const found=finishRefugeSurvey(s,p);tell(s,p,found?`${p.name} обследует участок: здесь есть родник и известное место сбора пищи.`:`${p.name} обследует участок, но надёжной воды не находит.`,ctx);m.task=t.home?{kind:'return',target:t.home,x:42,remaining:1}:null;m.due=s.tick+8;return;}
+  if(t.kind==='inheritanceClaim'){estateClaimAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='moneyCache'){const amount=takeBuriedMoney(s,p,t.cache,8);if(amount)tell(s,p,`${p.name} забирает из известного тайника ◈${amount}.`,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='routeMap'){npcRouteMapAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='mapCopy'){mapCopyAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
@@ -248,7 +252,7 @@ function finish(s,p,ctx){
     const other=s.people[t.person];
     const body=enabled(s,'npc-contacts')?localContact(s,t.person,p.area):null;
     const met=enabled(s,'npc-contacts')?Boolean(body&&Math.abs(body.x-p.x)*areaScale(s.areas[p.area])<12):Boolean(other?.alive&&other.area===p.area);
-    if(met){shareMarketKnowledge(s,p.id,other.id);shareMarketKnowledge(s,other.id,p.id);m.visits++;m.lastVisit=s.tick;m.bonds[other.id]=(m.bonds[other.id]||0)+5;other.agenda.bonds[p.id]=(other.agenda.bonds[p.id]||0)+5;observeNPCContacts(s,p);observeNPCContacts(s,other);tell(s,p,`${p.name} навестил ${other.name}. Родственники обменялись вестями, связь стала теплее.`,ctx);}
+    if(met){shareEstateKnowledge(s,p,other);shareEstateKnowledge(s,other,p);shareMarketKnowledge(s,p.id,other.id);shareMarketKnowledge(s,other.id,p.id);m.visits++;m.lastVisit=s.tick;m.bonds[other.id]=(m.bonds[other.id]||0)+5;other.agenda.bonds[p.id]=(other.agenda.bonds[p.id]||0)+5;observeNPCContacts(s,p);observeNPCContacts(s,other);tell(s,p,`${p.name} навестил ${other.name}. Родственники обменялись вестями, связь стала теплее.`,ctx);}
     else if(enabled(s,'npc-contacts')){m.lastVisit=s.tick;missContact(s,p,t.person);tell(s,p,`${p.name} не застал родных по прежнему адресу. Где они теперь, он пока не знает.`,ctx);}
     if(t.personal)finishPersonalVisit(s,p,met);
     begin(p,'return',t.home,42,1,{...(t.knownNavigation?{knownNavigation:true}:{})});return;
@@ -297,6 +301,7 @@ export function peopleTick(s,ctx){
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
     if(neighborHostTurn(s,p,ctx))continue;
+    if(estateResponse(s,p))continue;
     prepareFoundation(s,p);
     if(npcStoreWatch(s,p,ctx))continue;
     if(npcInheritedPayout(s,p,ctx))continue;
@@ -340,6 +345,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='refitBench'&&!npcRefitWait(s,p))continue;
     if(p.agenda.task?.kind==='itemRepairBench'&&!npcItemRepairWait(s,p))continue;
     if(p.agenda.task?.ruin&&!ruinRecoveryOn(s))continue;
+    if(p.agenda.task?.kind==='inheritanceClaim'&&!estateClaimsOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;
     if(p.agenda.task?.kind==='propertyRepair'&&(!enabled(s,'property')||!enabled(s,'property-damage')))continue;
     if(p.agenda.task?.kind==='toolMend'&&(!enabled(s,'workshop-tools')||!enabled(s,'property')||p.agenda.task.methodSource==='npc-paid-lessons'&&!enabled(s,'mentor-journeys'))){p.agenda.toolMendPending=p.agenda.task;p.agenda.task=null;}

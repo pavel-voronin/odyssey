@@ -1,3 +1,4 @@
+import {validateEstateClaims} from './modules/estate-claim-schema.js';
 import {validateRuinReturns} from './modules/ruin-return-schema.js';
 import {validateHarvestFailures,validateHarvestShortfalls} from './modules/harvest-failure-schema.js';
 import {validateDwellings} from './modules/dwelling-schema.js';
@@ -201,7 +202,7 @@ export function validateSave(s){
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);
- validateMigrationKnowledge(s,fail);validateRefuges(s,fail);validateFoundations(s,fail);validateNeighborHousing(s,fail);validateDwellings(s,fail);validateRuinReturns(s,fail);
+ validateMigrationKnowledge(s,fail);validateRefuges(s,fail);validateFoundations(s,fail);validateNeighborHousing(s,fail);validateDwellings(s,fail);validateRuinReturns(s,fail);validateEstateClaims(s,fail);
  for(const life of s.lives){fields(life,['generation','lineage','born','ended','outcome','cause','name','items','timeline'],'life');if(life.outcome!=='dead'||!s.people[life.lineage])fail('life.outcome');integer(life.born,'life.born');integer(life.ended,'life.ended');if(life.ended<life.born||life.ended>s.tick)fail('life.ended');if(own(life,'portraitSnapshot')){const q=life.portraitSnapshot;fields(q,['version','race','alive','look'],'life.portraitSnapshot');if(q.version!==1||q.alive!==false||q.race!==null&&!RACES.some(r=>r.id===q.race)||!object(q.look)||!['skin','hair','hairStyle','hat'].every(k=>typeof q.look[k]==='string')||!Array.isArray(q.look.injuryMarks)||q.look.injuryMarks.some(m=>!object(m)||!['scar','burn'].includes(m.kind)||!['face','cap','plating'].includes(m.part)))fail('life.portraitSnapshot');}}
  fields(s.society,['events','journeys','orders','nextEvent','nextEnemy'],'society');
  fields(s.logistics,['convoys','nextConvoy','nextDispatch','deliveries','losses','history'],'logistics');
@@ -399,8 +400,8 @@ export function validateSave(s){
   }
   if(own(p,'estate')){
    const e=p.estate,key=id+'.estate';fields(e,['version','id','opened','heir','total','cash','paid','status','assets'],key);for(const k of ['opened','total','cash','paid'])integer(e[k],key+'.'+k);array(e.assets,key+'.assets');
-   if(e.version!==1||p.alive||e.opened!==p.died||e.opened>s.tick||e.id!==`estate/${id}/${e.opened}`||e.heir!==null&&!s.people[e.heir]||e.cash+e.paid!==e.total||!['pending','distributed'].includes(e.status)||e.status==='distributed'&&(e.cash!==0||e.heir===null))fail(key);
-   for(const a of e.assets){fields(a,['kind','area','id'],key+'.asset');if(!s.areas[a.area]||typeof a.id!=='string'||!['property','money-cache','death-cache','item','route-map','map-copy','production-right'].includes(a.kind))fail(key+'.asset');}
+   if(e.version!==1||p.alive||e.opened!==p.died||e.opened>s.tick||e.id!==`estate/${id}/${e.opened}`||e.heir!==null&&!s.people[e.heir]||e.cash+e.paid!==e.total||!['pending','distributed','claimed'].includes(e.status)||e.status==='distributed'&&(e.cash!==0||e.heir===null&&!e.heirHistory?.length))fail(key);
+   for(const a of e.assets){fields(a,['kind','area','id'],key+'.asset');if(!s.areas[a.area]||typeof a.id!=='string'||!['property','money-cache','death-cache','item','route-map','map-copy','production-right','estate-claim'].includes(a.kind))fail(key+'.asset');}
   }
   if(own(p,'moneyCaches')){
    const m=p.moneyCaches,key=id+'.moneyCaches';fields(m,['version','places','lastActionTick','after'],key);array(m.places,key+'.places');integer(m.lastActionTick,key+'.lastActionTick',-1);integer(m.after,key+'.after');

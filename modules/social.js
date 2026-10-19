@@ -1,3 +1,4 @@
+import {shareEstateKnowledge} from './estate-claim-state.js';
 import {supportedPatient} from './patient-state.js';
 import {custodyTrace} from './pet-custody-state.js';
 import {petPack,petNear,packPetTrace} from './pack-pet-state.js';
@@ -27,6 +28,7 @@ export function initializeSocial(s,h){
   h.memory.npcNotes ||= {};
 }
 export function meetPerson(s,id,ctx,trust=1){
+  if(s.people[id]){shareEstateKnowledge(s,s.people[id],s.people[s.hero.lineage]);shareEstateKnowledge(s,s.people[s.hero.lineage],s.people[id]);}
   shareMoneyCacheAddresses(s,id,s.hero.lineage);shareMoneyCacheAddresses(s,s.hero.lineage,id);
   shareRouteMapReports(s,id,s.hero.lineage);shareRouteMapReports(s,s.hero.lineage,id);
   shareBestiary(s,id,s.hero.lineage);shareBestiary(s,s.hero.lineage,id);

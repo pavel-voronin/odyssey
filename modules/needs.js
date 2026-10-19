@@ -1,3 +1,4 @@
+import {shareEstateKnowledge} from './estate-claim-state.js';
 import {fieldMedicineCost} from './skill-branches.js';
 import {recordPersonRemains} from './remains.js';
 import {migrationMeal,migrationAid} from './migrations.js';
@@ -38,7 +39,7 @@ export function personNeeds(s,p,ctx,adapter=null){
   }
   if(n.loneliness>65&&adapter?.social!==false&&!adapter?.onlyUpkeep){
     const other=(a.population||[]).map(id=>s.people[id]).find(q=>q?.alive&&q.id!==p.id&&q.area===p.area&&q.status==='resident');
-    if(other){initializeNeeds(other);shareMarketKnowledge(s,p.id,other.id);shareMarketKnowledge(s,other.id,p.id);n.loneliness=Math.max(0,n.loneliness-45);other.needs.loneliness=Math.max(0,other.needs.loneliness-25);n.conversations++;p.agenda.bonds[other.id]=(p.agenda.bonds[other.id]||0)+1;other.agenda.bonds[p.id]=(other.agenda.bonds[p.id]||0)+1;return true;}
+    if(other){initializeNeeds(other);shareEstateKnowledge(s,p,other);shareEstateKnowledge(s,other,p);shareMarketKnowledge(s,p.id,other.id);shareMarketKnowledge(s,other.id,p.id);n.loneliness=Math.max(0,n.loneliness-45);other.needs.loneliness=Math.max(0,other.needs.loneliness-25);n.conversations++;p.agenda.bonds[other.id]=(p.agenda.bonds[other.id]||0)+1;other.agenda.bonds[p.id]=(other.agenda.bonds[p.id]||0)+1;return true;}
   }
   return false;
 }

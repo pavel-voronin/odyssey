@@ -1,3 +1,4 @@
+import {estateClaimPlan,estateClaimAction} from './modules/estate-claims.js';
 import {harvestFailureTick} from './modules/harvest-failure.js';
 import {installMigrationEmployment} from './modules/migration-service.js';
 import {earthquakesTick} from './modules/earthquakes.js';
@@ -464,6 +465,7 @@ function plan(s) {
   if(!q&&offer('patronagePlan',()=>patronagePlan(s,context(s,'patronage'))))return planningSpent;
   if(!q&&offer('productionPartnerPlan',()=>productionPartnerPlan(s,context(s,'production-finance'))))return planningSpent;
   if(!q&&offer('productionFinancePlan',()=>productionFinancePlan(s,context(s,'production-finance'))))return planningSpent;
+  if(!q&&offer('estateClaimPlan',()=>estateClaimPlan(s,context(s,'estate-claims'))))return planningSpent;
   if(!q&&offer('moneyCachePlan',()=>moneyCachePlan(s,context(s,'finances'))))return planningSpent;
   if(!q&&offer('routeMapPlan',()=>routeMapPlan(s,context(s,'route-maps'))))return planningSpent;
   if(!q&&offer('mapCopyPlan',()=>mapCopyPlan(s,context(s,'route-maps'))))return planningSpent;
@@ -1102,6 +1104,7 @@ function actObserved(s) {
   else if(g.kind==='productionReview')execute('reviewProduction',()=>reviewProduction(s,context(s,'production-finance')));
   else if(g.kind==='productionFund')execute('fundProduction',()=>fundProduction(s,context(s,'production-finance')));
   else if(g.kind==='productionPayout')execute('collectProduction',()=>collectProduction(s,context(s,'production-finance')));
+  else if(g.kind==='inheritanceClaim')execute('estateClaimAction',()=>{const ok=estateClaimAction(s,s.people[h.lineage],g,context(s,'estate-claims'));h.goal=null;return ok;});
   else if (g.kind === 'moneyCache') execute('moneyCacheAction',()=>moneyCacheAction(s,context(s,'finances')));
   else if (g.kind === 'routeMap') execute('routeMapAction',()=>routeMapAction(s,context(s,'route-maps')));
   else if (g.kind === 'mapCopy') execute('mapCopyAction',()=>mapCopyAction(s,s.people[h.lineage],g,context(s,'route-maps')));

@@ -1,3 +1,5 @@
+import {recordEstatePickup} from './estate-pickup.js';
+import {observeEstateClaims,estateClaimsOn,estateById,estateSource} from './estate-claim-state.js';
 import {petItemsAt,petPack} from './pack-pet-state.js';
 import {containersOn,packView,fitsPack} from './container-state.js';
 import {enabled} from '../rules.js';
@@ -51,10 +53,10 @@ export function npcCachePlan(s,p){
 }
 export function npcTakeCache(s,p,t){
  if(!originalsOn(s))return 0;const a=s.areas[p.area],o=a?.objects.find(o=>o.id===t.object);if(!o||o.itemOriginals!==1||o.taken||p.area!==t.target||physicalDistance(a,p.x,o.x)>1)return 0;
- const bag=npcLooseItems(s,p),picked=[];for(const item of o.items){if(containersOn(s)?fitsPack(s,p.id,{items:[...bag,...picked,item]}):bag.length+picked.length<ITEM_CAPACITY)picked.push(item);}const count=picked.length;if(!count)return 0;
+ if(o.estate&&estateClaimsOn(s)&&estateSource(s,estateById(s,o.estate))?.transit)return 0;if(o.estate)observeEstateClaims(s,p);const bag=npcLooseItems(s,p),picked=[];for(const item of o.items){if(containersOn(s)?fitsPack(s,p.id,{items:[...bag,...picked,item]}):bag.length+picked.length<ITEM_CAPACITY)picked.push(item);}const count=picked.length;if(!count)return 0;
  for(const item of picked){o.items.splice(o.items.indexOf(item),1);}
  for(const item of picked){bag.push(item);actorItemLocation(s,item,p.id);item.history ||= [];item.history.push({tick:s.tick,text:`Подобрано: ${p.name}.`});}
- o.taken=o.items.length===0&&!(o.gold>0);return count;
+ o.taken=o.items.length===0&&!(o.gold>0);if(o.estate)recordEstatePickup(s,p,o,picked);return count;
 }
 export function releaseLooseItems(s,p){
  if(p.alive)return;const h=s.actorStates?.[p.id],items=h?.actorMode==='npc'?[...h.bag,...Object.values(h.equipment).filter(Boolean)].filter(i=>i.physical?.version===1):p.looseItems;

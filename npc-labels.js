@@ -1,5 +1,6 @@
 export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится'};
 export const NPC_TASKS={
+ inheritanceClaim:'Идёт за наследственным имуществом или обсуждает претензию',
  feastJoin:'Идёт на местный праздник по приглашению',
  literacyStudy:'Учится отдельному навыку письма и языка',textAloud:'Слушает доступного читателя',literacySell:'Предлагает свой непрочитанный экземпляр',
  sequenceWrite:'Записывает лично узнанный порядок механизма',sequenceAdvice:'Делится известной последовательностью',

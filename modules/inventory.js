@@ -1,3 +1,5 @@
+import {estateClaimsOn,observeEstateClaims,estateById,estateSource} from './estate-claim-state.js';
+import {recordEstatePickup} from './estate-pickup.js';
 import {practicalClothingOn,clothingKind} from './clothing-state.js';
 import {navigationToolsOn,isRopeItem} from './navigation-tool-state.js';
 import {reserveArmor,refreshReserve,spareNeedsMoney} from './spare-outfit.js';
@@ -71,6 +73,8 @@ export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=fal
 }
 
 export function recoverHeirloom(s,object,ctx){
+  if(estateClaimsOn(s)&&object.estate&&(estateSource(s,estateById(s,object.estate))?.transit||s.hero.transit||!s.areas[s.hero.area]?.objects.includes(object)||physicalDistance(s.areas[s.hero.area],s.hero.x,object.x)>1))return;
+  const estateBefore=estateClaimsOn(s)&&object.estate?[...(object.items||[])]:[];if(estateBefore.length)observeEstateClaims(s,s.people[s.hero.lineage]);
   if(object.taken||containersOn(s)&&(s.hero.transit||!s.areas[s.hero.area]?.objects.includes(object)||physicalDistance(s.areas[s.hero.area],s.hero.x,object.x)>1))return;
   s.hero.gold+=object.gold||0;object.gold=0;
   if(enabled(s,'equipment')){
@@ -79,6 +83,7 @@ export function recoverHeirloom(s,object,ctx){
     else {const items=object.items.splice(0,physical?Math.max(0,ITEM_CAPACITY-s.hero.bag.length):object.items.length);for(const item of items)receiveItem(s,ctx,null,item);}
   }
   object.taken=object.items.length===0;
+  if(estateBefore.length)recordEstatePickup(s,s.people[s.hero.lineage],object,estateBefore.filter(i=>!object.items.includes(i)));
   ctx.log(s,`Найдена поклажа прежнего путника: ${object.name}. Вещи продолжают историю.`,'heritage');
 }
 
