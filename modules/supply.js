@@ -112,6 +112,7 @@ export function forageTick(s,ctx){
   h.goal=null;
 }
 export function restAmount(s,a){
+  if(enabled(s,'body')&&s.hero.hunger>90)return 0;
   if(enabled(s,'service-access')&&isTown(a)){
     if(Math.abs(s.hero.x-68)*areaScale(a)>=2)return 2;
     if(!actualService(s,a,'clinic').available){rememberService(s,a,'clinic');return 2;}

@@ -1,3 +1,4 @@
+import {admitAction,dependency,preparationAccepted,preparationProgress} from './modules/action-admission.js';
 import {remainsByArea} from './modules/remains-cycle-state.js';
 import {predatorCarrionTurn} from './modules/predator-carrion.js';
 import {burialPlan,burialAction,settleBurialWork} from './modules/burial-work.js';
@@ -226,7 +227,7 @@ export function random(s) {
   return s.rng / 4294967296;
 }
 const roll = (s, n) => Math.floor(random(s) * n);
-function context(s, stream) { return { dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { methodRevision, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
   if(observingBodyActive(s)||type==='death'||type==='retirement')rememberMoment(s,s.journal[0]);else s.journal[0].afterLife=true;
@@ -411,7 +412,7 @@ function plan(s) {
   if(offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'),{lesson:false})))return planningSpent;
   if(a.interior){if(a.interior.kind==='workshop'&&(offer('itemRepairPlan',()=>itemRepairPlan(s,context(s,'item-wear')))||offer('toolPlan',()=>toolPlan(s,context(s,'workshop-tools')))||offer('refitPlan',()=>refitPlan(s,context(s,'knife-refit')))||offer('forgePlan',()=>forgePlan(s,context(s,'forging')))))return planningSpent;if(offer('lodgingPlan',()=>lodgingPlan(s,context(s,'lodging'))))return planningSpent;if(a.interior.kind==='room'&&!q&&(offer('librarySecurityPlan',()=>librarySecurityPlan(s,context(s,'library-security')))||offer('libraryPlan',()=>libraryPlan(s,context(s,'libraries')))||offer('textPlan',()=>textPlan(s,context(s,'texts')))||offer('homePlan',()=>homePlan(s,context(s,'homes')))))return planningSpent;if(offer('tavernPlan',()=>tavernPlan(s,context(s,'interiors'))))return planningSpent;}
   if(a.temporaryCamp){leaveCamp(s,context(s,'fieldcamp'));return planningSpent;}
-  if(partyDemand(s)==='food'&&offer('foodPlan',()=>foodPlan(s,context(s,'supply'))))return planningSpent;
+  if((partyDemand(s)==='food'||enabled(s,'body')&&h.hunger>75)&&offer('foodPlan',()=>foodPlan(s,context(s,'supply'))))return planningSpent;
   if(textValuesOn(s)&&textNeed(s,s.people[h.lineage])&&offer('literacyPlan',()=>literacyPlan(s,context(s,'text-values'),{urgentOnly:true})))return planningSpent;
   if (enabled(s, 'body') && offer('traitsPlan',()=>traitsPlan(s, context(s, 'body')))) return planningSpent;
   if (h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23||partyDemand(s)==='rest') {
@@ -420,6 +421,7 @@ function plan(s) {
     const refuge = closest(s, a => !a.temporaryCamp && knownArea(s,a) && (isTown(a) || a.type === 'camp'||a.dungeon?.cleared)&&(!enabled(s,'supply')||serviceReachable(s,a,68,context(s,'supply'))));
     const rest = refuge?.objects.find(o => o.kind === 'rest');
     if(offer('builtin',()=>{goal(s, 'rest', refuge?.id||h.area, rest?.x??h.x, refuge?`Восстановиться: ${refuge.name}`:'Перевести дух на месте', h.hp < h.maxHp * .7 ? 'Раны важнее обещаний. Он ищет доступное место для восстановления.' : 'Усталость мешает сражаться и исследовать.');return true;}))return planningSpent;
+    if(offer('builtin',()=>{goal(s,'localRecovery',h.area,h.x,'Перевести дух на месте','Дойти до выбранного отдыха пока нельзя. Он восстанавливает силы здесь, не получая еды из воздуха.');return true;}))return planningSpent;
   }
   if(offer('navigationToolPlan',()=>navigationToolPlan(s,context(s,'navigation-tools'))))return planningSpent;
   noticeMoneyPriority(s,context(s,'finances'));
@@ -916,6 +918,7 @@ function actObserved(s) {
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(clothingPriority(s))return s;
   if(!urgent&&packPetCare(s,context(s,'pack-pets')))return s;
+  const beforeLateGoal=h.goal;
   if(!urgent)petRetrievalPlan(s,context(s,'pet-passage'));
   if(petPassagePlan(s,context(s,'pet-passage')))return s;
   petBoardingTarget(s);
@@ -923,14 +926,15 @@ function actObserved(s) {
   if(!urgent)packPetPlan(s,context(s,'pack-pets'));
   if(!urgent)clothingPlan(s,context(s,'practical-clothing'));
   if(changeSpareOutfit(s,context(s,'spare-outfit')))return s;
-  preparePlan(s,context(s,'preparation'));
+  if(h.goal!==beforeLateGoal)dependency(s,beforeLateGoal,h.goal,methodRevision);
+  resumeFordTaskView(s);
+  if(!verifyTarget(s,'collectionTarget',()=>collectionTarget(s)))return s;
+  if(!verifyTarget(s,'landmarkTarget',()=>landmarkTarget(s)))return s;
+  if(!admitAction(s,{assess:(world,g)=>goalReadiness(world,g,{knownRoute}),revision:methodRevision,select:plan,transform:world=>preparePlan(world,context(world,'preparation')),progress:actionProgress,accepted:(world,g)=>preparationAccepted(world,g,log)}))return s;
   const g = h.goal;
   if (!g) return s;
   const beforeAction=actionProgress(s,g);let rejectedBy=null;const execute=(id,run)=>{const value=run();if(value===false)rejectedBy=id;return value;};
   try {
-  resumeFordTaskView(s);
-  if(!verifyTarget(s,'collectionTarget',()=>collectionTarget(s)))return s;
-  if(!verifyTarget(s,'landmarkTarget',()=>landmarkTarget(s)))return s;
   const a = s.areas[h.area];
   if (g.kind === 'hunt' && g.area === h.area) {
     const enemy = a.objects.find(o => o.id === g.object);
@@ -1075,7 +1079,7 @@ function actObserved(s) {
     else { h.goal = null; log(s, `${a.name} изучено. Герой запоминает путь и смотрит дальше.`, 'discover'); }
   }
   return s;
-  } finally {const after=actionProgress(s,g),r=executionResult(h,g,beforeAction,after,s.tick,{attemptBasis:methodRevision(s,g),finiteWaiting:goalReadiness(s,g,{knownRoute},{memory:false}).status==='waiting',...(beforeAction===after&&rejectedBy?{status:'blocked',reason:'Обработчик '+rejectedBy+' отказал без выполненного шага.',retryOn:'target-or-resources'}:{}),...(beforeAction===after&&!h.goal?{status:'blocked',reason:'Шаг завершился отказом без выполненного действия.',retryOn:'related-change'}:{})});if(r.status==='blocked'){deferMethod(h,g,r,methodRevision(s,g),s.tick);if(h.goal===g)h.goal=null;}}
+  } finally {preparationProgress(s,g);const after=actionProgress(s,g),r=executionResult(h,g,beforeAction,after,s.tick,{attemptBasis:methodRevision(s,g),finiteWaiting:goalReadiness(s,g,{knownRoute},{memory:false}).status==='waiting',...(beforeAction===after&&rejectedBy?{status:'blocked',reason:'Обработчик '+rejectedBy+' отказал без выполненного шага.',retryOn:'target-or-resources'}:{}),...(beforeAction===after&&!h.goal?{status:'blocked',reason:'Шаг завершился отказом без выполненного действия.',retryOn:'related-change'}:{})});if(r.status==='blocked'){deferMethod(h,g,r,methodRevision(s,g),s.tick);if(h.goal===g)h.goal=null;}}
 }
 export function serialize(s) { return JSON.stringify(observationPayload(rootWorld(s))); }
 export function restore(text) {

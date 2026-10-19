@@ -45,7 +45,7 @@ test('a personal sourced fear prefers an available land route; a real sea storm 
 });
 
 test('an optional distant task with no rations chooses real provisioning/forage instead of receiving free food; urgency permits a finite risk',()=>{
- const {s,h,area}=fixture();price(s,h.area,area('capital').id,2500);h.atlas.roads=[[h.area,area('capital').id].sort().join('|')];setModule(s,'preparation',true);setModule(s,'supply',true);const estimate=estimatePlan(s,h.goal,commonContext);assert.ok(estimate.rations>0);const before=h.inventory.rations;assert.equal(preparePlan(s,commonContext),true);assert.ok(['provision','forage'].includes(h.goal.kind));assert.equal(h.inventory.rations,before);assert.equal(h.planning.last.prepared,true);
+ const {s,h,area}=fixture();price(s,h.area,area('capital').id,2500);h.atlas.roads=[[h.area,area('capital').id].sort().join('|')];setModule(s,'preparation',true);setModule(s,'supply',true);const estimate=estimatePlan(s,h.goal,commonContext);assert.ok(estimate.rations>0);const before=h.inventory.rations;assert.equal(preparePlan(s,commonContext),true);assert.ok(['provision','forage'].includes(h.goal.kind));assert.equal(h.inventory.rations,before);assert.equal(h.planning.last.prepared,false);
  const f=fixture();price(f.s,f.h.area,f.area('capital').id,2500);f.h.atlas.roads=[[f.h.area,f.area('capital').id].sort().join('|')];setModule(f.s,'preparation',true);setModule(f.s,'supply',true);f.h.goal.urgent=true;assert.equal(preparePlan(f.s,commonContext),false);assert.equal(f.h.inventory.rations,0);assert.ok(knownRoadEstimate(f.s,f.h.area,f.h.goal.area).ticks>400);
 });
 
