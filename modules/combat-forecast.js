@@ -1,10 +1,11 @@
+import {socketReduction} from './socket-state.js';
 import {weaponBody} from './limb-state.js';
 import {woundForce} from './wound-state.js';
 import {coverBlocks,positionedEnemy} from './position-state.js';
 import {physicalDistance} from '../geometry.js';
 import {wardDamage} from './guardian-state.js';
 import {enabled} from '../rules.js';
-import {braceDamage} from './brace.js';
+import {braceDamage,braceCost} from './brace.js';
 import {ELEMENTS,spellChannel} from './elements.js';
 import {activePower,hasCondition,profile,stat} from './common.js';
 import {itemBonus} from './inventory.js';
@@ -67,12 +68,12 @@ export function spellDamageRange(s,e,spell){
  const power=spell.id==='roots'&&e.tags?.includes('construct')?Math.round(spell.effectPower*1.25):spell.effectPower;
  const personal=againstEnemy(s,e,power,power,spellChannel(spell)),party=partyDamageRange(s,e,{skipResponse:spell.kind==='time'});return {...personal,min:personal.min+party.min,max:personal.max+party.max};
 }
-export function incomingReply(s,e,{hp=s.hero.hp,blessed=hasCondition(s.hero,'blessing'),enemyHp={min:e.hp,max:e.hp},echo={min:e.battle?.echo||0,max:e.battle?.echo||0},skip=false,brace=false,exposed=false}={}){
- const h=s.hero,shield=enchantmentStrength(h,'blessing'),dodge=enabled(s,'lineage')&&h.race==='halfling'?.1:0,low=[],high=[];
+export function incomingReply(s,e,{hp=s.hero.hp,blessed=hasCondition(s.hero,'blessing'),enemyHp={min:e.hp,max:e.hp},echo={min:e.battle?.echo||0,max:e.battle?.echo||0},skip=false,brace=false,exposed=false,mana=s.hero.magic.mana}={}){
+ const h=s.hero,replyMana=Math.max(0,mana-(brace?braceCost(s).mana:0)-(enabled(s,'tactics')&&enabled(s,'magic')&&e.tactic==='leech'?4:0)),shield=enchantmentStrength(h,'blessing'),dodge=enabled(s,'lineage')&&h.race==='halfling'?.1:0,low=[],high=[];
  const protect=(raw,targetHp)=>{
   if(!raw)return 0;
   let damage=combatProtection(s,e,Math.max(1,raw-legacyArmorDefense(h)),{blessed,enemyHp:targetHp});
-  damage=Math.max(1,damage-shield);if(enabled(s,'lineage')&&h.race==='orc')damage=Math.max(1,damage-1);return braceDamage(s,e,damage,{preview:brace});
+  damage=Math.max(1,damage-shield);damage-=socketReduction(s,damage,{mana:replyMana});if(enabled(s,'lineage')&&h.race==='orc')damage=Math.max(1,damage-1);return braceDamage(s,e,damage,{preview:brace});
  };
  for(let roll=0;roll<4;roll++){
   const distant=positionedEnemy(s,e)&&(!s.areas[h.area]?.objects.some(body=>body.kind==='enemy'&&body.id===e.id)||physicalDistance(s.areas[h.area],h.x,e.x)>e.positionAttack.range),blocked=coverBlocks(s,e,h,{exposed});

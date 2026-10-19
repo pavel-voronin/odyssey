@@ -130,7 +130,7 @@ import {principlePlan,reflectPrinciple} from './modules/principles.js';
 import {verdictInquiryPlan,verdictInquiryAction} from './modules/verdict-inquiry.js';
 import {hearCaptivePlan,hearCaptive,rescueGuardContact,rescueAction,rescueTarget,dropRescuePurse} from './modules/rescue-plan.js';
 import {isDungeonRescue,rescueGuardPass} from './modules/rescue-escape.js';
-import {performBrace,BRACE_ENERGY} from './modules/brace.js';
+import {performBrace} from './modules/brace.js';
 import {rememberWeaponRole,recordWeaponHit,observeWeaponReply,weaponTick,cancelWeapon,beginWeapon,finishWeapon,WEAPON_STYLES} from './modules/weapon-styles.js';
 import {chooseWeaponStyle} from './modules/weapon-decision.js';
 import {causalPurchase,causalReturn} from './modules/causal-history.js';
@@ -679,7 +679,7 @@ function fight(s, enemy) {
   }
   const legacy=!choice||choice.action==='legacy';
   if(choice&&!legacy&&!(choice.action==='spell'&&choice.spell==='ward'))cancelWard(s,'Выбрано другое действие.');
-  if(choice?.action==='brace'&&performBrace(s,enemy,context(s,'combat'))){cancelWeapon(s,'Вместо размаха выбран заслон.');resolveCombatChoice(s,'brace',{energySpent:BRACE_ENERGY});enemyResponse(s,enemy);return;}
+  if(choice?.action==='brace'&&performBrace(s,enemy,context(s,'combat'))){cancelWeapon(s,'Вместо размаха выбран заслон.');resolveCombatChoice(s,'brace',{energySpent:h.defenseMemory.lastBrace.energy,...(h.defenseMemory.lastBrace.pair?{manaSpent:h.defenseMemory.lastBrace.mana}:{} )});enemyResponse(s,enemy);return;}
   if (choice?.action==='potion'||legacy&&h.hp < h.maxHp * .45 && h.inventory.potions > 0) {
     cancelWeapon(s,'Лечение прерывает размах.');cancelWard(s,'Лечение прерывает подготовку чар.');
     const before=h.hp;h.inventory.potions--; h.hp = Math.min(h.maxHp, h.hp + 19); h.lastAction = 'heal';resolveCombatChoice(s,'potion',{potionsSpent:1}); log(s, 'Герой сам использует зелье: без лечения следующий удар может стать последним.', 'heal',h.area,{meaning:eventMeaning(s,'heal',{item:{kind:'item',id:null,label:'Лечебное зелье',role:'зелье'},amount:h.hp-before})});enemyResponse(s,enemy);return;

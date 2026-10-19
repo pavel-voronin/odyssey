@@ -1,5 +1,5 @@
 import {enabled} from '../rules.js';
-import {braceAvailable,BRACE_ENERGY} from './brace.js';
+import {braceAvailable,braceCost} from './brace.js';
 import {hasCondition} from './common.js';
 import {availableCombatSpells,preferMeasuredWard} from './magic.js';
 import {incomingReply,weaponDamageRange,spellDamageRange} from './combat-forecast.js';
@@ -9,7 +9,7 @@ import {knownComposition} from './composite-threats.js';
 function attackOption(s,e,damage,{action='attack',spell=null}={}){
  const win=damage.min>=e.hp,enemyHp={min:Math.max(0,e.hp-damage.max),max:Math.max(0,e.hp-damage.min)},currentEcho=e.battle?.echo||0;
  const echo=enabled(s,'mutations')&&e.mutation==='mirror'&&spell?{min:Math.min(12,currentEcho+Math.ceil(damage.min/4)),max:Math.min(12,currentEcho+Math.ceil(damage.max/4))}:{min:currentEcho,max:currentEcho};
- return {id:spell?.id||'attack',action,spell:spell?.id,hp:s.hero.hp,damage,mana:spell?.manaCost||0,charge:spell?.waystoneCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{enemyHp,echo,skip:win||spell?.kind==='time',exposed:!spell})};
+ return {id:spell?.id||'attack',action,spell:spell?.id,hp:s.hero.hp,damage,mana:spell?.manaCost||0,charge:spell?.waystoneCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{enemyHp,echo,skip:win||spell?.kind==='time',exposed:!spell,mana:s.hero.magic.mana-(spell?.manaCost||0)})};
 }
 export function combatOptions(s,e){
  const h=s.hero,options=[attackOption(s,e,weaponDamageRange(s,e))];
@@ -20,14 +20,14 @@ export function combatOptions(s,e){
  for(const spell of availableCombatSpells(s)){
   if(['damage','time'].includes(spell.kind)){options.push(attackOption(s,e,spellDamageRange(s,e,spell),{action:'spell',spell}));continue;}
   const option={id:spell.id,measured:spell.measured,action:'spell',spell:spell.id,hp:h.hp,mana:spell.manaCost,charge:spell.waystoneCost||0,potions:0};
-  if(spell.kind==='heal'){option.hp=Math.min(h.maxHp,h.hp+spell.effectPower);if(option.hp<=h.hp)continue;option.reply=incomingReply(s,e,{hp:option.hp});}
-  else if(spell.kind==='ward'&&!hasCondition(h,'blessing')){option.reply=incomingReply(s,e,{blessed:true});option.protection=true;}
+  if(spell.kind==='heal'){option.hp=Math.min(h.maxHp,h.hp+spell.effectPower);if(option.hp<=h.hp)continue;option.reply=incomingReply(s,e,{hp:option.hp,mana:h.magic.mana-spell.manaCost});}
+  else if(spell.kind==='ward'&&!hasCondition(h,'blessing')){option.reply=incomingReply(s,e,{blessed:true,mana:h.magic.mana-spell.manaCost});option.protection=true;}
   else if(spell.kind==='pacify'){
-   option.reply=incomingReply(s,e);option.reply={...option.reply,min:0,survivalLow:.45+.55*option.reply.survivalLow,survivalHigh:.45+.55*option.reply.survivalHigh};option.pacify=true;
+   option.reply=incomingReply(s,e,{mana:h.magic.mana-spell.manaCost});option.reply={...option.reply,min:0,survivalLow:.45+.55*option.reply.survivalLow,survivalHigh:.45+.55*option.reply.survivalHigh};option.pacify=true;
   }else continue;
   if(spell.manaCost<=h.magic.mana)options.push(option);
  }
- if(braceAvailable(s,e))options.push({id:'brace',action:'brace',hp:h.hp,mana:0,potions:0,energy:BRACE_ENERGY,protection:true,reply:incomingReply(s,e,{brace:true})});
+ const guardCost=braceCost(s);if(braceAvailable(s,e,guardCost))options.push({id:'brace',action:'brace',hp:h.hp,mana:guardCost.mana,potions:0,energy:guardCost.energy,protection:true,reply:incomingReply(s,e,{brace:true})});
  return options;
 }
 const price=o=>o.mana*.15+(o.charge||0)*.2+o.potions*3+(o.energy||0)*.2;
@@ -40,7 +40,7 @@ export function chooseCombatAction(s,e,{retreatBlocked=false}={}){
  const decision=(option,reason)=>({action:option.action,spell:option.spell,form:option.form,reason,retreatBlocked,attackReply:attack.reply,selectedReply:option.reply||null,options,selected:option.id});
  const legacy=reason=>decision({id:'legacy',action:'legacy'},reason);
  const weaponFinisher=options.some(o=>o.win&&['quick','release'].includes(o.action));
- const guard=options.find(o=>o.id==='brace');if(guard&&!attack.win&&!weaponFinisher&&!danger&&!low&&!tired&&courage<.65&&baseline.max>h.hp*(.2+courage*.3)&&guard.reply.max<baseline.max&&guard.reply.survivalLow===1)return decision(guard,'Замах уже замечен. Он бережёт здоровье и тратит силы на заслон вместо удара.');
+ const guard=options.find(o=>o.id==='brace');if(guard&&!attack.win&&!weaponFinisher&&!danger&&!low&&h.energy>=(guard.energy+(guard.mana?0:1))&&courage<.65&&baseline.max>h.hp*(.2+courage*.3)&&guard.reply.max<baseline.max&&guard.reply.survivalLow===1)return decision(guard,'Замах уже замечен. Он бережёт здоровье и тратит силы на заслон вместо удара.');
  if(preferMeasuredWard(s,e))return decision({id:'measured-ward',action:'spell',spell:'ward',form:'measured',reply:baseline},'В действиях угрозы есть пауза, а маны мало. Он готовит знакомую защиту: этот ход остаётся уязвимым.');
  const prepared=options.find(o=>o.spell==='ward'&&o.measured&&o.reply.survivalLow===1);if(prepared)return decision(prepared,'Подготовка вложена в прошлый ход. Он завершает слово укрытия, оплачивая оставшуюся цену.');
  const composition=knownComposition(s,e);
