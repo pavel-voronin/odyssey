@@ -1,0 +1,58 @@
+import {rootWorld} from '../world-ref.js';
+import {physicalDistance} from '../geometry.js';
+import {setActorMoney} from '../actor-projection.js';
+import {itemLocation} from './item-originals.js';
+import {fitsPack,itemUnits,packView} from './container-state.js';
+import {loadPackCargo} from './container-cargo.js';
+import {horsePosition,groupHorse,horseMotion} from './horse-state.js';
+import {productionSources,takeGoods} from './goods.js';
+import {weatherAt} from './weather.js';
+import {npcAction,npcController,canStartNPCActivity} from './npc-control.js';
+import {wagonById,wagons,wagonsOn,wagonReady,wagonRoad,wagonLoad,drivenWagon,wagonMoved} from './wagon-state.js';
+const near=(s,h,a,w)=>h.transit||w.journey?Boolean(h.transit?.metric&&w.journey?.metric&&h.transit.from===w.journey.from&&h.transit.to===w.journey.to&&h.transit.metric.distance===w.journey.metric.distance&&Math.abs(h.transit.metric.travelled-w.journey.metric.travelled)<=3):h.area===a.id&&physicalDistance(a,h.x,w.x)<=3;
+const event=(s,w,kind,extra={})=>{w.history.push({at:s.tick,kind,...extra});if(w.history.length>12)w.history.shift();};
+const actor=(s,id)=>s.hero.lineage===id?s.hero:s.actorStates?.[id];
+function spent(s,h,w,text,ctx){w.lastAction=s.tick;h.energy=Math.max(0,h.energy-2);h.lastAction='companion';ctx?.log?.(s,text,'travel');return true;}
+export function parkWagon(s,w,kind='parked'){const p=s.people[w.driver],h=actor(s,w.driver),t=h?.transit||p?.roadTransit;if(t)w.journey=structuredClone(t);w.driver=null;w.convoy=null;event(s,w,kind);}
+export function wagonAction(input,id,kind,ctx={},itemId=null){const s=rootWorld(input),h=input.hero,p=s.people[h.lineage],found=wagonById(s,id);if(!wagonsOn(s)||!h.alive||h.combat||h.energy<4||!found)return false;const {w,a}=found;if(!near(s,h,a,w)||w.lastAction===s.tick)return false;
+ if(['buy','gift'].includes(kind)){const q=s.people[w.owner];if(w.driver||w.owner===p.id||!q?.alive||q.area!==a.id||physicalDistance(a,q.x,h.x)>9||npcController(s,q)!=='personal'||!canStartNPCActivity(s,q)||kind==='buy'&&h.gold<32||kind==='gift'&&((h.relations[q.id]?.trust||0)<60||(h.relations[q.id]?.helped||0)<2||q.agenda.wealth<20))return false;if(!npcAction(s,q,'personal','wagon-transfer'))return false;const from=w.owner;if(kind==='buy'){h.gold-=32;setActorMoney(s,q,q.agenda.wealth+32);}w.owner=p.id;event(s,w,kind,{from,to:p.id,paid:kind==='buy'?32:0});return spent(s,h,w,'Та же телега передана новому хозяину'+(kind==='buy'?' за ◈32.':'.'),ctx);}
+ if(w.owner!==p.id)return false;
+ if(kind==='takeSupply'){if(!w.manifest)return false;const got=loadPackCargo(input,w.manifest,p.id);if(!Object.values(got).some(n=>n>0))return false;event(s,w,'supply-unload',{by:p.id,...got});return spent(s,h,w,'Часть припасов снята с оставленной телеги; остальное осталось в кузове.',ctx);}
+ if(kind==='hitch'){const m=groupHorse(input,h),at=m&&horsePosition(input,m);if(w.driver||!m||m.rider||m.owner!==p.id||at.area!==a.id||physicalDistance(a,at.x,w.x)>3||w.condition<=0)return false;w.horse=m.id;w.driver=p.id;if(!wagonReady(s,w)){w.driver=null;w.horse=null;return false;}event(s,w,'hitched',{by:p.id});return spent(s,h,w,'Лошадь запряжена в настоящую телегу. Груз остаётся в её кузове.',ctx);}
+ if(kind==='park'){if(w.driver!==p.id)return false;parkWagon(s,w);return spent(s,h,w,'Телега и груз остаются здесь; удалённой вместимостью воспользоваться нельзя.',ctx);}
+ if(kind==='repair'){const raw=productionSources(s,a)?.materials;if(w.condition>0||w.driver||!raw||raw.stock<1||a.civic.tools<1||h.gold<5)return false;const before=raw.stock;raw.stock--;raw.used++;takeGoods(s,a,'tools',1,{reason:'wagon-repair',actor:p.id});h.gold-=5;a.civic.treasury+=5;w.condition=12;w.wear=0;event(s,w,'repaired',{by:p.id,source:raw.id,before,after:raw.stock,tools:1,paid:5});return spent(s,h,w,'Колесо исправлено: заготовка, инструмент и ◈5 израсходованы.',ctx);}
+ if(kind==='load'||kind==='unload'){const from=kind==='load'?h.bag:w.items,to=kind==='load'?w.items:h.bag,i=from.find(i=>i.id===itemId);if(!i||kind==='load'&&wagonLoad(s,w)+itemUnits(i)>w.capacity||kind==='unload'&&!fitsPack(input,p.id,{items:[...h.bag,i]}))return false;from.splice(from.indexOf(i),1);to.push(i);itemLocation(s,i,kind==='load'?{kind:'cache',area:a.id,object:w.id}:{kind:'person',id:p.id});event(s,w,kind,{item:i.id,by:p.id});return spent(s,h,w,i.name+(kind==='load'?' погружен в телегу.':' снят с телеги.'),ctx);}
+ return false;
+}
+export function attachFreightWagon(s,c){if(!wagonsOn(s))return;const p=s.people[c.person],found=wagons(s).find(({w,a})=>w.owner===p.id&&!w.driver&&!w.journey&&a.id===p.area&&physicalDistance(a,w.x,p.x)<=3);if(!found||c.path.slice(1).some((id,i)=>!wagonRoad(s.edges[[c.path[i],id].sort().join('|')])))return;
+ const {w}=found,m=Object.values(s.horses?.byId||{}).find(m=>m.owner===p.id&&!m.leader&&!m.rider&&m.hp>=m.maxHp*.7&&m.body.kind==='area'&&m.body.area===p.area&&physicalDistance(s.areas[p.area],m.body.x,p.x)<=3);if(!m)return;
+ m.leader=p.id;m.offset=0;w.horse=m.id;w.driver=p.id;w.convoy=c.id;c.wagon=w.id;if(!wagonReady(s,w)){w.driver=null;w.convoy=null;w.horse=null;delete c.wagon;m.leader=null;return;}event(s,w,'freight',{convoy:c.id});
+}
+export function syncWagons(input){const s=rootWorld(input);for(const {w,a}of wagons(s)){if(!w.driver)continue;const p=s.people[w.driver],h=actor(s,w.driver),c=s.logistics.convoys.find(c=>c.id===w.convoy),t=h?.actorMode!=='npc'&&h?.alive?h.transit:p?.roadTransit,area=h?.actorMode!=='npc'&&h?.alive?h.area:p?.area,x=h?.actorMode!=='npc'&&h?.alive?h.x:p?.x;
+  const to=s.areas[area];if(to&&to!==a){a.objects.splice(a.objects.indexOf(w),1);to.objects.push(w);for(const i of w.items)itemLocation(s,i,{kind:'cache',area:to.id,object:w.id});}if(Number.isFinite(x))w.x=x;
+  if(t)w.journey=structuredClone(t);else delete w.journey;
+  // A live freight binding is released by its sole freight controller, together
+  // with its manifest. Saving between wheel failure and that next phase is valid.
+  if(!c&&(!p?.alive||!wagonReady(s,w)||w.convoy)){parkWagon(s,w,!p?.alive?'driver-died':w.condition<=0?'broken':w.convoy?'freight-ended':'traction-unavailable');}
+ }}
+export function strandWagonManifest(s,c){const f=wagonById(s,c.wagon);if(!f)return;f.w.manifest={convoy:c.id,food:c.food,medicine:c.medicine,tools:c.tools||0,at:s.tick};c.food=0;c.medicine=0;if(c.tools)c.tools=0;parkWagon(s,f.w,'stranded');}
+export function freightWagonStep(s,c){const f=wagonById(s,c.wagon),p=s.people[c.person],m=s.horses?.byId[f?.w.horse];if(!f||!m||m.lastMove===s.tick||m.lastAction===s.tick)return false;const a=s.areas[p.area],weather=weatherAt(s,a),speed=Math.max(.1,Math.min(6,horseMotion(s,p,m,weather).speed,6*(weather.speed??1)/(1+wagonLoad(s,f.w)/48))),distance=physicalDistance(a,p.x,c.endX);c.startX=p.x;c.remaining=c.segmentTicks=Math.max(1,Math.ceil(distance/speed));m.energy=Math.max(0,m.energy-1.2*(weather.energy??1));m.hunger=Math.min(100,m.hunger+.12);m.lastMove=s.tick;wagonMoved(s,f.w);return true;}
+export function freightWagonGate(s,c){if(!c.wagon)return true;const f=wagonById(s,c.wagon);if(!f||f.w.driver!==c.person||!wagonReady(s,f.w))return false;const p=s.people[c.person],next=c.path[c.index+1];if(next&&!wagonRoad(s.edges[[p.area,next].sort().join('|')]))return false;return true;}
+export function boardWagon(input,c,mode='fare',ctx={}){const s=rootWorld(input),h=input.hero,p=s.people[h.lineage],f=c&&wagonById(s,c.wagon),driver=c&&s.people[c.person];if(!wagonsOn(s)||!p?.alive||p.caravanPassenger||!f||!s.logistics.convoys.includes(c)||c.movement!=='physical'||c.returning||c.escort||!driver?.alive||driver.roadTransit||!near(s,h,f.a,f.w)||f.w.passenger||!wagonReady(s,f.w)||wagonLoad(s,f.w)+8+packView(input,p.id).used>f.w.capacity||h.combat||h.transit||h.caravanJob||h.companions.length||groupHorse(input,h)||driver.agenda.task||driver.needs.sleeping||(driver.agenda.generosity??.5)<.35||c.path.slice(c.index).some(id=>s.areas[id].objects.some(e=>e.kind==='enemy'&&e.alive&&!e.resolved)))return false;
+ if(mode==='fare'&&h.gold<4||mode==='work'&&(h.energy<40||f.w.wear<1)||!['fare','work'].includes(mode))return false;
+ if(mode==='fare'){h.gold-=4;setActorMoney(s,driver,driver.agenda.wealth+4);}else {h.energy-=4;f.w.wear=Math.max(0,f.w.wear-1);}
+ p.caravanPassenger={version:1,convoy:c.id,wagon:f.w.id,driver:driver.id,to:c.to,boarded:s.tick,paid:mode==='fare'?4:0,mode,work:mode==='work'?1:0};f.w.passenger=p.id;h.goal ||= {kind:'travel',area:c.to,x:55,started:s.tick};h.lastAction='talk';event(s,f.w,'boarded',{person:p.id,mode,paid:p.caravanPassenger.paid});ctx.log?.(input,'Свободное место в существующем караване: '+(mode==='fare'?'◈4 переданы возчику.':'Одно действие подготовки телеги вместо платы; жалованья нет.'),'travel');return true;
+}
+export function leaveWagon(input,reason='left',ctx={}){const s=rootWorld(input),h=input.hero,p=s.people[h.lineage],r=p.caravanPassenger;if(!r)return false;const f=wagonById(s,r.wagon);if(f?.w.passenger===p.id)f.w.passenger=null;delete p.caravanPassenger;if(h.transit?.caravanPassenger)delete h.transit.caravanPassenger;h.lastAction='travel';h.memory.caravanRideAfter=s.tick+32;ctx.log?.(input,'Поездка закончена: '+reason+'. Телега и её поклажа не стали личным рюкзаком.','travel');return true;}
+export function passengerTurn(input,ctx={}){const s=rootWorld(input),h=input.hero,p=s.people[h.lineage],r=p.caravanPassenger;if(!r)return false;const c=s.logistics.convoys.find(c=>c.id===r.convoy),f=wagonById(s,r.wagon),driver=s.people[r.driver];
+ if(!wagonsOn(s)){h.lastAction='wait';return true;}
+ if(driver){if(!driver.roadTransit&&h.area!==driver.area)ctx.enter?.(input,driver.area);h.area=driver.area;h.x=driver.x;h.transit=driver.roadTransit?{...structuredClone(driver.roadTransit),caravanPassenger:r.convoy}:null;}
+ if(!h.alive||!c||!driver?.alive||f?.w.passenger!==p.id||!wagonReady(s,f.w)||f.w.driver!==driver.id||c.returning||c.to!==r.to){leaveWagon(input,!h.alive?'passenger-died':!c?'freight-ended':'route-interrupted',ctx);return true;}
+ if(driver.roadTransit){h.area=driver.area;h.x=driver.x;h.transit={...structuredClone(driver.roadTransit),caravanPassenger:r.convoy};}else {h.transit=null;if(h.area!==driver.area)ctx.enter?.(input,driver.area);h.area=driver.area;h.x=driver.x;}
+ h.lastAction='travel';h.intent='Ехать в караване';h.reason='Один путь возчика, пассажира и груза; отдельного шага нет.';h.energy=Math.min(100,h.energy+.5);if(h.area===r.to&&!driver.roadTransit)leaveWagon(input,'arrived',ctx);return true;
+}
+export function wagonTurn(input,ctx={}){const s=rootWorld(input),h=input.hero,p=s.people[h.lineage];if(p.caravanPassenger)return passengerTurn(input,ctx);if(!wagonsOn(s)||h.combat||h.transit||!h.goal||h.memory.caravanRideAfter>s.tick)return false;
+ const own=drivenWagon(s,p.id);if(own){const next=h.goal.area!==h.area&&ctx.knownRoute?.(input,h.area,h.goal.area)?.[1];if(!wagonReady(s,own.w)||next&&!wagonRoad(s.edges[[h.area,next].sort().join('|')])||s.areas[h.area].interior)return wagonAction(input,own.w.id,'park',ctx);const item=h.goal.area!==h.area&&h.bag.find(i=>wagonLoad(s,own.w)+itemUnits(i)<=own.w.capacity);return item?wagonAction(input,own.w.id,'load',ctx,item.id):false;}
+ if(h.goal.area===h.area)return false;for(const c of s.logistics.convoys)if(c.to===h.goal.area&&c.wagon){if(boardWagon(input,c,'fare',ctx)||boardWagon(input,c,'work',ctx))return true;}
+ const f=wagons(s).find(({w,a})=>near(s,h,a,w)&&w.owner===p.id);if(f&&wagonAction(input,f.w.id,'hitch',ctx))return true;if(groupHorse(input,h)){for(const {w,a}of wagons(s))if(w.owner!==p.id&&near(s,h,a,w)&&(wagonAction(input,w.id,'gift',ctx)||h.gold>=60&&wagonAction(input,w.id,'buy',ctx)))return true;}return false;
+}

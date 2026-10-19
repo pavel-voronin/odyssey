@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. H-02.7 выполнена этапом243: перелом от значимого actual impact существующей кости руки/ноги, без нового HP/утраты части. Свой bone union отделён от кожи; конечная грубая/подогнанная шина расходует1реальную деревянную заготовку+1medicine и3монеты, собственное действие/действие настоящего помощника. Код modules/fracture-state/care/schema, wound-world/state/care; test/fractures.test.js, CONTRACTS/fractures.v1. PARTIAL13/13 exit0,1185мс, artifacts/checks/d7af79a808f0cd2a.log; https://odyssey.kolpaque.dev revisiona7c5842c28d8b039/HTTPS. Остальные MED/H-02 не закрыты. Следующий этап ещё не взят.
+Текущего этапа нет. C-01.5 выполнена этапом244: одна actual wagon/owner/кузов48/пригодная каноническая тяга, buy32/gift того же ID, partial originals load без remote capacity. Пассажир реального каравана: последнее место одно, fare4→возчик либо actual подготовка без жалованья; один progress тела/груза/колёс. Поломка/тяга/маршрут оставляют manifest/items на той же дороге, сход на ребре сохраняет travelled point. Код modules/wagon-state/source/actions/schema, freight/metric-route/horse-actions/engine; test/wagons.test.js, CONTRACTS/wagons.v1. PARTIAL7/7 exit0,1159мс, artifacts/checks/3d60ae22a9bd52d0.log; https://odyssey.kolpaque.dev revision5b9b26f2ef49c474/HTTPS. Широкий транспорт C-01 не закрыт. Следующий этап ещё не взят.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 2 | C-01.5 | Телега и пассажир существующего каравана | 8 | 6 | 1.33 | C-01.4, R-06.1 |
 | 3 | ERA-02.1 | общий регистратор, зависимости ERA-01/B-01 | 8 | 6 | 1.33 | ERA-01.1 |
 | 4 | ERA-02.3 | катастрофический вариант, после B-03/R-04/R-05/R-06 | 8 | 6 | 1.33 | ERA-02.1, R-06.4a |
 | 5 | F-03.1 | ограниченный производственный договор | 8 | 6 | 1.33 | R-06.4a, R-06.4b |
@@ -1535,3 +1534,10 @@ H-02.6 выполнена этапом242: только реальная отк�
 H-02.7 выполнена этапом243: перелом от значимого actual impact существующей кости руки/ноги, без нового HP/утраты части. Свой bone union отделён от кожи; конечная грубая/подогнанная шина расходует1реальную деревянную заготовку+1medicine и3монеты, собственное действие/действие настоящего помощника. Код modules/fracture-state/care/schema, wound-world/state/care; test/fractures.test.js, CONTRACTS/fractures.v1. PARTIAL13/13 exit0,1185мс, artifacts/checks/d7af79a808f0cd2a.log; https://odyssey.kolpaque.dev revisiona7c5842c28d8b039/HTTPS. Остальные MED/H-02 не закрыты. Следующий этап ещё не взят.
 
 6малых групп≤12актов/≤16world ticks: настоящий native impact/дедупликация/нет несовместимой кости, рука/нога/skin100+HP100 не чинят bone,1обычный игровой шаг устанавливает rough splint с конечным расходом, actual helper/body claim/качество, stock0/binding0/короткое отклонение/union98 checkpoint+1реальная фаза, NPC/observer/OFF/точный restore144/смерть. Native320 hero:0UI-тиков/сохранение неизменно. Ограниченная интеграция infection6групп и smoke; без full/SOAK/жизней/комбинаторики. Pages242 Actions39250635181 success/HTML18c2717f5b0cf9b7.
+
+
+### C-01.5 · подтверждение реализации244
+
+C-01.5 выполнена этапом244: одна actual wagon/owner/кузов48/пригодная каноническая тяга, buy32/gift того же ID, partial originals load без remote capacity. Пассажир реального каравана: последнее место одно, fare4→возчик либо actual подготовка без жалованья; один progress тела/груза/колёс. Поломка/тяга/маршрут оставляют manifest/items на той же дороге, сход на ребре сохраняет travelled point. Код modules/wagon-state/source/actions/schema, freight/metric-route/horse-actions/engine; test/wagons.test.js, CONTRACTS/wagons.v1. PARTIAL7/7 exit0,1159мс, artifacts/checks/3d60ae22a9bd52d0.log; https://odyssey.kolpaque.dev revision5b9b26f2ef49c474/HTTPS. Широкий транспорт C-01 не закрыт. Следующий этап ещё не взят.
+
+6малых групп≤12актов/≤16тиков: finite constructor/buy/gift/refusal, partial48/full/remote original item transfer, traction/road/narrow и настоящий personal step с фактически приглашённым раненым спутником, последнее место/платёж/actual metric step/прибытие, work вместо платы/near-wheel поломка/valid intermediate save, гибель тяги посреди ребра/сход/OFF/restore144. Native320 hero+scene:0UI-тиков/exact save. Pages243 Actions39252141431 success/HTMLa7c5842c28d8b039. Full/SOAK/жизни/комбинаторика не запускались.

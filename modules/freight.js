@@ -1,3 +1,5 @@
+import {wagonsOn} from './wagon-state.js';
+import {attachFreightWagon,freightWagonGate,freightWagonStep,strandWagonManifest} from './wagon-actions.js';
 import {recordCrossingTrace} from './edge-traces.js';
 import {metricTravelRate} from './metric-route.js';
 import {carrierNewsContact} from './witness-news.js';
@@ -91,9 +93,10 @@ export function departFreight(s,source,destination,request,ctx,paid=null){
   s.logistics.convoys.push(c);p.status='caravan';p.agenda.task=null;
   markNPCDeparture(s,p,'caravan');
   source.population=source.population.filter(id=>id!==p.id);source.objects=source.objects.filter(o=>o.kind!=='resident'||o.person!==p.id);
-  configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.${c.demand?` Потребность по сведениям от тика ${c.demand.seen}: ${c.demand.kind==='food'?'еда':c.demand.kind==='medicine'?'медицина':'инструменты'} ${c.demand.knownStock}/${c.demand.target}; партия ${c.demand.quantity}, резерв отправителя ${c.demand.reserve}.`:''}`,ctx);observeFreightActor(s,p);carrierNewsContact(s,p,ctx);return c;
+  attachFreightWagon(s,c);configureLeg(s,c,p,48);freightEvent(s,c,source,`${p.name} везёт припасы в ${c.targetName}: ${request.author===p.id?'помнит прежнюю нехватку':'получил сведения и маршрут от героя'}. Груз вычтен из кладовой.${c.demand?` Потребность по сведениям от тика ${c.demand.seen}: ${c.demand.kind==='food'?'еда':c.demand.kind==='medicine'?'медицина':'инструменты'} ${c.demand.knownStock}/${c.demand.target}; партия ${c.demand.quantity}, резерв отправителя ${c.demand.reserve}.`:''}`,ctx);observeFreightActor(s,p);carrierNewsContact(s,p,ctx);return c;
 }
 export function advanceFreight(s,c,ctx){
+  if(c.wagon&&!wagonsOn(s))return;
   if(!enabled(s,'npc-logistics')||!s.logistics.convoys.includes(c)||c.lastTick===s.tick)return;
   const p=s.people[c.person];if(!p)return;
   if(!p.alive){finishFreight(s,c,ctx,'stranded');return;}
@@ -104,12 +107,14 @@ export function advanceFreight(s,c,ctx){
   if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&c.elapsed>720){finishFreight(s,c,ctx,'stranded');return;}
   if(!p.fordCrossing&&!p.liftTransit&&!p.roadTransit&&c.elapsed>480&&!c.returning){returnFreight(s,c,ctx);return;}
   if(roadNeeds(s,p,ctx,c)){if(!p.alive)finishFreight(s,c,ctx,'stranded');return;}
+  if(c.wagon&&!freightWagonGate(s,c)){strandWagonManifest(s,c);finishFreight(s,c,ctx,'stranded');return;}
   if(c.handoff){const result=approachFreightKeeper(s,c);if(result==='accepted'){p.freightStored={id:c.id,keeper:c.handoff.keeper,area:p.area,owner:c.trade?p.id:'civic/'+c.source};releaseDriver(s,c);const proof=freightEvent(s,c,s.areas[p.area],`${p.name} оставляет тот же груз у ${s.people[c.handoff.keeper].name}. Хранение оплачено ◈${c.custodyFee||0}; доставка адресату не состоялась.`,ctx);freightHistory(s,c,'stored',proof);removeFreight(s,c);}else if(result==='failed')freightFailure(s,c,'keeper-declined',ctx);return;}
   if(p.fordCrossing||p.liftTransit||p.roadTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit||p.roadTransit).to,(p.fordCrossing||p.liftTransit||p.roadTransit).arrivalX,c,c.path.at(-1),{carrier:true,cargoFood:c.food});if(r.status==='arrived'){recordCrossingTrace(s,{kind:'person',id:p.id},p.area,r.crossing.to);p.area=r.crossing.to;p.x=r.crossing.arrivalX;c.index++;observeFreightActor(s,p);observeConvoy(s,c);configureLeg(s,c,p);}else if(['aborted','unavailable'].includes(r.status))returnFreight(s,c,ctx);return;}
   const camp=c.path[c.index+1]&&campPassage(s,p.area,c.path[c.index+1],p.id,{carrier:true});if(camp&&!camp.allowed&&(!disruptionEnabled(s)||physicalDistance(s.areas[p.area],p.x,camp.x??p.x)<=1)){freightFailure(s,c,c.returning?'return-blocked':'blocked-gate',ctx);return;}
   if(camp&&c.endX!==camp.x){c.startX=p.x;c.endX=camp.x;c.remaining=c.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,camp.x)/6));}
   const next=s.areas[c.path[c.index+1]];
   const escort=s.actorStates?.[c.escort];if(selfDrivenActor(s,escort)&&next&&(escort.transit||escort.area!==next.id||escort.combat||next.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved)))return;
+  if(c.wagon&&!freightWagonStep(s,c))return;
   c.remaining--;const progress=Math.max(0,Math.min(1,1-c.remaining/c.segmentTicks)),oldX=p.x;p.x=c.startX+(c.endX-c.startX)*progress;
   const local=s.areas[p.area],enemy=local.objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&!(c.escaped?.enemy===o.id&&c.escaped.area===p.area&&c.returning&&physicalDistance(local,p.x,o.x)>=physicalDistance(local,oldX,o.x))&&o.x>=Math.min(oldX,p.x)-areaOffset(s.areas[p.area],8)&&o.x<=Math.max(oldX,p.x)+areaOffset(s.areas[p.area],8));
   if(enemy){p.x=Math.abs(enemy.x-oldX)*areaScale(s.areas[p.area])<=8?oldX:enemy.x-Math.sign(p.x-oldX)*areaOffset(s.areas[p.area],8);captureFreight(s,c,p,local,ctx,enemy);return;}

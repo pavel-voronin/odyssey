@@ -294,6 +294,7 @@ export class Scene {
         c.fillStyle = '#c2d6a0'; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(x + (i % 2 ? 5 : -4), ground - 5 - i * 4, 5, 2.5, i % 2 ? -.6 : .6, 0, 7); c.fill(); }
       }
       if (['loot','heirloom'].includes(o.kind) && !o.taken) { c.fillStyle = '#b7a071'; c.beginPath(); c.ellipse(x, ground - 5, 6, 5, 0, 0, 7); c.fill(); }
+      if(o.kind==='wagon'&&!o.journey){c.fillStyle=o.condition>0?'#94794e':'#625b50';c.fillRect(x-14,ground-19,28,12);c.strokeStyle='#d0b47b';c.strokeRect(x-14,ground-19,28,12);c.fillStyle='#342e29';for(const dx of [-10,10]){c.beginPath();c.arc(x+dx,ground-4,5,0,Math.PI*2);c.fill();}c.strokeStyle='#b29565';c.beginPath();c.moveTo(x+14,ground-11);c.lineTo(x+24,ground-8);c.stroke();}
       if(o.kind==='supplyCache'&&!o.taken){c.fillStyle='#9b815b';c.fillRect(x-9,ground-13,18,13);c.strokeStyle='#d0b47b';c.strokeRect(x-9,ground-13,18,13);}
       if(o.kind==='practicePart'){c.fillStyle='#8e704e';c.fillRect(x-7,ground-4,14,4);c.fillStyle=o.state==='demonstration'?'#bec4b9':'#b49a6e';c.fillRect(x-4,ground-7,8,3);c.fillStyle='#4f5c53';c.fillRect(x-1,ground-6,2,3);}
       paintGuardianNode(c,s,a,o,screenX,ground);paintStoneCover(c,s,o,screenX,ground);

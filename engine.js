@@ -1,3 +1,6 @@
+import {drivenWagon,wagonReady,wagonMoved,wagonLoad} from './modules/wagon-state.js';
+import {createWagon} from './modules/wagon-source.js';
+import {syncWagons,wagonTurn,passengerTurn} from './modules/wagon-actions.js';
 import {driveAction} from './modules/mechanic-drive.js';
 import {wardTick,cancelWard} from './modules/measured-ward.js';
 import {recordCrossingTrace} from './modules/edge-traces.js';
@@ -47,7 +50,7 @@ import {woundCareTurn} from './modules/wound-care.js';
 import {woundCombatChoice} from './modules/wound-combat.js';
 import {holdWoundRest} from './modules/wound-care-state.js';
 import {woundsTick} from './modules/wound-world.js';
-import {woundActivity,woundActor} from './modules/wound-state.js';
+import {woundActivity,woundActor,woundStride} from './modules/wound-state.js';
 import {recordPersonRemains} from './modules/remains.js';
 import {positionPlan,positionAction,observePositions,finishPositionTurn} from './modules/position-actions.js';
 import {syncCoverPosition} from './modules/position-state.js';
@@ -277,7 +280,7 @@ function addArea(s, type, name, depth = 0,metadata={}) {
   populateArea(s, area);
   civicArea(s,area);
   supplyArea(s,area);
-  peopleArea(s,area);if(s.hero)createStableHorse(s,area);
+  peopleArea(s,area);if(s.hero){createStableHorse(s,area);createWagon(s,area);}
   createPlaceRule(s,area);initializeDescent(s,area);migrationArea(area);initializeFacades(s);registerSpatialArea(s,area);return id;
 }
 function createHero(s) {
@@ -321,7 +324,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   const camp = addArea(s, 'camp', origin[4], 1);
   connect(s, road, town); connect(s, town, forest); connect(s, forest, ruins); connect(s, forest, camp);
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
-  createStableHorse(s);createPortFerry(s,{addArea,connect});
+  createStableHorse(s);createWagon(s);createPortFerry(s,{addArea,connect});
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);
@@ -549,7 +552,8 @@ function move(s, target) {
   const mount=ridingOn(s)&&groupHorse(s,h),rate=mount?horseMotion(s,h,mount,weather,{mounted:mount.rider===h.lineage,terrain:s.areas[h.area].type==='mountain'?'mountain':'road'}):null;
   if(mount&&(mount.lastMove===s.tick||mount.lastAction===s.tick||mount.energy<(rate?.energy||1))){h.lastAction='rest';return;}
   const stride=rate?(mount.rider?rate.speed:Math.min(foodWalkingStride(s,h)*weather.speed,rate.speed)):foodWalkingStride(s,h)*weather.speed;
-  const amount=areaStep(s.areas[h.area],h.x,target,stride);
+  const cart=drivenWagon(s,h.lineage);if(cart&&!wagonReady(s,cart.w)){h.lastAction='wait';return;}
+  const amount=areaStep(s.areas[h.area],h.x,target,cart?Math.min(stride,6*weather.speed*Math.min(1,...h.companions.filter(c=>c.person&&s.people[c.person]?.alive).map(c=>woundStride(s,s.people[c.person])))/(1+wagonLoad(s,cart.w)/48)):stride);if(cart&&amount)wagonMoved(s,cart.w);
   if(mount&&amount){mount.energy=Math.max(0,mount.energy-rate.energy);mount.hunger=Math.min(100,mount.hunger+.12);mount.lastMove=s.tick;}
   h.x+=amount;h.distance+=Math.abs(amount)*areaScale(s.areas[h.area]);h.energy=Math.max(0,h.energy-(mount?.rider===h.lineage ? .2 : walkingEnergy(s,weather)));h.lastAction='walk';syncCoverPosition(s);
 }
@@ -804,7 +808,7 @@ export function advanceWorld(s) {
  initializeInteriors(s);
  initializeLodging(s);
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
- worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
+ worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
   applyActorExternal(s,h);weaponTick(actorView(s,h));wardTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
@@ -814,7 +818,7 @@ export function advanceWorld(s) {
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
   const castsBefore=h.magic.casts;
-  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{syncHorse(view,h);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{syncHorse(view,h);syncWagons(view);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  settleRemainsCarriers(s,context(s,'remains-carry'));settleBurialWork(s);syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
@@ -871,10 +875,12 @@ function actObserved(s) {
   const bodyActed=traitsTick(s,context(s,'body'));
   if(h.carryStopTick===s.tick)return s;
   if(h.carriedBy){peopleCarryTurn(s,context(s,'people-carry'));return s;}
+  if(s.people[h.lineage]?.caravanPassenger){passengerTurn(s,context(s,'wagons'));return s;}
   if(bodyActed)return s;
   if(peopleCarryTurn(s,context(s,'people-carry')))return s;
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(roadCampNeed(s,context(s,'fieldcamp')))return s;
+  if(wagonTurn(s,{...context(s,'wagons'),knownRoute:(world,from,to)=>knownRoute(world,from,to)}))return s;
   if(horseTurn(s,context(s,'riding')))return s;
   if(transitTick(s,context(s,'travel')))return s;
   if(manageHeroRoadStop(s,context(s,'fieldcamp')))return s;
