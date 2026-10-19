@@ -33,7 +33,17 @@ export function carrierNewsContact(s,p,ctx={}){
  for(const {q}of locals){const placeChanged=exchangeMigrationNotes(s,p,q);let learned=false,told=false;
   for(const r of Object.values(q.news?.known||{}).sort((a,b)=>b.revision-a.revision||b.occurred-a.occurred))if(relayNews(s,q,p,r.id)){learned=true;break;}
   for(const r of Object.values(p.news?.known||{}).sort((a,b)=>b.revision-a.revision||b.occurred-a.occurred))if(relayNews(s,p,q,r.id)){told=true;break;}
-  if(learned||told||placeChanged){newsMemory(p).lastExchangeTick=s.tick;const h=s.hero;if(q.id===h.lineage||p.id===h.lineage)ctx.log?.(s,placeChanged&&!learned&&!told?`${p.name} и ${q.name} обмениваются датированными сведениями о знакомом поселении.`:told&&q.id===h.lineage?`${p.name} передаёт датированный рассказ о чужой помощи. Сведения получены со слов перевозчика.`:`${q.name} делится известным рассказом с перевозчиком ${p.name}.`,'talk');return true;}
+  if(learned||told||placeChanged){newsMemory(p).lastExchangeTick=s.tick;const h=s.hero;if(q.id===h.lineage||p.id===h.lineage)ctx.log?.(s,placeChanged&&!learned&&!told?`${p.name} и ${q.name} обмениваются датированными сведениями о знакомом поселении.`:told&&q.id===h.lineage?`${p.name} передаёт датированный рассказ о поступке. Сведения получены со слов перевозчика.`:`${q.name} делится известным рассказом с перевозчиком ${p.name}.`,'talk');return true;}
  }
  return false;
+}
+
+// A real local housing decision is retained and relayed by the same physical speakers.
+export function publishHousingNews(s,a,r){
+ if(!newsOn(s)||r.tick!==s.tick||!['help','lease','refused','claim'].includes(r.mode))return false;
+ const host=s.people[r.host],guest=s.people[r.guest],h=available(s,host)&&localContact(s,host.id,a.id),g=available(s,guest)&&localContact(s,guest.id,a.id);if(!h||!g||physicalDistance(a,h.x,g.x)>12)return false;
+ const id='news/housing/'+r.id,registry=s.newsEvents ||= {version:1,events:{}};if(registry.events[id])return false;
+ const witnesses=Object.values(s.people).filter(p=>{const b=available(s,p)&&localContact(s,p.id,a.id);return b&&physicalDistance(a,b.x,h.x)<=12&&physicalDistance(a,b.x,g.x)<=12;}).sort((x,y)=>Number([host.id,guest.id].includes(y.id))-Number([host.id,guest.id].includes(x.id))||x.id.localeCompare(y.id)).slice(0,32);
+ const fact={id,revision:1,status:r.mode==='help'?'helped':r.mode==='lease'?'agreed':'refused',occurred:s.tick,area:a.id,actor:{id:host.id,name:host.name},patient:{id:guest.id,name:guest.name},source:{kind:'housing-action',id:r.id},housing:{mode:r.mode,reason:r.reason,paid:r.paid,form:r.form}};
+ registry.events[id]={version:1,id,kind:'housing',source:r.id,versions:{1:{...fact,witnesses:witnesses.map(p=>p.id)}}};for(const p of witnesses)rememberNews(s,p,{...fact,origin:{person:p.id,at:s.tick},heardAt:s.tick,mode:'witness',via:[]});return true;
 }

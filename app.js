@@ -1,3 +1,4 @@
+import {neighborHousingHTML} from './neighbor-housing-sheet.js';
 import {wagonSummary} from './modules/wagon-state.js';
 import {mechanicHTML} from './modules/mechanic-drive.js';
 import {cargoHTML} from './modules/ferry-cargo.js';
@@ -240,6 +241,7 @@ function enrichSheet(){
   if(tab==='quests'&&state.hero.actorMode!=='npc')$('detail-panel').insertAdjacentHTML('afterbegin',materialDeliveriesHTML(state,state.people[state.hero.lineage],escape));
   if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape)+petPassageHTML(state,escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',petPassageHTML(state,escape)+packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
+  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',neighborHousingHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));

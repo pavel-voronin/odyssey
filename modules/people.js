@@ -1,3 +1,4 @@
+import {neighborHousingPlan,neighborHousingAction,neighborRestPlan,neighborHostTurn} from './neighbor-housing.js';
 import {prepareFoundation,foundationAction,foundedFoodPlan} from './foundation.js';
 import {refugePersonalPlan,finishRefugeSurvey} from './family-refuge.js';
 import {refugeOn} from './refuge-state.js';
@@ -121,7 +122,7 @@ function plan(s,p,ctx){
   if(releasedPersonPlan(s,p))return;
   if(p.migration&&s.migrations?.[p.migration]?.status==='active')return;
   if(rescueEscapePlan(s,p))return;
-  if(prepareFoundation(s,p)||foundedFoodPlan(s,p)||refugePersonalPlan(s,p))return;
+  if(neighborRestPlan(s,p)||neighborHousingPlan(s,p)||prepareFoundation(s,p)||foundedFoodPlan(s,p)||refugePersonalPlan(s,p))return;
   if(p.role==='ребёнок'){begin(p,'learn',p.area,42,2);return;}
   if(p.health<(p.maxHealth||100)*.85||p.ailment){
     if(a.civic?.medicine>=2){begin(p,'recover',p.area,68);return;}
@@ -293,6 +294,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(neighborHostTurn(s,p,ctx))continue;
     prepareFoundation(s,p);
     if(npcStoreWatch(s,p,ctx))continue;
     if(npcInheritedPayout(s,p,ctx))continue;
@@ -340,7 +342,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='rawGather'&&!goodsEnabled(s))continue;
     if(['creditTalk','creditWork'].includes(p.agenda.task?.kind)&&!creditEnabled(s))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task?.kind)&&!fieldCraftEnabled(s))continue;
-    if(['refugeSurvey','foundationWork'].includes(p.agenda.task?.kind)&&!refugeOn(s))continue;
+    if(['refugeSurvey','foundationWork','housingAsk','housingRest','housingWait'].includes(p.agenda.task?.kind)&&!refugeOn(s))continue;
     if(p.agenda.task?.migration&&(!enabled(s,'migrations')||s.migrations[p.agenda.task.migration]?.knowledge&&!migrationKnowledgeOn(s)))continue;
     if(p.agenda.task?.productionDeal&&!productionFinanceOn(s)||p.agenda.task?.patronProject&&!patronageOn(s))continue;
     if((p.agenda.task?.productionDeal||p.agenda.task?.patronProject)&&p.agenda.task.kind==='work'&&(p.ailment||p.health<(p.maxHealth||100)*.85)){p.agenda.task=null;p.agenda.due=s.tick+8;continue;}
@@ -350,7 +352,7 @@ export function peopleTick(s,ctx){
     adaptNPCWork(s,p);bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
-    if(foundationAction(s,p,ctx))continue;
+    if(neighborHousingAction(s,p,ctx)||foundationAction(s,p,ctx))continue;
     if(p.agenda.task.kind==='refugeSurvey'){if(p.ailment||p.needs.energy<2||p.health<(p.maxHealth||100)*.75){p.agenda.task=null;p.agenda.due=s.tick+48;continue;}p.agenda.task.turns++;p.needs.energy-=2;}
     if(p.agenda.task.kind==='patronSale'){patronSale(s,p,p.agenda.task,ctx);continue;}
     if(p.agenda.task.kind==='productionSell'){productionSale(s,p,p.agenda.task,ctx);continue;}

@@ -1,3 +1,4 @@
+import {recordFoundationCooperation} from './neighbor-housing-state.js';
 import {refugeOn} from './refuge-state.js';
 import {physicalDistance} from '../geometry.js';
 import {foodCapability,foodSourceState,localFoodChoice} from './local-food.js';
@@ -39,6 +40,7 @@ function complete(s,a,r,g,ctx){
  a.objects.push({id:rest,kind:'rest',name:'Общий дом основателей',x:a.refugeSite.x,building,state:'intact',foundation:r.id});
  r.previousHomes={};for(const p of present){r.previousHomes[p.id]=p.home||g.source;p.home=a.id;p.agenda.home=a.id;p.lastMigration=s.tick;delete p.refugeGroup;if(p.agenda.task?.kind==='foundationWork')p.agenda.task=null;}
  if(a.geography){const site=s.geographyFrame.sites[a.geography.site];site.type='village';site.tier='village';a.geography.tier='village';s.geographyFrame.revision++;}registerSpatialArea(s,a);
+ recordFoundationCooperation(s,a,r);
  g.status='founded';g.founded=s.tick;g.history.push({tick:s.tick,text:a.name+': семья закончила общий дом и открыла выдачу собранной пищи. Казна пуста.'});if(g.history.length>16)g.history.shift();
  if(s.hero.area===a.id&&!s.hero.transit)ctx.log(s,g.history.at(-1).text,'migration');
 }

@@ -6,7 +6,7 @@ export function rememberRefuge(s,p,n){const notes=p.refugeKnowledge ||= {};notes
 export function observeRefuge(s,p){
  if(!refugeOn(s)||!p?.alive||p.needs?.sleeping)return false;const b=migrationBody(s,p),a=s.areas[b?.area];if(!a||b.transit||a.interior)return false;
  const site=a.refugeSite,rest=a.type==='camp'&&!a.civic&&a.objects.find(o=>o.kind==='rest'&&!o.closed&&(!o.state||o.state==='intact'));
- if(site&&physicalDistance(a,b.x,site.x)<=12){rememberRefuge(s,p,{mode:'plot',area:a.id,site:site.id,x:site.x,water:true,food:a.forage.stock,foodKind:a.forage.localFood.kind,rest:null});return true;}
+ if(site&&physicalDistance(a,b.x,site.x)<=12){rememberRefuge(s,p,{mode:'plot',occupied:Boolean(a.civic),area:a.id,site:site.id,x:site.x,water:true,food:a.forage.stock,foodKind:a.forage.localFood.kind,rest:null});return true;}
  if(rest&&physicalDistance(a,b.x,rest.x)<=12){rememberRefuge(s,p,{mode:'camp',area:a.id,site:rest.id,x:rest.x,water:false,food:0,foodKind:null,rest:rest.id});return true;}return false;
 }
 // An actual local three-act survey discovers a spring; no restore/constructor hook.
