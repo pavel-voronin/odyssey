@@ -1,3 +1,4 @@
+import {harvestFailureTick} from './modules/harvest-failure.js';
 import {installMigrationEmployment} from './modules/migration-service.js';
 import {earthquakesTick} from './modules/earthquakes.js';
 import {quakeBlocked,knownQuakeBlocked} from './modules/quake-state.js';
@@ -753,6 +754,7 @@ function npcVictory(s,a,enemy,p){
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
+  harvestFailureTick(s,context(s,'harvest-failure'));
   earthquakesTick(s,context(s,'earthquakes'));
   woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p),view=h?actorView(s,h):s.hero.lineage===p.id?s:null;if(view)log(view,kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:kind==='infected'?`${w.label}: загрязнённая рана нагноилась.`:kind==='infection-changed'?`${w.label}: состояние инфекции изменилось, тяжесть ${w.infection.severity}.`:kind==='infection-resolved'?`${w.label}: местное нагноение прошло; восстановление самой раны продолжается.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount,damage){
    const infection=damage?.sources.some(r=>r.kind==='infection'),mixed=infection&&damage.sources.some(r=>r.kind==='bleeding'),cause=infection?(mixed?'Осложнения загрязнённой кровоточащей раны':'Тяжёлое нагноение раны'):'Кровопотеря из незакрывшейся раны';

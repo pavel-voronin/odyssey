@@ -1,3 +1,4 @@
+import {harvestFactor} from './harvest-failure-state.js';
 import {stackRoom} from './container-state.js';
 import {enabled} from '../rules.js';
 import {weatherAt} from './weather.js';
@@ -80,7 +81,7 @@ export function completeGoodsWork(s,a,receipt,{kind='food',units=6,productionDea
  if(p.goodsWork?.id===receipt.id)return {quantity:0,reason:'duplicate',repeated:true};
  const source=productionSources(s,a);let quantity=0,reason;
  if(kind==='food'){
-  quantity=Math.min(source.field.stock,Math.max(0,Math.round(units*weatherAt(s,a).harvest)));
+  quantity=Math.min(source.field.stock,Math.max(0,Math.round(units*weatherAt(s,a).harvest*harvestFactor(s,a))));
   source.field.stock-=quantity;source.field.harvested+=quantity;reason=quantity?'harvest':'exhausted-field';
  }else if(kind==='tools'){
   if(!workshopFor(s,a,p.id))reason='unavailable-workshop';
@@ -105,6 +106,6 @@ export function goodsTick(input){
  countMarket(s,'productionPhase');
  for(const a of Object.values(s.areas))if(a.goods&&a.civic){
   for(const kind of Object.keys(GOODS_CAPACITY)){const moved=Math.min(a.goods.overflow[kind],Math.max(0,GOODS_CAPACITY[kind]-(a.civic[kind]||0)));a.civic[kind]+=moved;a.goods.overflow[kind]-=moved;}
-  const field=a.goods.sources?.field;if(field&&s.tick-field.renewedAt>=GOODS_PHASE){const growth=Math.min(field.capacity-field.stock,Math.max(1,Math.round(8*weatherAt(s,a).harvest)));field.stock+=growth;field.regrown+=growth;field.renewedAt=s.tick;}
+  const field=a.goods.sources?.field;if(field&&s.tick-field.renewedAt>=GOODS_PHASE){const growth=Math.min(field.capacity-field.stock,Math.max(1,Math.round(8*weatherAt(s,a).harvest*harvestFactor(s,a))));field.stock+=growth;field.regrown+=growth;field.renewedAt=s.tick;}
  }
 }

@@ -1,3 +1,4 @@
+import {harvestFactor} from './harvest-failure-state.js';
 import {neighborHousingPlan,neighborHousingAction,neighborRestPlan,neighborHostTurn} from './neighbor-housing.js';
 import {prepareFoundation,foundationAction,foundedFoodPlan} from './foundation.js';
 import {refugePersonalPlan,finishRefugeSurvey} from './family-refuge.js';
@@ -259,7 +260,7 @@ function finish(s,p,ctx){
   else if(t.kind==='resettle'){if(!migrationArrived(s,p)){tell(s,p,`${p.name} проверяет старый адрес: условия не позволяют обосноваться. Семья ищет сведения и припасы.`,ctx);return;}tell(s,p,`${p.name} добирается до ${a.name}. ${p.refugeGroup?'Здесь семья временно остановилась; своего поселения ещё нет.':'Теперь здесь его новый дом.'}`,ctx);}
   else if(t.kind==='relocate'){p.status='resident';m.home=p.area;if(p.navigation)p.navigation.commute=null;
     tell(s,p,enabled(s,'npc-knowledge')&&t.knownNavigation&&!(a.civic?.treasury>=3)?`${p.name} приходит по старой записи о работе, но казна пуста. Придётся искать другое занятие.`:`${p.name} переезжает туда, где есть оплачиваемая работа.`,ctx);}
-  else if(t.kind==='farm'&&a.civic){if(goodsEnabled(s)){const result=completeGoodsWork(s,a,t.goodsWork,{units:6+(m.tools?2:0)});paid=result.quantity>0;if(!paid)tell(s,p,`${p.name}: доступный урожай исчерпан. До восстановления угодий займусь другим делом.`,ctx);}else{a.civic.food=Math.min(100,a.civic.food+Math.round((6+(m.tools?2:0))*weatherAt(s,a).harvest));paid=true;}if(paid)m.work++;}
+  else if(t.kind==='farm'&&a.civic){if(goodsEnabled(s)){const result=completeGoodsWork(s,a,t.goodsWork,{units:6+(m.tools?2:0)});paid=result.quantity>0;if(!paid)tell(s,p,`${p.name}: доступный урожай исчерпан. До восстановления угодий займусь другим делом.`,ctx);}else{a.civic.food=Math.min(100,a.civic.food+Math.round((6+(m.tools?2:0))*weatherAt(s,a).harvest*harvestFactor(s,a)));paid=true;}if(paid)m.work++;}
   else if(t.kind==='medicine'&&a.civic&&a.civic.food>0){takeGoods(s,a,'food',1,{reason:'medicine-material',actor:p.id});a.civic.medicine=Math.min(100,a.civic.medicine+4+(m.tools?1:0));m.work++;paid=true;}
   else if(t.kind==='patrol'&&a.civic){a.civic.safety=Math.min(100,a.civic.safety+2+(m.tools?1:0));m.work++;paid=true;}
   else if(t.kind==='learn'){

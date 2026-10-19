@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. HOME-01.3 выполнена этапом256: один законный участок, явное отдельное согласие чужому владельцу, два конечных плана дома raw4/work3/bed1/chest6 либо raw6/work4/bed2/chest10. Реальная покупка/доставка материала, наём с отложенной платой2 за выполненный шаг, замена заболевшего/умершего исполнителя без потери вложений. Только готовый дом получает дверь/интерьер/титул/сундук; прежний ночлег сохраняется. Перестройка сохраняет те же ID/вещи/право, отдельное HOME оборудование расходует инструменты и работу. Жизнь и время продолжаются. PARTIAL23/23 exit0,2312мс, artifacts/checks/814f09e32c44006e.log; modules/dwelling*,construction-work,residence-access,home/lodging/inheritance/schema,scene/sheets, docs/CONTRACTS, DEVELOPMENT/256; https://odyssey.kolpaque.dev revision214e3cf0096e0940/HTTPS. Широкая политика жилья и ремонт после бедствий остаются отдельными.
+Текущего этапа нет. B-03.1 выполнена этапом257: один сезонный неурожай по настоящему региону/сезону и устойчивой почвенной уязвимости действующих полей. Половинный действительный выпуск/отрастание до4дней внутри сезона, затем общая пауза40дней. Готовая еда/инструменты/казна/люди сохраняются; два наблюдателя имеют один источник, личные решения различны. PARTIAL18/18 exit0,1351мс, artifacts/checks/f1ddf16e50f1039a.log; modules/harvest-failure/state/schema,goods/supply/people,engine,rules/save-schema,harvest-failure-sheet, docs/CONTRACTS, DEVELOPMENT/257; https://odyssey.kolpaque.dev revision0ebe1074278a5d30/HTTPS. B-03.2/.3 ещё не выполнены.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 13 | B-03.1 | выбор мирового условия | 8 | 6 | 1.33 | R-04.2, R-05.2 |
 | 14 | B-03.2 | распространение зависимости | 8 | 6 | 1.33 | B-03.1, R-06.1 |
 | 15 | B-03.3 | окончание без отката | 8 | 6 | 1.33 | B-03.2 |
 | 16 | ERA-02.2 | политический вариант, после S-01/R-07/R-09 | 8 | 6 | 1.33 | ERA-02.1, B-03.1 |
@@ -1615,3 +1614,10 @@ R-07.3 выполнена этапом255: реальная совместная
 HOME-01.3 выполнена этапом256: один законный участок, явное отдельное согласие чужому владельцу, два конечных плана дома raw4/work3/bed1/chest6 либо raw6/work4/bed2/chest10. Реальная покупка/доставка материала, наём с отложенной платой2 за выполненный шаг, замена заболевшего/умершего исполнителя без потери вложений. Только готовый дом получает дверь/интерьер/титул/сундук; прежний ночлег сохраняется. Перестройка сохраняет те же ID/вещи/право, отдельное HOME оборудование расходует инструменты и работу. Жизнь и время продолжаются. PARTIAL23/23 exit0,2312мс, artifacts/checks/814f09e32c44006e.log; modules/dwelling*,construction-work,residence-access,home/lodging/inheritance/schema,scene/sheets, docs/CONTRACTS, DEVELOPMENT/256; https://odyssey.kolpaque.dev revision214e3cf0096e0940/HTTPS. Широкая политика жилья и ремонт после бедствий остаются отдельными.
 
 6selected groups≤16owner/worker acts after bounded constructor preparation, NPC cadence≤128ticks, checks≤30sec: два бюджета; чужой участок/отдельное согласие/однократная плата; конечный материал/болезнь/exact replay/замена строителя/earned wage; refit same room/title/chest/items; отдельный bench и owned rest без фиктивной брони/один продолжающий мировой шаг; OFF/наследование настоящему наследнику/отказ corrupt receipts.16existing homes/home-building dependencies+smoke/build. Native320unfinished/quests/private entry, 0UI ticks/exact save/nooverflow. Текущая схема144, no migration/reset.
+
+
+### B-03.1 · подтверждение реализации257
+
+B-03.1 выполнена этапом257: один сезонный неурожай по настоящему региону/сезону и устойчивой почвенной уязвимости действующих полей. Половинный действительный выпуск/отрастание до4дней внутри сезона, затем общая пауза40дней. Готовая еда/инструменты/казна/люди сохраняются; два наблюдателя имеют один источник, личные решения различны. PARTIAL18/18 exit0,1351мс, artifacts/checks/f1ddf16e50f1039a.log; modules/harvest-failure/state/schema,goods/supply/people,engine,rules/save-schema,harvest-failure-sheet, docs/CONTRACTS, DEVELOPMENT/257; https://odyssey.kolpaque.dev revision0ebe1074278a5d30/HTTPS. B-03.2/.3 ещё не выполнены.
+
+6selected groups≤16actual actions/ticks; сезон/пауза проверены заданными checkpoint без длинных жизней, предел30sec. Будущая world check/один регион/общая пауза/нет списания запасов; реальный food work/finite regrowth/не затронутое поле/duplicate receipt; два настоящих наблюдателя/один cause/личные eat vs search; OFF/exact save/два world steps; нулевая ёмкость/другой сезон/истечение фактора; corrupt factor/interval/target/duplicate source/pure local sheet.Районы получают фактор city-владельца того же поля; отдельный actual district случай внутри выбранной группы.11short goods dependencies+smoke/build. Native320quests0UI ticks/exact save/nooverflow. Текущая144, no migration/reset/restore constructor. Freight propagation и lasting recovery остаются B-03.2/.3.

@@ -1,3 +1,4 @@
+import {harvestFactor} from './harvest-failure-state.js';
 import {physicalDistance} from '../geometry.js';
 import {containersOn,stackRoom} from './container-state.js';
 import {loadPackCargo} from './container-cargo.js';
@@ -143,7 +144,7 @@ export function supplyTick(s,ctx){
       const residents=(a.population||[]).filter(id=>s.people[id]?.alive&&s.people[id].status==='resident'&&(!enabled(s,'service-access')||s.people[id].area===a.id)).length;
       const workers=enabled(s,'service-access')?serviceStaff(s,a,'employment',{sleeping:true}).length:residents;
       const produced=a.civic.crisis?.kind==='hunger'?0:workers?(['village','island'].includes(a.type)?4:2):0;
-      if(!goodsEnabled(s))a.civic.food=Math.max(0,Math.min(100,a.civic.food+Math.round(produced*weatherAt(s,a).harvest)-Math.min(4,Math.ceil(residents/2))));
+      if(!goodsEnabled(s))a.civic.food=Math.max(0,Math.min(100,a.civic.food+Math.round(produced*weatherAt(s,a).harvest*harvestFactor(s,a))-Math.min(4,Math.ceil(residents/2))));
       if((enabled(s,'service-access')?serviceStaff(s,a,'clinic',{sleeping:true}).length:residents)&&s.tick%192===0)a.civic.medicine=Math.min(100,a.civic.medicine+1);
     }
   }
