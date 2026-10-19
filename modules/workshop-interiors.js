@@ -30,7 +30,7 @@ function leave(s,site,ctx,reason){
 export function workshopWorkTarget(s,ctx){
  const h=s.hero,g=h.goal,here=workshopSite(s,h.area);
  if(here?.inside&&!here.home&&!workshopInteriorsOn(s))return g?.kind==='tavernLeave'&&g.area===here.area.id?true:leave(s,here,ctx,'Работа в помещении прекращена. Выход на прежнюю улицу остаётся.');
- if(!g||!(g.kind==='work'&&g.job==='repair'||g.kind==='craftStudy'||g.kind==='forgeWork'||toolWork.has(g.kind)))return true;
+ if(!g||!(g.kind==='work'&&g.job==='repair'||g.kind==='craftStudy'||['forgeWork','decoyWork'].includes(g.kind)||toolWork.has(g.kind)))return true;
  const id=g.workplace?.id||g.workspace?.id||g.property||g.tool||g.workshop?.id;
  const destination=g.workshop?.area||g.workplace?.area||(toolWork.has(g.kind)?h.toolTask?.area:null)||g.area;
  const site=workshopSite(s,destination,id);
@@ -57,7 +57,7 @@ export function npcWorkshopTarget(s,p){
  const here=workshopSite(s,p.area),t=m.task;
  const evacuate=site=>{m.task={kind:'tavernLeave',target:site.area.id,x:site.object.x,remaining:1};p.status='wandering';};
  if(here?.inside&&!here.home&&(!workshopInteriorsOn(s)||here.object.state!=='intact'||here.object.closed||!s.people[here.object.owner]?.alive)){evacuate(here);return;}
- if(!t||!(t.kind==='work'&&m.job==='artisan'||['craftStudy','toolMend','forgeWork','refitBench','itemRepairBench'].includes(t.kind)))return;
+ if(!t||!(t.kind==='work'&&m.job==='artisan'||['craftStudy','toolMend','forgeWork','decoyWork','refitBench','itemRepairBench'].includes(t.kind)))return;
  const site=t.workshop?.id||t.property?workshopSite(s,t.workshop?.area||t.target,t.workshop?.id||t.property):ownedWorkshopSite(s,t.target,p.id);
  if(!workshopInteriorsOn(s)||!site?.room)return;
  if(site.object.owner!==p.id&&!t.workshop)return;

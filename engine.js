@@ -1,3 +1,6 @@
+import {decoyPlan,decoyAction,placeDecoy} from './modules/decoys.js';
+import {decoyWalkQuote} from './modules/decoy-state.js';
+import {decoyWorldTick} from './modules/decoy-world.js';
 import {stealthLessonPlan,stealthLessonAction} from './modules/stealth-lessons.js';
 import {stealthWalkQuote} from './modules/stealth-state.js';
 import {commitStealthStep,leaveStealthArea} from './modules/stealth.js';
@@ -445,6 +448,7 @@ function plan(s) {
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
   if(offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'),{lesson:false})))return planningSpent;
+  if(offer('decoyPlan',()=>decoyPlan(s,context(s,'noise-decoys'))))return planningSpent;
   if(offer('stealthLessonPlan',()=>stealthLessonPlan(s,context(s,'stealth'))))return planningSpent;
   if(offer('textRecoveryPlan',()=>textRecoveryPlan(s,context(s,'paper-fire'))))return planningSpent;
   if(a.interior){if(a.interior.kind==='workshop'&&(offer('itemRepairPlan',()=>itemRepairPlan(s,context(s,'item-wear')))||offer('toolPlan',()=>toolPlan(s,context(s,'workshop-tools')))||offer('refitPlan',()=>refitPlan(s,context(s,'knife-refit')))||offer('forgePlan',()=>forgePlan(s,context(s,'forging')))))return planningSpent;if(offer('lodgingPlan',()=>lodgingPlan(s,context(s,'lodging'))))return planningSpent;if(a.interior.kind==='room'&&!q&&(offer('librarySecurityPlan',()=>librarySecurityPlan(s,context(s,'library-security')))||offer('libraryPlan',()=>libraryPlan(s,context(s,'libraries')))||offer('textPlan',()=>textPlan(s,context(s,'texts')))||offer('homePlan',()=>homePlan(s,context(s,'homes')))))return planningSpent;if(offer('tavernPlan',()=>tavernPlan(s,context(s,'interiors'))))return planningSpent;}
@@ -587,6 +591,7 @@ function move(s, target) {
   if(mount&&(mount.lastMove===s.tick||mount.lastAction===s.tick||mount.energy<(rate?.energy||1))){h.lastAction='rest';return;}
   let stride=rate?(mount.rider?rate.speed:Math.min(foodWalkingStride(s,h)*weather.speed,rate.speed)):foodWalkingStride(s,h)*weather.speed;
   const cart=drivenWagon(s,h.lineage);if(cart&&!wagonReady(s,cart.w)){h.lastAction='wait';return;}
+  const lure=!mount&&!cart&&decoyWalkQuote(s,h.lineage,target);if(lure?.mode==='decoy-set'&&placeDecoy(s,s.people[h.lineage],lure.item)){h.reason='Оставить однократную приманку и продолжить прежний путь тихими шагами.';return;}
   const stealth=stealthWalkQuote(s,h.lineage,target,{mounted:Boolean(mount||cart)}),from=h.x;if(['wait','greet'].includes(stealth.mode)){h.energy=Math.max(0,h.energy-(stealth.mode==='greet'?1:.25));h.lastAction=stealth.mode==='greet'?'talk':'wait';h.reason=stealth.mode==='greet'?'Коротко ответить стражу и продолжить прежнее дело.':'Выждать замеченный поворот внимания; ожидание ограничено.';commitStealthStep(s,h.lineage,from,from,target,stealth);return;}stride*=stealth.factor;
   const amount=areaStep(s.areas[h.area],h.x,target,cart?Math.min(stride,6*weather.speed*Math.min(1,...h.companions.filter(c=>c.person&&s.people[c.person]?.alive).map(c=>woundStride(s,s.people[c.person])))/(1+wagonLoad(s,cart.w)/48)):stride);if(cart&&amount)wagonMoved(s,cart.w);
   if(mount&&amount){mount.energy=Math.max(0,mount.energy-rate.energy);mount.hunger=Math.min(100,mount.hunger+.12);mount.lastMove=s.tick;}
@@ -798,7 +803,7 @@ function worldTick(s) {
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   feastTick(s,context(s,'local-feasts'));
-  hostileLifeTick(s,context(s,'hostile-life'));rivalryTick(s);peopleTick(s,context(s,'people'));causewayWorldTick(s);
+  hostileLifeTick(s,context(s,'hostile-life'));rivalryTick(s);decoyWorldTick(s);peopleTick(s,context(s,'people'));causewayWorldTick(s);
   const localRemains=remainsByArea(s);migrationContactTick(s);
   npcPetsTick(s,context(s,'pet-transfer'));
   petBoardingWorldTick(s,context(s,'pet-passage'));
@@ -1107,6 +1112,7 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(['decoySupply','decoyWork','decoyRetrieve','decoyGift'].includes(g.kind))execute('decoyAction',()=>decoyAction(s,s.people[h.lineage],g,{...context(s,'noise-decoys'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}));
   else if(g.kind==='stealthLesson')execute('stealthLessonAction',()=>{const ok=stealthLessonAction(s,s.people[h.lineage],g);h.goal=null;return ok;});
   else if(['spellTextWrite','spellTextStudy','spellTextGift','scholarCompare','scholarInspect','scholarWrite','scholarLesson','textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))execute('textAction',()=>textAction(s,context(s,'texts')));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))execute('homeBuildingAction',()=>homeBuildingAction(s,context(s,'home-building')));

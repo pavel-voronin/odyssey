@@ -23,7 +23,7 @@ export function sightBarrier(a,from,to,{quiet=false}={}){return a.objects.find(o
 export function guardSense(s,p,id,x,{quiet=false,noise=0}={}){
  const b=stealthBody(s,id),a=s.areas[p.area],q=p.guardWatch;if(!stealthOn(s)||!q||p.id===id||!guardReady(s,p)||b?.area!==p.area)return {seen:false,heard:false,blocked:null,light:'dark',noise,distance:null};
  const distance=physicalDistance(a,p.x,x),light=logicalLight(s,a,x,b),blocked=sightBarrier(a,p.x,x,{quiet}),front=(x-p.x)*(p.facing||q.facing||1)>=0,guile=b.lineage?stat(b,'guile'):2,range=(light==='dark'?9:24)*(quiet?Math.max(.4,.65-Math.min(5,guile)*.04):1);
- return {seen:!guardAway(s,q)&&front&&!blocked&&distance<=range,heard:noise>=1.2+distance*.3,blocked:blocked?.id??null,light,noise,distance};
+ return {seen:!(s.rules['noise-decoys']!==false&&q.search?.source&&s.tick<q.search.focusUntil&&physicalDistance(a,x,q.search.x)>2)&&!guardAway(s,q)&&front&&!blocked&&distance<=range,heard:noise>=1.2+distance*.3,blocked:blocked?.id??null,light,noise,distance};
 }
 export function seesGuard(s,id,p){const b=stealthBody(s,id),a=b&&s.areas[b.area];return Boolean(b?.area===p?.area&&guardReady(s,p)&&physicalDistance(a,b.x,p.x)<=(logicalLight(s,a,p.x)==='dark'?12:24)&&!sightBarrier(a,b.x,p.x));}
 export function walkNoise(s,id,distance,quiet=false){const b=stealthBody(s,id),guile=b.lineage?stat(b,'guile'):2;return Math.max(.1,distance*(quiet?.25:.9)+packView(s,id).used/16-(quiet?Math.min(1,guile*.15):0));}

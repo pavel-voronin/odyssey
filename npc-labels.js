@@ -1,6 +1,6 @@
 export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится'};
 export const NPC_TASKS={
- stealthLesson:'Добровольный урок тихого прохода',
+ decoyGift:'Передать пустую приманку',decoySupply:'Инструмент для приманки',decoyWork:'Сборка шумовой приманки',decoyRetrieve:'Забрать пустую приманку',stealthLesson:'Добровольный урок тихого прохода',
  causewayWork:'Устойчивая переправа',socketService:'Работает с настоящим компонентом и сокетом',
  inheritanceClaim:'Идёт за наследственным имуществом или обсуждает претензию',
  feastJoin:'Идёт на местный праздник по приглашению',
