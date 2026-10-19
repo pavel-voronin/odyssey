@@ -21,6 +21,7 @@ export function textValue(s,p,item){
 }
 export function textBuyerPrice(s,buyer,item){
  const w=textWork(s,item);if(!w||!buyer?.alive||!['merchant','scholar'].includes(buyer.agenda?.job)||heldTexts(s,buyer.id).some(i=>i.textCopy?.content===w.id))return null;
+ if(w.source.kind==='checked-market-observation'){const known=buyer.navigation?.places.find(p=>p.area===w.content.area),g=textActor(s,buyer.id)?.goal||buyer.agenda.task,need=g?.kind==='work'&&(g.area||g.target)===w.content.area||buyer.agenda.job==='scholar'&&buyer.agenda.curiosity>=.85;if(!need||known&&typeof known.payroll==='boolean'&&(known.workSeen>=w.content.observed||known.payroll===w.content.available))return null;}
  // A modest offer for a physical copy. Rarity never creates a purse or an
  // unbounded quote; damage reduces interest to the material alone.
  return item.textCopy.condition==='damaged'?1:buyer.agenda.job==='scholar'&&buyer.agenda.curiosity>=.6?4:2;

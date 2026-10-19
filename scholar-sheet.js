@@ -1,0 +1,5 @@
+import {dateLabel} from './calendar.js';
+export function scholarHTML(s,escape){
+ const m=s.people[s.hero.lineage]?.scholarStudy;if(!m)return '';
+ return '<p class="detail-label">СВЕРКА СВИДЕТЕЛЬСТВ</p>'+m.comparisons.slice(-6).map(c=>{const o=m.inspections.filter(o=>o.comparison===c.id).at(-1);return '<div class="habit"><b>'+escape(s.areas[c.area].name)+' · '+escape(({confirmed:'свидетельства совпадают',contradiction:'свидетельства расходятся',insufficient:'недостаточно независимых оснований'})[c.verdict])+'</b><p>'+c.authors.map((id,i)=>'<b style="color:#f4eee0">'+escape(s.people[id].name)+'</b> · '+escape(dateLabel(s,c.dates[i]))+' · '+(c.values[i]?'средства были':'средств не было')).join('<br>')+'</p><p>'+escape(o?({ 'confirmed-here':'При личном осмотре сведения подтвердились.','outdated-reports':'При собственном осмотре сведения оказались устаревшими.','dated-conflict':'Личный осмотр уточнил положение; разные свидетельства сохранены.'})[o.result]+' Осмотр: '+dateLabel(s,o.tick)+'.':'Это записи других дат; нынешнее положение места не проверено.')+'</p></div>';}).join('');
+}

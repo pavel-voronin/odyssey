@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {profession} from '../content.js';
 
 export const SKILL_METHODS={
+ scholar:{name:'Работа со свидетельствами',method:'compare-witnesses',label:'Сверка независимых свидетельств',threshold:2},
  combat:{name:'Защита живого союзника',method:'cover-withdrawal',label:'Прикрывающий отход',threshold:2},
  mechanic:{name:'Точность привода',method:'diagnose-drive',label:'Диагностика настоящего механизма',threshold:2},
  magic:{name:'Практика знакомых чар',method:'measured-ward',label:'Размеренное слово укрытия',threshold:3},
@@ -103,3 +104,6 @@ export function recordPracticalWard(s,event){
 export function recordPracticalMechanic(s,p,event){
  const n=s.edges[event.key]?.lift,d=n?.drive,q=practicalSkill(s,p.id,'mechanic');if(!d?.repairs.includes(event)||event.actor!==p.id||event.finished!==s.tick||event.steps.length!==3||event.material?.quantity!==1||q?.method||q?.operations.some(r=>r.part===event.part))return null;return credit(s,p.id,'mechanic',event,{key:event.key,node:n.id,part:event.part,episode:event.episode,material:event.material,steps:event.steps,ride:event.ride});
 }
+
+export function recordPracticalScholar(s,p,event){const c=p.scholarStudy?.comparisons.find(c=>c.id===event?.comparison),q=practicalSkill(s,p.id,'scholar');if(!p.scholarStudy?.inspections.includes(event)||event.tick!==s.tick||event.actor!==p.id||event.result!=='confirmed-here'||c?.verdict!=='confirmed'||q?.method||q?.operations.some(r=>r.area===event.area))return null;return credit(s,p.id,'scholar',event,{comparison:c.id,inspection:event.id});}
+export function recordScholarLesson(s,p,t,event){if(!skillBranchesEnabled(s)||p.scholarStudy?.lesson!==event||event.tick!==s.tick||event.teacher!==t.id||event.paid!==1||!knowsPracticalMethod(s,t.id,'scholar'))return false;const q=ensure(s,p.id,'scholar');if(q.method)return false;q.method={id:SKILL_METHODS.scholar.method,learnedAt:s.tick,origin:'lesson',source:[event.id],teacher:t.id,teacherName:t.name};return true;}
