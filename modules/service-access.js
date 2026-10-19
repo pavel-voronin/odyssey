@@ -1,3 +1,4 @@
+import {structurallySound} from './building-condition.js';
 import {controlBlocked} from './building-control-state.js';
 import {enabled} from '../rules.js';
 import {rescueQuestAvailable} from './rescue-escape.js';
@@ -12,7 +13,7 @@ const kinds=new Set(['clinic','food','warehouse','employment','merchant']);
 const town=a=>Boolean(a&&BIOMES[a.type]?.town);
 const roles={clinic:['healer','alchemist'],food:['farmer','merchant'],warehouse:['artisan','merchant']};
 export function serviceStaff(s,a,kind,{sleeping=false}={}){
- return [...new Set(a?.population||[])].map(id=>s.people[id]).filter(p=>p?.alive&&p.health>0&&(p.area===a.id||kind==='employment'&&workshopInteriorsOn(s)&&workshopSite(s,p.area)?.area.id===a.id)&&p.status==='resident'&&p.role!=='ребёнок'&&p.agenda?.job!=='student'&&npcController(s,p)==='personal'&&(!roles[kind]||roles[kind].includes(p.agenda?.job))&&(sleeping||!enabled(s,'npc-needs')||!p.needs?.sleeping&&(p.needs?.energy??100)>=15&&(p.needs?.hunger??0)<90));
+ return [...new Set(a?.population||[])].map(id=>s.people[id]).filter(p=>p?.alive&&p.health>0&&(p.area===a.id||kind==='employment'&&workshopInteriorsOn(s)&&workshopSite(s,p.area)?.area.id===a.id)&&p.status==='resident'&&p.role!=='ребёнок'&&p.agenda?.job!=='student'&&npcController(s,p)==='personal'&&(!roles[kind]||roles[kind].includes(p.agenda?.job)||a.foundedSettlement?.service.kind===kind&&a.foundedSettlement.service.provider===p.id)&&(sleeping||!enabled(s,'npc-needs')||!p.needs?.sleeping&&(p.needs?.energy??100)>=15&&(p.needs?.hunger??0)<90));
 }
 export function merchantGoods(s){
  return s.merchant.serviceStock;
@@ -38,6 +39,7 @@ export function actualService(s,a,kind,{job=null,units=1,workshop=null}={}){
  if(!kinds.has(kind))return {available:false,reason:'Такой службы здесь нет.'};
  if(kind==='merchant'){const present=s.merchant.area===a?.id;return {available:present,reason:present?null:'Торговца здесь нет.',provider:present?'merchant':null,...(present?merchantGoods(s):{})};}
  if(!town(a)||!a.civic)return {available:false,reason:'Здесь нет действующей службы.'};
+ if(kind==='food'&&a.foundedSettlement&&!structurallySound(a.facades?.profiles.find(p=>p.id===a.foundedSettlement.housing.building)))return {available:false,reason:'Общий дом повреждён: выдача пищи приостановлена.'};
  if(kind==='clinic'&&!a.objects.some(o=>o.kind==='rest'&&(!o.state||o.state==='intact')))return {available:false,reason:'Место лечения недоступно.'};
  const people=serviceStaff(s,a,kind),provider=people[0]?.id||null;
  if(!provider)return {available:false,reason:kind==='clinic'?'Нет лекаря, который сейчас принимает.':kind==='food'?'Некому выдать еду.':kind==='warehouse'?'В кладовой нет работника.':'Некому предоставить оплачиваемую работу.'};

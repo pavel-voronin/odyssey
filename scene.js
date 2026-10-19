@@ -1,3 +1,4 @@
+import {paintFoundation} from './foundation-view.js';
 import {localEdgeTraces} from './modules/edge-traces.js';
 import {physicalActorLook,readableActorLook,drawActorPack,drawProstheticLeg,drawWoundMarks,actorLabelPoint} from './actor-readability.js';
 import {remainsObservationView} from './remains-observation.js';import {paintRemainsAt,paintCarriedRemains,paintRemainsCarrier} from './remains-carry-view.js';
@@ -184,9 +185,11 @@ export class Scene {
     const house=index=>!h.transit&&s.rules?.scenery!==false&&s.rules?.facades!==false&&terrain.facades?.profiles[index]||houseProfile(s.rules?.scenery===false?0:s.seed,s.rules?.scenery===false?{id:terrain.type,type:terrain.type}:terrain,index,view);
     if(travel?.mix)paintTransitLandmarks(c,s,travel.mix,w,backGround);
     else if(view.district)this.district(w,backGround,view,terrain.type,s.tick,house,s.rules.property!==false&&a.objects.some(o=>o.kind==='workshop'&&o.state==='burned'&&(s.rules.facades===false||!a.facades?.profiles.find(p=>p.id===o.building)?.structure)));
+    else if(terrain.foundedSettlement){const b=terrain.foundedSettlement.housing;this.house(w*b.x/100,backGround,.9,undefined,undefined,house(0));}
     else if (terrain.type === 'village') { for(let i=0;i<3;i++)this.house(w*(.15+i*.3+view.values[10+i]*.1),backGround,.8+view.values[20+i]*.5,undefined,undefined,house(i)); }
     else if(terrain.type==='citadel'&&terrain.facades?.profiles?.length){for(let i=0;i<terrain.facades.profiles.length;i++)this.house(w*(i+1)/(terrain.facades.profiles.length+1),backGround,.85,undefined,undefined,house(i));}
     else if(['port','undercity'].includes(terrain.type)){this.house(w*.22,backGround,.9,undefined,undefined,house(0));this.house(w*.75,backGround,1.1,undefined,undefined,house(1));}
+    if(a.foundation?.status==='building'&&!h.transit){const restore=billboardFrame(c,this.camera,w*a.refugeSite.x/100,backGround,dpr);paintFoundation(c,a.foundation);restore();}
     canvas.dataset.landmarkIds=paintDistantTowers(c,s,a,w,backGround,{camera:this.camera,dpr}).map(t=>t.id).join(',');
     if (terrain.type === 'ruins') { this.ruin(w * .33, backGround); if(h.transit||!paintLocalTower(c,s,a,w,backGround,{camera:this.camera,dpr}))this.ruin(w * .72, backGround); }
     for(const m of boundaries){const restore=billboardFrame(c,this.camera,m.x+m.side*5,backGround-5,dpr);paintBoundaryMotifs(c,[m],backGround);restore();}

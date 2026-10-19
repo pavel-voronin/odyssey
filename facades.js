@@ -14,7 +14,7 @@ export function facadeLayout(profile){
   }
   return {version:1,width,floors,door:{x:doorX,left:doorX-reserve,right:doorX+reserve,top:porch?-34:-31,bottom:0},porch,windows};
 }
-function count(a){return a.district==='Жилой посад'?5:a.district==='Мастерские'?3:a.district?2:a.type==='village'?3:['port','undercity'].includes(a.type)?2:0;}
+function count(a){if(a.foundedSettlement)return 1;return a.district==='Жилой посад'?5:a.district==='Мастерские'?3:a.district?2:a.type==='village'?3:['port','undercity'].includes(a.type)?2:0;}
 export function initializeAreaFacades(s,a){
   const amount=count(a);if(!amount)return;
   a.facades ||= {version:1,profiles:[]};

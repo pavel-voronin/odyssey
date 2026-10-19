@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. R-05.1 выполнена этапом253: одна утрата дома ведёт к известной работе/родным, временному лично посещённому лагерю либо намерению основания на реально обследованном участке с родником и конечным источником пищи. Native3acts обследования после настоящего сбора/местного решения, собственные raw4/tool1 и дорожный+начальный запас; обычная телесная дорога и проверка места при прибытии. Camped/site-ready не создают civic/казну/припасы и не меняют старый титул дома. PARTIAL7/7 exit0,1458мс, artifacts/checks/89c45a707bb72498.log; modules/refuge-state,family-refuge,refuge-schema,migration-service,migrations/memory/choice,people/npc-knowledge; docs/CONTRACTS, DEVELOPMENT/253; https://odyssey.kolpaque.dev revision465ab60f0070125c/HTTPS. R-05.2 строительство и R-05.3 возвращение ещё не выполнены.
+Текущего этапа нет. R-05.2 выполнена этапом254: actual site-ready семья строит один общий дом четырьмя отдельными body acts, расходует raw4/tool1/food4 и сохраняет прогресс при болезни/OFF/смерти владельца материала. Другой присутствующий способный основатель продолжает ту же стройку. Один постоянный parcel ID, distinct settlement identity, одна фактическая постройка; civic получает лишь остаток carried food/medicine, treasury/tools/raw/field stock0. Первая food service добывает и физически доставляет прежнюю конечную пищу. Camp/rest не создают civic; reload/новая область/повторный шаг не повторяют старт. PARTIAL13/13 exit0,3002мс, artifacts/checks/a58a7aca6b1d414c.log; modules/foundation/schema,people,service-access,refuge-schema,facades,scene/foundation-view, docs/CONTRACTS, DEVELOPMENT/254; https://odyssey.kolpaque.dev revisiondc6be0a55d76054d/HTTPS. HOME-01.3 и R-05.3 ещё не выполнены.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 11 | R-05.2 | основание трудом | 9 | 7 | 1.29 | R-05.1 |
 | 12 | R-07.3 | новые соседские отношения | 8 | 5 | 1.60 | R-07.1, R-05.2 |
 | 13 | B-03.1 | выбор мирового условия | 8 | 6 | 1.33 | R-04.2, R-05.2 |
 | 14 | B-03.2 | распространение зависимости | 8 | 6 | 1.33 | B-03.1, R-06.1 |
@@ -298,7 +297,7 @@ WORLD-18/19/20, HERO-03; P08. Группа после R-04 может остат
 **Подэтапы D-019 / R-05** (конкретные варианты — дизайнерские предложения внутри прежнего требования):
 
 - R-05.1 — выбор опоры. Семья знает доступных родных/работу либо разведанный участок с водой/пищей; оценивает запас на дорогу и обустройство. Может присоединиться к населённому месту, остаться временным лагерем или основать новое, не обязана колонизировать. Проверить одинаковую потерю дома и три разных исхода при разных знаниях/навыках/запасах.
-- R-05.2 — основание трудом. Один постоянный ID участка, стройка с сохранённым прогрессом, конечным материалом и действующими основателями; сначала жильё/одна соответствующая навыку служба. Временный fieldcamp не получает бесплатную civic-инициализацию. Проверить расход, перерыв из-за болезни, продолжение другим участником и отсутствие нового посёлка от каждой остановки.
+- R-05.2 — выполнена254, PARTIAL13/13, публикация подтверждена; основания и границы ниже. Основание трудом. Один постоянный ID участка, стройка с сохранённым прогрессом, конечным материалом и действующими основателями; сначала жильё/одна соответствующая навыку служба. Временный fieldcamp не получает бесплатную civic-инициализацию. Проверить расход, перерыв из-за болезни, продолжение другим участником и отсутствие нового посёлка от каждой остановки.
 - R-05.3 — возвращение в руины. Пришедшие заселяют доступное уцелевшее здание или ремонтируют конкретное повреждение; старые права/могилы/дороги сохраняются. Материал из разборки уменьшает прежний объект, не бесконечный источник. Проверить частичное оживление прежнего места против нового основания и осмысленный отказ возвращаться.
 
 ### R-06 Торговля после переселения
@@ -1596,3 +1595,10 @@ LIT-03.3 выполнена этапом252: actual building fire или rare ac
 R-05.1 выполнена этапом253: одна утрата дома ведёт к известной работе/родным, временному лично посещённому лагерю либо намерению основания на реально обследованном участке с родником и конечным источником пищи. Native3acts обследования после настоящего сбора/местного решения, собственные raw4/tool1 и дорожный+начальный запас; обычная телесная дорога и проверка места при прибытии. Camped/site-ready не создают civic/казну/припасы и не меняют старый титул дома. PARTIAL7/7 exit0,1458мс, artifacts/checks/89c45a707bb72498.log; modules/refuge-state,family-refuge,refuge-schema,migration-service,migrations/memory/choice,people/npc-knowledge; docs/CONTRACTS, DEVELOPMENT/253; https://odyssey.kolpaque.dev revision465ab60f0070125c/HTTPS. R-05.2 строительство и R-05.3 возвращение ещё не выполнены.
 
 6groups≤12изолированных актов/≤16коротких тиков: knowledge/work/plot/camp различают исходы; finite kit/setup shortages; native forage→survey3acts/mid-save replay; настоящий family route/no duplicate body step/no instant civic; nearby finite shared meal/carrier death one load; exhausted/closed local arrival отказ/known camp retarget; OFF/current144 exact/absent/forgedsource rejection. Длинные жизни/full/SOAK/комбинаторика не запускались. Service-access104/goods/current building-control используются как фактическая опора, широкая R-04 не переобъявлена выполненной.
+
+
+### R-05.2 · подтверждение реализации254
+
+R-05.2 выполнена этапом254: actual site-ready семья строит один общий дом четырьмя отдельными body acts, расходует raw4/tool1/food4 и сохраняет прогресс при болезни/OFF/смерти владельца материала. Другой присутствующий способный основатель продолжает ту же стройку. Один постоянный parcel ID, distinct settlement identity, одна фактическая постройка; civic получает лишь остаток carried food/medicine, treasury/tools/raw/field stock0. Первая food service добывает и физически доставляет прежнюю конечную пищу. Camp/rest не создают civic; reload/новая область/повторный шаг не повторяют старт. PARTIAL13/13 exit0,3002мс, artifacts/checks/a58a7aca6b1d414c.log; modules/foundation/schema,people,service-access,refuge-schema,facades,scene/foundation-view, docs/CONTRACTS, DEVELOPMENT/254; https://odyssey.kolpaque.dev revisiondc6be0a55d76054d/HTTPS. HOME-01.3 и R-05.3 ещё не выполнены.
+
+6groups≤12изолированных актов либо≤16shortticks:4native work/actual raw-tool-food/zero treasury-no newpeople; illness pause/midsave replay/other founder continuation; actual shortages refuse without debit; temporary camp no civic/native forage→physical pantry; duplicate dispatch/reload/newarea facade pass no free second/third house; OFF/dead owner/not revived/forged progress refusal.6bounded R-05.1 checks+smoke/build. Native320scene0UIticks/exact save/no overflow, one actual house. Широкая R-04/05.3/частное HOME не переобъявлены.
