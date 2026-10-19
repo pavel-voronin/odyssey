@@ -1,3 +1,8 @@
+import {PLANNER_ORDER} from './modules/goal-handlers.js';
+import {chooseQuest,questChoiceAvailable,CHOICE_POLICY} from './modules/intention-choice.js';
+import {actionKey,deferredMethod,deferMethod,executionResult,reconsiderMethods,parkMethod} from './modules/action-selection.js';
+import {goalReadiness,methodRevision,actionProgress} from './modules/goal-readiness.js';
+import {routeOpportunityPlan,routeOpportunityAction} from './modules/route-opportunities.js';
 import {ferryRouteBlocked} from './modules/ferry-refusals.js';
 import {remainsLocation} from './remains-position.js';import {focusOwnRemains} from './remains-observation.js';
 import {putDownRemains,settleRemainsCarriers} from './modules/remains-carry.js';
@@ -386,117 +391,132 @@ function delveContext(s){
  };
  return ctx;
 }
+function verifyTarget(s,id,run){const h=s.hero,g=h.goal;if(!g)return run();const before=actionProgress(s,g),ok=run();if(!ok&&(h.goal===g||!h.goal)&&before===actionProgress(s,g)&&goalReadiness(s,g,{knownRoute},{memory:false}).status!=='done'){const r={status:'blocked',reason:'Проверка '+id+' не подтверждает исполнимый шаг.',retryOn:'target-or-resources'};deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;}return ok;}
+function availableQuestStep(s,q){const h=s.hero,area=questReady(s,q)?q.source:q.target;if(!questChoiceAvailable(s,q)||!s.areas[area]||!knownRoute(s,h.area,area).length)return false;return !h.actionSelection?.deferred.some(e=>e.step.quest===q.id&&e.signature===methodRevision(s,e.step)&&goalReadiness(s,e.step,{knownRoute},{memory:false}).status==='blocked');}
+function reconsiderKnownQuest(s){
+ const h=s.hero,g=h.goal;if(!g||g.quest||g.commitment||g.intention||h.transit||h.combat||h.carriedBy||h.energy<23||h.hp<h.maxHp*(.35+(1-h.personality.courage)*.28)||partyDemand(s)||enabled(s,'body')&&h.hunger>75||holdWoundRest(s)||holdPoisonRest(s))return false;
+ const selected=chooseQuest(s,h.quests.filter(q=>q.status==='active'),q=>questReady(s,q),{available:q=>availableQuestStep(s,q)});if(!selected||selected.urgency<60&&s.tick-(g.started??s.tick)<CHOICE_POLICY.minimumTicks)return false;
+ if(['rest','campPitch','patientClinic'].includes(g.kind))return false;const before=actionProgress(s,g);parkMethod(h,g);h.goal=null;planQuest(s,selected.q,context(s,'quests'));return before!==actionProgress(s,g);
+}
 function plan(s) {
-  const h = s.hero, a = s.areas[h.area], q = currentQuest(h,s);
-  if(cookingPlan(s,context(s,'hearth-food'),{lesson:false}))return;
-  if(a.interior){if(a.interior.kind==='workshop'&&(itemRepairPlan(s,context(s,'item-wear'))||toolPlan(s,context(s,'workshop-tools'))||refitPlan(s,context(s,'knife-refit'))||forgePlan(s,context(s,'forging'))))return;if(lodgingPlan(s,context(s,'lodging')))return;if(a.interior.kind==='room'&&!q&&(librarySecurityPlan(s,context(s,'library-security'))||libraryPlan(s,context(s,'libraries'))||textPlan(s,context(s,'texts'))||homePlan(s,context(s,'homes'))))return;tavernPlan(s,context(s,'interiors'));return;}
-  if(a.temporaryCamp){leaveCamp(s,context(s,'fieldcamp'));return;}
-  if(partyDemand(s)==='food'&&foodPlan(s,context(s,'supply')))return;
-  if(textValuesOn(s)&&textNeed(s,s.people[h.lineage])&&literacyPlan(s,context(s,'text-values'),{urgentOnly:true}))return;
-  if (enabled(s, 'body') && traitsPlan(s, context(s, 'body'))) return;
+  const h = s.hero, a = s.areas[h.area], candidate=currentQuest(h,s), q=candidate&&availableQuestStep(s,candidate)?candidate:chooseQuest(s,h.quests.filter(q=>q.status==='active'),q=>questReady(s,q),{available:q=>availableQuestStep(s,q)})?.q||null;
+  if(h.goal){const r=goalReadiness(s,h.goal,{knownRoute});if(r.status==='blocked')deferMethod(h,h.goal,r,methodRevision(s,h.goal),s.tick);else if(['ready','progressing'].includes(r.status))parkMethod(h,h.goal);}
+  h.goal=null;let planningSpent=false,waiting=null;
+  const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
+  if(offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'),{lesson:false})))return planningSpent;
+  if(a.interior){if(a.interior.kind==='workshop'&&(offer('itemRepairPlan',()=>itemRepairPlan(s,context(s,'item-wear')))||offer('toolPlan',()=>toolPlan(s,context(s,'workshop-tools')))||offer('refitPlan',()=>refitPlan(s,context(s,'knife-refit')))||offer('forgePlan',()=>forgePlan(s,context(s,'forging')))))return planningSpent;if(offer('lodgingPlan',()=>lodgingPlan(s,context(s,'lodging'))))return planningSpent;if(a.interior.kind==='room'&&!q&&(offer('librarySecurityPlan',()=>librarySecurityPlan(s,context(s,'library-security')))||offer('libraryPlan',()=>libraryPlan(s,context(s,'libraries')))||offer('textPlan',()=>textPlan(s,context(s,'texts')))||offer('homePlan',()=>homePlan(s,context(s,'homes')))))return planningSpent;if(offer('tavernPlan',()=>tavernPlan(s,context(s,'interiors'))))return planningSpent;}
+  if(a.temporaryCamp){leaveCamp(s,context(s,'fieldcamp'));return planningSpent;}
+  if(partyDemand(s)==='food'&&offer('foodPlan',()=>foodPlan(s,context(s,'supply'))))return planningSpent;
+  if(textValuesOn(s)&&textNeed(s,s.people[h.lineage])&&offer('literacyPlan',()=>literacyPlan(s,context(s,'text-values'),{urgentOnly:true})))return planningSpent;
+  if (enabled(s, 'body') && offer('traitsPlan',()=>traitsPlan(s, context(s, 'body')))) return planningSpent;
   if (h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23||partyDemand(s)==='rest') {
-    if(lodgingPlan(s,context(s,'lodging')))return;
-    if(planFieldCamp(s,context(s,'fieldcamp')))return;
+    if(offer('lodgingPlan',()=>lodgingPlan(s,context(s,'lodging'))))return planningSpent;
+    if(offer('planFieldCamp',()=>planFieldCamp(s,context(s,'fieldcamp'))))return planningSpent;
     const refuge = closest(s, a => !a.temporaryCamp && knownArea(s,a) && (isTown(a) || a.type === 'camp'||a.dungeon?.cleared)&&(!enabled(s,'supply')||serviceReachable(s,a,68,context(s,'supply'))));
     const rest = refuge?.objects.find(o => o.kind === 'rest');
-    goal(s, 'rest', refuge?.id||h.area, rest?.x??h.x, refuge?`Восстановиться: ${refuge.name}`:'Перевести дух на месте', h.hp < h.maxHp * .7 ? 'Раны важнее обещаний. Он ищет доступное место для восстановления.' : 'Усталость мешает сражаться и исследовать.'); return;
+    if(offer('builtin',()=>{goal(s, 'rest', refuge?.id||h.area, rest?.x??h.x, refuge?`Восстановиться: ${refuge.name}`:'Перевести дух на месте', h.hp < h.maxHp * .7 ? 'Раны важнее обещаний. Он ищет доступное место для восстановления.' : 'Усталость мешает сражаться и исследовать.');return true;}))return planningSpent;
   }
-  if(navigationToolPlan(s,context(s,'navigation-tools')))return;
+  if(offer('navigationToolPlan',()=>navigationToolPlan(s,context(s,'navigation-tools'))))return planningSpent;
   noticeMoneyPriority(s,context(s,'finances'));
-  if(hearCaptivePlan(s,context(s,'dungeon-rescue')))return;
-  if(isDungeonRescue(q)){planQuest(s,q,context(s,'quests'));return;}
-  if(h.delve&&delvePlan(s,delveContext(s)))return;
-  if(heroCreditPlan(s,context(s,'provision-credit')))return;
-  if(h.merchantTrip&&heroMerchantPlan(s,context(s,'merchant-trips')))return;
-  if(h.caravanJob&&caravanPlan(s,context(s,'caravans')))return;
-  if(weatherShelter(s,context(s,'weather')))return;
-  if(localNeedsPlan(s,context(s,'supply')))return;
-  if(dogSearchPlan(s,context(s,'pet-training')))return;
-  if(!q&&dogTrainingPlan(s,context(s,'pet-training')))return;
-  if(!q&&moneyCachePlan(s,context(s,'finances')))return;
-  if(!q&&routeMapPlan(s,context(s,'route-maps')))return;
-  if(!q&&mapCopyPlan(s,context(s,'route-maps')))return;
-  if(!q&&studyBestiaryPlan(s,context(s,'bestiary')))return;
-  if(biomaterialPlan(s,context(s,'animal-materials')))return;
-  if(heroFieldCraftPlan(s,context(s,'field-craft'),{study:false,urgent:Boolean(q?.deadline&&q.deadline-s.tick<16)}))return;
-  if(itemRepairPlan(s,context(s,'item-wear')))return;
-  if(!q&&cookingPlan(s,context(s,'hearth-food')))return;
-  if(!q&&toolPlan(s,context(s,'workshop-tools')))return;
-  if(reconsiderWorkLoss(s,{...context(s,'work-loss'),questReady,planQuest:(world,quest)=>planQuest(world,quest,context(world,'quests'))},q))return;
-  if(factionPathPlan(s,context(s,'faction-paths')))return;
-  if(!q&&lifePlan(s,context(s,'life')))return;
-  if(!q&&politicalPlan(s,context(s,'politics')))return;
-  if(!q&&storyPlan(s,context(s,'stories')))return;
-  if(!q&&civilianQuestPlan(s,context(s,'quests')))return;
-  if(commitmentPlan(s,q,Boolean(q&&questReady(s,q)),{...context(s,'commitments'),work:()=>planWork(s,context(s,'work'))}))return;
-  if(!q&&collectionPlan(s,context(s,'collections')))return;
-  if(!q&&servicePlan(s,context(s,'work-orders')))return;
-  if(!q&&workshopDisputePlan(s,context(s,'workshop-dispute')))return;
-  if(!q&&principlePlan(s,context(s,'principles')))return;
-  if(!q&&verdictInquiryPlan(s,context(s,'verdict-knowledge')))return;
-  if(!q&&verdictReviewPlan(s,context(s,'verdict-review')))return;
-  if(!q&&craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}))return;
-  if(!q&&heroFieldCraftPlan(s,context(s,'field-craft')))return;
-  if(waystonePlan(s,context(s,'waystones')))return;
-  if(!q&&pactTalkPlan(s,context(s,'branch-pacts')))return;
-  if(!q&&feastPlan(s,context(s,'local-feasts')))return;
-  if(!q&&literacyPlan(s,context(s,'literacy')))return;
-  if(!q&&librarySecurityPlan(s,context(s,'library-security')))return;
-  if(!q&&libraryPlan(s,context(s,'libraries')))return;
-  if(!q&&textPlan(s,context(s,'texts')))return;
-  if(!q&&homeBuildingPlan(s,context(s,'home-building')))return;
-  if(!q&&homePlan(s,context(s,'homes')))return;
-  if(!q&&forgePlan(s,context(s,'forging')))return;
-  if(!q&&refitPlan(s,context(s,'knife-refit')))return;
-  if(!q&&landmarkPlan(s,context(s,'landmarks')))return;
-  if(!q&&heroMerchantPlan(s,context(s,'merchant-trips')))return;
-  if(caravanPlan(s,context(s,'caravans')))return;
-  if(delvePlan(s,delveContext(s)))return;
-  if(repertoirePlan(s,{...context(s,'repertoire'),work:world=>planWork(world,context(world,'work'),{interest:true}),explore:explorePlan,planQuest:(world,quest)=>planQuest(world,quest,context(world,'quests'))},q))return;
+  if(offer('hearCaptivePlan',()=>hearCaptivePlan(s,context(s,'dungeon-rescue'))))return planningSpent;
+  if(isDungeonRescue(q)){if(offer('planQuest',()=>planQuest(s,q,context(s,'quests'))))return planningSpent;}
+  if(h.delve&&offer('delvePlan',()=>delvePlan(s,delveContext(s))))return planningSpent;
+  if(offer('heroCreditPlan',()=>heroCreditPlan(s,context(s,'provision-credit'))))return planningSpent;
+  if(h.merchantTrip&&offer('heroMerchantPlan',()=>heroMerchantPlan(s,context(s,'merchant-trips'))))return planningSpent;
+  if(h.caravanJob&&offer('caravanPlan',()=>caravanPlan(s,context(s,'caravans'))))return planningSpent;
+  if(offer('weatherShelter',()=>weatherShelter(s,context(s,'weather'))))return planningSpent;
+  if(offer('localNeedsPlan',()=>localNeedsPlan(s,context(s,'supply'))))return planningSpent;
+  if(offer('dogSearchPlan',()=>dogSearchPlan(s,context(s,'pet-training'))))return planningSpent;
+  if(!q&&offer('dogTrainingPlan',()=>dogTrainingPlan(s,context(s,'pet-training'))))return planningSpent;
+  if(!q&&offer('moneyCachePlan',()=>moneyCachePlan(s,context(s,'finances'))))return planningSpent;
+  if(!q&&offer('routeMapPlan',()=>routeMapPlan(s,context(s,'route-maps'))))return planningSpent;
+  if(!q&&offer('mapCopyPlan',()=>mapCopyPlan(s,context(s,'route-maps'))))return planningSpent;
+  if(!q&&offer('studyBestiaryPlan',()=>studyBestiaryPlan(s,context(s,'bestiary'))))return planningSpent;
+  if(offer('biomaterialPlan',()=>biomaterialPlan(s,context(s,'animal-materials'))))return planningSpent;
+  if(offer('heroFieldCraftPlan',()=>heroFieldCraftPlan(s,context(s,'field-craft'),{study:false,urgent:Boolean(q?.deadline&&q.deadline-s.tick<16)})))return planningSpent;
+  if(offer('itemRepairPlan',()=>itemRepairPlan(s,context(s,'item-wear'))))return planningSpent;
+  if(!q&&offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'))))return planningSpent;
+  if(!q&&offer('toolPlan',()=>toolPlan(s,context(s,'workshop-tools'))))return planningSpent;
+  if(offer('reconsiderWorkLoss',()=>reconsiderWorkLoss(s,{...context(s,'work-loss'),questReady,planQuest:(world,quest)=>planQuest(world,quest,context(world,'quests'))},q)))return planningSpent;
+  if(offer('factionPathPlan',()=>factionPathPlan(s,context(s,'faction-paths'))))return planningSpent;
+  if(!q&&offer('lifePlan',()=>lifePlan(s,context(s,'life'))))return planningSpent;
+  if(!q&&offer('politicalPlan',()=>politicalPlan(s,context(s,'politics'))))return planningSpent;
+  if(!q&&offer('storyPlan',()=>storyPlan(s,context(s,'stories'))))return planningSpent;
+  if(!q&&offer('civilianQuestPlan',()=>civilianQuestPlan(s,context(s,'quests'))))return planningSpent;
+  if(offer('commitmentPlan',()=>commitmentPlan(s,q,Boolean(q&&questReady(s,q)),{...context(s,'commitments'),work:()=>planWork(s,context(s,'work'))})))return planningSpent;
+  if(!q&&offer('collectionPlan',()=>collectionPlan(s,context(s,'collections'))))return planningSpent;
+  if(!q&&offer('servicePlan',()=>servicePlan(s,context(s,'work-orders'))))return planningSpent;
+  if(!q&&offer('workshopDisputePlan',()=>workshopDisputePlan(s,context(s,'workshop-dispute'))))return planningSpent;
+  if(!q&&offer('principlePlan',()=>principlePlan(s,context(s,'principles'))))return planningSpent;
+  if(!q&&offer('verdictInquiryPlan',()=>verdictInquiryPlan(s,context(s,'verdict-knowledge'))))return planningSpent;
+  if(!q&&offer('verdictReviewPlan',()=>verdictReviewPlan(s,context(s,'verdict-review'))))return planningSpent;
+  if(!q&&offer('craftStudyPlan',()=>craftStudyPlan(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))})))return planningSpent;
+  if(!q&&offer('heroFieldCraftPlan',()=>heroFieldCraftPlan(s,context(s,'field-craft'))))return planningSpent;
+  if(offer('waystonePlan',()=>waystonePlan(s,context(s,'waystones'))))return planningSpent;
+  if(!q&&offer('pactTalkPlan',()=>pactTalkPlan(s,context(s,'branch-pacts'))))return planningSpent;
+  if(!q&&offer('feastPlan',()=>feastPlan(s,context(s,'local-feasts'))))return planningSpent;
+  if(!q&&offer('literacyPlan',()=>literacyPlan(s,context(s,'literacy'))))return planningSpent;
+  if(!q&&offer('librarySecurityPlan',()=>librarySecurityPlan(s,context(s,'library-security'))))return planningSpent;
+  if(!q&&offer('libraryPlan',()=>libraryPlan(s,context(s,'libraries'))))return planningSpent;
+  if(!q&&offer('textPlan',()=>textPlan(s,context(s,'texts'))))return planningSpent;
+  if(!q&&offer('homeBuildingPlan',()=>homeBuildingPlan(s,context(s,'home-building'))))return planningSpent;
+  if(!q&&offer('homePlan',()=>homePlan(s,context(s,'homes'))))return planningSpent;
+  if(!q&&offer('forgePlan',()=>forgePlan(s,context(s,'forging'))))return planningSpent;
+  if(!q&&offer('refitPlan',()=>refitPlan(s,context(s,'knife-refit'))))return planningSpent;
+  if(!q&&offer('landmarkPlan',()=>landmarkPlan(s,context(s,'landmarks'))))return planningSpent;
+  if(!q&&offer('heroMerchantPlan',()=>heroMerchantPlan(s,context(s,'merchant-trips'))))return planningSpent;
+  if(offer('caravanPlan',()=>caravanPlan(s,context(s,'caravans'))))return planningSpent;
+  if(offer('delvePlan',()=>delvePlan(s,delveContext(s))))return planningSpent;
+  if(offer('repertoirePlan',()=>repertoirePlan(s,{...context(s,'repertoire'),work:world=>planWork(world,context(world,'work'),{interest:true}),explore:explorePlan,planQuest:(world,quest)=>planQuest(world,quest,context(world,'quests'))},q)))return planningSpent;
   if(isTown(a)&&h.career.path!=='peaceful'&&h.quests.filter(q=>q.status==='active').length<4&&hasOffer(s,a)&&(!q||s.tick-(h.memory.lastNewQuest||0)>120)){
-    h.memory.lastNewQuest=s.tick;goal(s,'talk',a.id,42,'Выслушать ещё одно дело','Несколько обещаний могут совпасть с одной дорогой. Герой сам решит, за что взяться.');return;
+    h.memory.lastNewQuest=s.tick;if(offer('builtin',()=>{goal(s,'talk',a.id,42,'Выслушать ещё одно дело','Несколько обещаний могут совпасть с одной дорогой. Герой сам решит, за что взяться.');return true;}))return planningSpent;
   }
-  if(!q&&propertyAidPlan(s,context(s,'property-aid')))return;
-  if(!q&&propertyGiftPlan(s,context(s,'property-gifts')))return;
-  if(!q&&propertyContractPlan(s,context(s,'property-contracts')))return;
-  if(!q&&repairPlan(s,context(s,'property')))return;
-  if(!q&&propertyPlan(s,context(s,'property')))return;
-  if(h.career.path==='peaceful'&&!q&&planWork(s,context(s,'work')))return;
-  if(q){planQuest(s,q,context(s,'quests'));return;}
+  if(!q&&offer('propertyAidPlan',()=>propertyAidPlan(s,context(s,'property-aid'))))return planningSpent;
+  if(!q&&offer('propertyGiftPlan',()=>propertyGiftPlan(s,context(s,'property-gifts'))))return planningSpent;
+  if(!q&&offer('propertyContractPlan',()=>propertyContractPlan(s,context(s,'property-contracts'))))return planningSpent;
+  if(!q&&offer('repairPlan',()=>repairPlan(s,context(s,'property'))))return planningSpent;
+  if(!q&&offer('propertyPlan',()=>propertyPlan(s,context(s,'property'))))return planningSpent;
+  if(h.career.path==='peaceful'&&!q&&offer('planWork',()=>planWork(s,context(s,'work'))))return planningSpent;
+  if(q){if(offer('planQuest',()=>planQuest(s,q,context(s,'quests'))))return planningSpent;}
 
-  if (planWork(s, context(s, 'work'))) return;
-  if(materialClientPlan(s,context(s,'material-delivery')))return;
+  if (offer('planWork',()=>planWork(s, context(s, 'work')))) return planningSpent;
+  if(offer('materialClientPlan',()=>materialClientPlan(s,context(s,'material-delivery'))))return planningSpent;
   const story = a.objects.find(o => o.kind === 'encounter' && !o.resolved);
   if (story && enabled(s, 'encounters')) {
-    goal(s, 'encounter', a.id, story.x, `Рассмотреть: ${story.name}`, 'Встреча может изменить путь. Герой решит сам.', { object: story.id }); return;
+    if(offer('builtin',()=>{goal(s, 'encounter', a.id, story.x, `Рассмотреть: ${story.name}`, 'Встреча может изменить путь. Герой решит сам.', { object: story.id });return true;}))return planningSpent;
   }
   const savings = hasHabit(h, 'hoarder') && h.hp > h.maxHp * .75 ? 12 : 0;
   if ((h.memory.shopAfter || 0) <= s.tick && ((enabled(s,'finances')?Boolean(nextPurchase(s,context(s,'finances'),h.memory.merchant)):((h.weapon < 3 && h.gold >= 16 + h.weapon * 15 + savings) || (!h.inventory.potions && h.gold >= 7 && h.weapon > 0) || (!hasArmor(h) && h.gold >= 22 + savings))) || h.inventory.relics > 0 || enabled(s, 'equipment') && h.bag.length > 7&&!h.itemBuyerFull)) {
     const merchantArea = h.memory.merchant;
-    if (merchantArea&&knownServiceAllows(s,s.areas[merchantArea],'merchant') && route(s, h.area, merchantArea).length > 0 && route(s, h.area, merchantArea).length <= 5) { goal(s, 'trade', merchantArea, 58, 'Найти Саву и обновить снаряжение', 'Деньги накоплены. Хорошее снаряжение снизит риск следующего боя.'); return; }
+    if (merchantArea&&knownServiceAllows(s,s.areas[merchantArea],'merchant') && route(s, h.area, merchantArea).length > 0 && route(s, h.area, merchantArea).length <= 5) { if(offer('builtin',()=>{goal(s, 'trade', merchantArea, 58, 'Найти Саву и обновить снаряжение', 'Деньги накоплены. Хорошее снаряжение снизит риск следующего боя.');return true;}))return planningSpent; }
     if (merchantArea) h.memory.shopAfter = s.tick + 180;
   }
   const town = closest(s, area => knownArea(s,area) && isTown(area) && hasWork(s, area));
   if (town && (h.gold < 16 + h.weapon * 15 || h.personality.sociability > .65 || h.personality.generosity > .65)) {
-    goal(s, 'talk', town.id, 42, 'Узнать, кому нужна помощь', 'Работа даёт доход, а разговоры — сведения о мире.'); return;
+    if(offer('builtin',()=>{goal(s, 'talk', town.id, 42, 'Узнать, кому нужна помощь', 'Работа даёт доход, а разговоры — сведения о мире.');return true;}))return planningSpent;
   }
-  if(tavernPlan(s,context(s,'interiors')))return;
-  if(quietPlan(s,context(s,'work')))return;
-  explorePlan(s);
+  if(offer('tavernPlan',()=>tavernPlan(s,context(s,'interiors'))))return planningSpent;
+  if(offer('quietPlan',()=>quietPlan(s,context(s,'work'))))return planningSpent;
+  if(offer('directions',()=>routeOpportunityPlan(s,{goal})))return planningSpent;
+  if(offer('exploration',()=>{explorePlan(s);return true;}))return planningSpent;
+  if(waiting){h.goal=waiting;return planningSpent;}
+  if(h.energy<95||h.hp<h.maxHp)goal(s,'localRecovery',h.area,h.x,'Заняться доступной жизнью на месте','Знакомого исполнимого пути сейчас нет. Восстанавливает силы и расходует только настоящий запас.');
+  else {h.goal=null;h.lastAction='idle';h.intent='Остаться в причинной изоляции';h.reason=h.actionSelection?.deferred.at(-1)?.reason||'Знакомые выходы изучены; доступного дела пока нет. Мир и собственные нужды продолжаются.';}
+  return planningSpent;
 }
 function explorePlan(s,blocked=false){
   const h=s.hero,a=s.areas[h.area],reachable=area=>knownRoute(s,h.area,area.id).length>0;
   let options = Object.values(s.areas).filter(area => !area.interior && !area.temporaryCamp && knownArea(s,area) && !h.memory.places.includes(area.id) && !areaAvoided(s,area.id)&&reachable(area));
   if (!options.length) {
-    const blockedPath=blocked||Object.values(s.areas).some(area=>knownArea(s,area)&&!area.interior&&!area.temporaryCamp&&!h.memory.places.includes(area.id)&&!reachable(area));
+    const unavailable=Object.values(s.areas).find(area=>knownArea(s,area)&&!area.interior&&!area.temporaryCamp&&!h.memory.places.includes(area.id)&&!reachable(area)),blockedPath=blocked||Boolean(unavailable);
     const frontier = closest(s, area => !area.temporaryCamp&&visitedArea(s,area) && !area.expanded && area.type !== 'village' && !areaAvoided(s,area.id)&&reachable(area));
     if (frontier) { goal(s, 'expand', frontier.id, 91, blockedPath?'Искать другую дорогу':'Разведать дорогу за горизонтом', blockedPath?'Прежний путь перекрыт. Он выбирает доступный знакомый выход.':'Знакомые тропы изучены. Любопытство зовёт дальше.'); return; }
     if(blockedPath||Object.keys(h.memory.avoided).some(id=>areaAvoided(s,id))){
-      const until=Math.min(...Object.values(h.memory.avoided).filter(until=>until>s.tick));
-      goal(s,'routeWait',h.area,h.x,'Подождать у знакомой дороги','Известного доступного пути пока нет. Он остаётся здесь и ждёт новых возможностей.',{until:Number.isFinite(until)?until:s.tick+70});return;
+      const area=unavailable?.id||Object.keys(h.memory.avoided).find(id=>areaAvoided(s,id))||h.area,g={kind:'explore',area,x:84},signature=methodRevision(s,g),r={status:'blocked',reason:unavailable?'Известного доступного пути к этому месту пока нет.':'Он помнит опасный участок; нужен безопасный способ или действительные новые сведения.',retryOn:unavailable?'personal-route':'preparation-or-local-report'};
+      if(!deferredMethod(h,g,signature))deferMethod(h,g,r,signature,s.tick);h.goal=null;return;
     }
     // Expanding a visited frontier keeps the world connected without resetting it.
-    a.expanded = false; goal(s, 'expand', a.id, 91, 'Найти новую тропу', 'Каждая дорога может привести к новой истории.'); return;
+    if(h.energy<95||h.hp<h.maxHp)goal(s,'localRecovery',h.area,h.x,'Заняться доступной жизнью на месте','Знакомые выходы изучены. Новую дорогу нельзя создать одним повторением ожидания.');return;
   }
   options.sort((aa, bb) => {
     const score = area => knownRoute(s, h.area, area.id).length + routePreference(s,area) + weatherPreference(s,area) - (area.type === 'forest' ? h.personality.curiosity : 0);
@@ -876,15 +896,15 @@ function actObserved(s) {
   if(!urgent)actorMaterialDeliveryPlan(s,context(s,'material-delivery'));
   if(!h.goal||h.goal.kind==='provision')collectionPlan(s,context(s,'collections'),{urgentOnly:true});
   if(!urgent&&h.hunger<=75&&!h.goal?.intention)hearCaptivePlan(s,context(s,'dungeon-rescue'));
-  if (!h.goal || groupNeed==='food'&&!['provision','eat','forage','brothEat','campPitch'].includes(h.goal.kind) || urgent && !['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || enabled(s, 'body') && h.hunger > 75 && !h.goal.collectionEmergency&&!['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || h.goal.quest && activeQuest(h) && questReady(s, activeQuest(h)) && !['rest', 'turnin', 'provision','eat','forage','brothEat'].includes(h.goal.kind)) plan(s);
-  if(h.goal&&h.goal.area!==h.area&&(h.goal.kind!=='rest'||h.atlas)&&!knownRoute(s,h.area,h.goal.area).length){
-    const former=h.goal;explorePlan(s,true);
-    log(s,`Известного доступного пути к «${s.areas[former.area]?.name||'прежнему делу'}» сейчас нет. ${h.intent}.`,'plan');
-  }
-  if(!navigationReturnTarget(s,context(s,'navigation-memory')))return s;
+  if (!h.goal || groupNeed==='food'&&!['provision','eat','forage','brothEat','campPitch'].includes(h.goal.kind) || urgent && !['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || enabled(s, 'body') && h.hunger > 75 && !h.goal.collectionEmergency&&!['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || h.goal.quest && activeQuest(h) && questReady(s, activeQuest(h)) && !['rest', 'turnin', 'provision','eat','forage','brothEat'].includes(h.goal.kind)) if(plan(s))return s;
+  if(reconsiderKnownQuest(s))return s;
+  reconsiderMethods(s,(world,g)=>goalReadiness(world,g,{knownRoute},{memory:false}),methodRevision);
+  if(h.goal&&['routeWait','leisure','localRecovery'].includes(h.goal.kind)&&h.actionSelection?.deferred.some(e=>e.signature!==methodRevision(s,e.step))){h.goal=null;if(plan(s))return s;}
+  if(h.goal){const readiness=goalReadiness(s,h.goal,{knownRoute});if(readiness.status==='waiting'){if(plan(s))return s;}else if(!['ready','progressing'].includes(readiness.status)){const previous=h.goal;if(readiness.status==='blocked')deferMethod(h,previous,readiness,methodRevision(s,previous),s.tick);h.goal=null;if(plan(s))return s;}}
+  if(!verifyTarget(s,'navigationReturnTarget',()=>navigationReturnTarget(s,context(s,'navigation-memory'))))return s;
   if(navigationHoldKnownBlocker(s,context(s,'navigation-memory')))return s;
-  if(!rescueTarget(s,{log,failQuest})||!intentionTarget(s)||!lodgingTarget(s)||!aidTarget(s)||!serviceTarget(s,context(s,'work-orders'))||!propertyAidTarget(s,context(s,'property-aid'))||!propertyGiftTarget(s,context(s,'property-gifts'))||!propertyContractTarget(s,context(s,'property-contracts'))||!propertyTarget(s,context(s,'property')))return s;
-  if(!itemRepairTarget(s,context(s,'item-wear'))||!refitTarget(s)||!workshopWorkTarget(s,{...context(s,'workshop-interiors'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}))return s;
+  if(!verifyTarget(s,'rescueTarget',()=>rescueTarget(s,{log,failQuest}))||!verifyTarget(s,'intentionTarget',()=>intentionTarget(s))||!verifyTarget(s,'lodgingTarget',()=>lodgingTarget(s))||!verifyTarget(s,'aidTarget',()=>aidTarget(s))||!verifyTarget(s,'serviceTarget',()=>serviceTarget(s,context(s,'work-orders')))||!verifyTarget(s,'propertyAidTarget',()=>propertyAidTarget(s,context(s,'property-aid')))||!verifyTarget(s,'propertyGiftTarget',()=>propertyGiftTarget(s,context(s,'property-gifts')))||!verifyTarget(s,'propertyContractTarget',()=>propertyContractTarget(s,context(s,'property-contracts')))||!verifyTarget(s,'propertyTarget',()=>propertyTarget(s,context(s,'property'))))return s;
+  if(!verifyTarget(s,'itemRepairTarget',()=>itemRepairTarget(s,context(s,'item-wear')))||!verifyTarget(s,'refitTarget',()=>refitTarget(s))||!verifyTarget(s,'workshopWorkTarget',()=>workshopWorkTarget(s,{...context(s,'workshop-interiors'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))})))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(clothingPriority(s))return s;
   if(!urgent&&packPetCare(s,context(s,'pack-pets')))return s;
@@ -898,9 +918,11 @@ function actObserved(s) {
   preparePlan(s,context(s,'preparation'));
   const g = h.goal;
   if (!g) return s;
+  const beforeAction=actionProgress(s,g);let rejectedBy=null;const execute=(id,run)=>{const value=run();if(value===false)rejectedBy=id;return value;};
+  try {
   resumeFordTaskView(s);
-  if(!collectionTarget(s))return s;
-  if(!landmarkTarget(s))return s;
+  if(!verifyTarget(s,'collectionTarget',()=>collectionTarget(s)))return s;
+  if(!verifyTarget(s,'landmarkTarget',()=>landmarkTarget(s)))return s;
   const a = s.areas[h.area];
   if (g.kind === 'hunt' && g.area === h.area) {
     const enemy = a.objects.find(o => o.id === g.object);
@@ -939,7 +961,8 @@ function actObserved(s) {
   }
   if (physicalDistance(a,h.x,target) > 1) { if(navigationGate(s,target,context(s,'navigation-tools')))return s;move(s, target); return s; }
   if (next) { const from=h.area,passage=interiorPassage(s,from,next),arrivalX=passage?.arrival??(target===100?5:95);if(!passage&&heroFordGate(s,next,arrivalX,context(s,'fords')))return s;if(!passage&&beginTransit(s,next,arrivalX,context(s,'travel')))return s;h.x=arrivalX;enter(s,next);resumeFordTaskView(s);campCrossed(s,from,next,context(s,'fieldcamp'));h.lastAction='walk';return s; }
-  if(g.kind==='routeWait'){h.lastAction='idle';if(s.tick>=g.until)h.goal=null;return s;}
+  if(['directionAsk','directionInspect'].includes(g.kind)){execute('routeOpportunityAction',()=>routeOpportunityAction(s,g,{observeLocalRoutes,log}));return s;}
+  if(g.kind==='localRecovery'){h.hp=Math.min(h.maxHp,h.hp+restAmount(s,a));h.energy=Math.min(100,h.energy+4);traitsRest(s,context(s,'body'));magicRest(s);partyRest(s);h.lastAction='rest';h.goal=null;return s;}
   if (g.kind === 'rest') {
     restoreCampRestView(s);
     if(lodgingRest(s,context(s,'lodging'),holdPoisonRest(s)||holdWoundRest(s)))return s;
@@ -951,91 +974,91 @@ function actObserved(s) {
     partyRest(s);
     if (!holdPoisonRest(s)&&!holdWoundRest(s)&&partyRestReady(s)&&h.hp === h.maxHp && h.energy >= 95&&(!enabled(s,'magic')||h.magic.mana>=(g.preparation?.mana||0))) { log(s, 'Силы восстановлены. Можно снова вернуться к своим планам.', 'rest'); h.goal = null;leaveCamp(s,context(s,'fieldcamp')); }
     else h.speech = isTown(a) ? actualService(s,a,'clinic').available?'Лекарь помогает путникам. Здесь можно перевести дух.':'Здесь можно отдохнуть самому; лекарь сейчас не принимает.' : 'Огонь согревает. Обещания подождут до утра.';
-  } else if (g.kind === 'campPitch') pitchCamp(s,context(s,'fieldcamp'));
-  else if(g.kind==='campContinue')campContinue(s,context(s,'fieldcamp'));
-  else if(g.kind==='collectionTrade')collectionAction(s,context(s,'collections'));
-  else if(g.kind==='landmarkStudy')landmarkStudy(s,context(s,'landmarks'));
-  else if (g.kind === 'talk') acceptWork(s);
-  else if (g.kind === 'provision') provisions(s, context(s, 'body'));
-  else if (g.kind === 'eat') eat(s,context(s,'supply'));
-  else if (g.kind === 'brothCook') brothCookAction(s,context(s,'hearth-food'));
-  else if (g.kind === 'brothEat') brothEatAction(s,context(s,'hearth-food'));
-  else if (g.kind === 'brothLearn') brothLesson(s,context(s,'hearth-food'));
-  else if (g.kind === 'forage') forageTick(s,context(s,'supply'));
-  else if (g.kind === 'assist') assistanceAction(s,context(s,'intentions'));
-  else if(g.kind==='patientClinic')patientClinicAction(s,context(s,'injured-party'));
-  else if (g.kind === 'work') workTick(s,context(s,'work'));
-  else if(g.kind==='propertyAid')propertyAidAction(s,context(s,'property-aid'));
-  else if(g.kind==='propertyGift')propertyGiftAction(s,context(s,'property-gifts'));
-  else if(g.kind==='propertyBuy')buyProperty(s,context(s,'property'));
-  else if(g.kind==='propertyContract')propertyContractAction(s,context(s,'property-contracts'));
-  else if(g.kind==='propertyRepair')repairProperty(s,context(s,'property'));
-  else if(g.kind==='craftStudy')craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))});
-  else if(['petBoard','petRetrieve','petRecover','petCall'].includes(g.kind))petBoardingAction(s,context(s,'pet-passage'));
-  else if(g.kind==='petTransfer')petTransferAction(s,context(s,'pet-transfer'));
-  else if(['petPackFit','petPackLoad','petPackUnload'].includes(g.kind))packPetAction(s,context(s,'pack-pets'));
-  else if(['clothingBuy','clothingDress','clothingSell'].includes(g.kind))clothingAction(s,context(s,'practical-clothing'));
-  else if(g.kind==='navReturn')finishNavigationReturn(s,context(s,'navigation-memory'));
-  else if(g.kind.startsWith('rope'))navigationAction(s,context(s,'navigation-tools'));
-  else if(['forgeSupply','forgeWork','forgeLearn','forgeBuy'].includes(g.kind))forgeAction(s,{...context(s,'forging'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))});
-  else if(['refitMeet','refitMaterial','refitWork'].includes(g.kind))refitAction(s,context(s,'knife-refit'));
-  else if(['itemRepairMeet','itemRepairMaterial','itemRepairWork','itemGearSwap'].includes(g.kind))itemRepairAction(s,context(s,'item-wear'));
-  else if(['bodyMaterial','bodyMaterialSale'].includes(g.kind))biomaterialAction(s,context(s,'animal-materials'));
-  else if(g.kind==='materialWait')materialClientAction(s);
-  else if(['materialCollect','materialReturn'].includes(g.kind))workMaterialDelivery(s,s.people[h.lineage],context(s,'material-delivery'));
-  else if(['toolInspect','toolLearn','toolFit','toolSupply','toolInstall'].includes(g.kind))toolAction(s,context(s,'workshop-tools'));
-  else if(g.kind==='principleReflect')reflectPrinciple(s,context(s,'principles'));
-  else if(g.kind==='rescueHear')hearCaptive(s,context(s,'dungeon-rescue'));
-  else if(['rescueApproach','rescueFree','rescueEscort'].includes(g.kind))rescueAction(s,context(s,'dungeon-rescue'));
-  else if(['verdictPetition','verdictReview'].includes(g.kind))verdictReviewAction(s,context(s,'verdict-review'));
-  else if(['verdictRecord','verdictWitness'].includes(g.kind))verdictInquiryAction(s,context(s,'verdict-knowledge'));
-  else if(g.kind==='serviceAccept')acceptService(s,context(s,'work-orders'));
-  else if(g.kind==='workshopTalk')workshopDisputeAction(s,context(s,'workshop-dispute'));
-  else if(g.kind==='serviceSupply')buyServiceTool(s,s.workOrders[g.service],context(s,'work-materials'));
-  else if(g.kind==='serviceDelay')extendService(s,context(s,'work-orders'));
-  else if(g.kind==='aidPerson')performAid(s,context(s,'personal-aid'));
-  else if(['tavernVisit','tavernLeave'].includes(g.kind))tavernAction(s,context(s,'interiors'));
-  else if(g.kind==='hallWorkVisit')visitForWork(s,context(s,'hall-activities'));
-  else if(g.kind==='roomBook')bookRoom(s,context(s,'lodging'));
-  else if (g.kind === 'factionDuty') factionDuty(s,context(s,'faction-paths'));
+  } else if (g.kind === 'campPitch') execute('pitchCamp',()=>pitchCamp(s,context(s,'fieldcamp')));
+  else if(g.kind==='campContinue')execute('campContinue',()=>campContinue(s,context(s,'fieldcamp')));
+  else if(g.kind==='collectionTrade')execute('collectionAction',()=>collectionAction(s,context(s,'collections')));
+  else if(g.kind==='landmarkStudy')execute('landmarkStudy',()=>landmarkStudy(s,context(s,'landmarks')));
+  else if (g.kind === 'talk') execute('acceptWork',()=>acceptWork(s));
+  else if (g.kind === 'provision') execute('provisions',()=>provisions(s, context(s, 'body')));
+  else if (g.kind === 'eat') execute('eat',()=>eat(s,context(s,'supply')));
+  else if (g.kind === 'brothCook') execute('brothCookAction',()=>brothCookAction(s,context(s,'hearth-food')));
+  else if (g.kind === 'brothEat') execute('brothEatAction',()=>brothEatAction(s,context(s,'hearth-food')));
+  else if (g.kind === 'brothLearn') execute('brothLesson',()=>brothLesson(s,context(s,'hearth-food')));
+  else if (g.kind === 'forage') execute('forageTick',()=>forageTick(s,context(s,'supply')));
+  else if (g.kind === 'assist') execute('assistanceAction',()=>assistanceAction(s,context(s,'intentions')));
+  else if(g.kind==='patientClinic')execute('patientClinicAction',()=>patientClinicAction(s,context(s,'injured-party')));
+  else if (g.kind === 'work') execute('workTick',()=>workTick(s,context(s,'work')));
+  else if(g.kind==='propertyAid')execute('propertyAidAction',()=>propertyAidAction(s,context(s,'property-aid')));
+  else if(g.kind==='propertyGift')execute('propertyGiftAction',()=>propertyGiftAction(s,context(s,'property-gifts')));
+  else if(g.kind==='propertyBuy')execute('buyProperty',()=>buyProperty(s,context(s,'property')));
+  else if(g.kind==='propertyContract')execute('propertyContractAction',()=>propertyContractAction(s,context(s,'property-contracts')));
+  else if(g.kind==='propertyRepair')execute('repairProperty',()=>repairProperty(s,context(s,'property')));
+  else if(g.kind==='craftStudy')execute('craftStudyAction',()=>craftStudyAction(s,{...context(s,'craft-practice'),craftBench:world=>workspaceAccess(world,context(world,'property'))}));
+  else if(['petBoard','petRetrieve','petRecover','petCall'].includes(g.kind))execute('petBoardingAction',()=>petBoardingAction(s,context(s,'pet-passage')));
+  else if(g.kind==='petTransfer')execute('petTransferAction',()=>petTransferAction(s,context(s,'pet-transfer')));
+  else if(['petPackFit','petPackLoad','petPackUnload'].includes(g.kind))execute('packPetAction',()=>packPetAction(s,context(s,'pack-pets')));
+  else if(['clothingBuy','clothingDress','clothingSell'].includes(g.kind))execute('clothingAction',()=>clothingAction(s,context(s,'practical-clothing')));
+  else if(g.kind==='navReturn')execute('finishNavigationReturn',()=>finishNavigationReturn(s,context(s,'navigation-memory')));
+  else if(g.kind.startsWith('rope'))execute('navigationAction',()=>navigationAction(s,context(s,'navigation-tools')));
+  else if(['forgeSupply','forgeWork','forgeLearn','forgeBuy'].includes(g.kind))execute('forgeAction',()=>forgeAction(s,{...context(s,'forging'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}));
+  else if(['refitMeet','refitMaterial','refitWork'].includes(g.kind))execute('refitAction',()=>refitAction(s,context(s,'knife-refit')));
+  else if(['itemRepairMeet','itemRepairMaterial','itemRepairWork','itemGearSwap'].includes(g.kind))execute('itemRepairAction',()=>itemRepairAction(s,context(s,'item-wear')));
+  else if(['bodyMaterial','bodyMaterialSale'].includes(g.kind))execute('biomaterialAction',()=>biomaterialAction(s,context(s,'animal-materials')));
+  else if(g.kind==='materialWait')execute('materialClientAction',()=>materialClientAction(s));
+  else if(['materialCollect','materialReturn'].includes(g.kind))execute('workMaterialDelivery',()=>workMaterialDelivery(s,s.people[h.lineage],context(s,'material-delivery')));
+  else if(['toolInspect','toolLearn','toolFit','toolSupply','toolInstall'].includes(g.kind))execute('toolAction',()=>toolAction(s,context(s,'workshop-tools')));
+  else if(g.kind==='principleReflect')execute('reflectPrinciple',()=>reflectPrinciple(s,context(s,'principles')));
+  else if(g.kind==='rescueHear')execute('hearCaptive',()=>hearCaptive(s,context(s,'dungeon-rescue')));
+  else if(['rescueApproach','rescueFree','rescueEscort'].includes(g.kind))execute('rescueAction',()=>rescueAction(s,context(s,'dungeon-rescue')));
+  else if(['verdictPetition','verdictReview'].includes(g.kind))execute('verdictReviewAction',()=>verdictReviewAction(s,context(s,'verdict-review')));
+  else if(['verdictRecord','verdictWitness'].includes(g.kind))execute('verdictInquiryAction',()=>verdictInquiryAction(s,context(s,'verdict-knowledge')));
+  else if(g.kind==='serviceAccept')execute('acceptService',()=>acceptService(s,context(s,'work-orders')));
+  else if(g.kind==='workshopTalk')execute('workshopDisputeAction',()=>workshopDisputeAction(s,context(s,'workshop-dispute')));
+  else if(g.kind==='serviceSupply')execute('buyServiceTool',()=>buyServiceTool(s,s.workOrders[g.service],context(s,'work-materials')));
+  else if(g.kind==='serviceDelay')execute('extendService',()=>extendService(s,context(s,'work-orders')));
+  else if(g.kind==='aidPerson')execute('performAid',()=>performAid(s,context(s,'personal-aid')));
+  else if(['tavernVisit','tavernLeave'].includes(g.kind))execute('tavernAction',()=>tavernAction(s,context(s,'interiors')));
+  else if(g.kind==='hallWorkVisit')execute('visitForWork',()=>visitForWork(s,context(s,'hall-activities')));
+  else if(g.kind==='roomBook')execute('bookRoom',()=>bookRoom(s,context(s,'lodging')));
+  else if (g.kind === 'factionDuty') execute('factionDuty',()=>factionDuty(s,context(s,'faction-paths')));
   else if (g.kind === 'caravanWait') {h.lastAction='wait';h.goal=null;}
-  else if (g.kind === 'caravanRaid') caravanRaid(s,context(s,'caravans'));
-  else if (g.kind === 'leisure') leisureTick(s,context(s,'work'));
-  else if (g.kind === 'weatherWait') weatherWait(s,context(s,'weather'));
-  else if (g.kind === 'govern') governTick(s,context(s,'politics'));
-  else if (g.kind === 'settle') settleLife(s,context(s,'life'));
-  else if(g.kind==='shipRecover')shipRecoveryAction(s,context(s,'ship-recovery'));
-  else if(['waystoneFill','waystoneTransfer'].includes(g.kind))waystoneAction(s,context(s,'waystones'));
-  else if(g.kind==='pactTalk')pactTalkAction(s,context(s,'branch-pacts'));
-  else if(g.kind==='feastJoin')feastAction(s,context(s,'local-feasts'));
-  else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));
-  else if(['libraryProtect','librarySteal'].includes(g.kind))librarySecurityAction(s,context(s,'library-security'));
-  else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))libraryAction(s,context(s,'libraries'));
-  else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))textAction(s,context(s,'texts'));
-  else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))homeBuildingAction(s,context(s,'home-building'));
-  else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))homeAction(s,context(s,'homes'));
-  else if (g.kind === 'storyAction') storyAction(s,g.story,context(s,'stories'));
-  else if (g.kind === 'moneyCache') moneyCacheAction(s,context(s,'finances'));
-  else if (g.kind === 'routeMap') routeMapAction(s,context(s,'route-maps'));
-  else if (g.kind === 'mapCopy') mapCopyAction(s,s.people[h.lineage],g,context(s,'route-maps'));
-  else if (g.kind === 'studyCreature') studyBestiaryAction(s,context(s,'bestiary'));
+  else if (g.kind === 'caravanRaid') execute('caravanRaid',()=>caravanRaid(s,context(s,'caravans')));
+  else if (g.kind === 'leisure') execute('leisureTick',()=>leisureTick(s,context(s,'work')));
+  else if (g.kind === 'weatherWait') execute('weatherWait',()=>weatherWait(s,context(s,'weather')));
+  else if (g.kind === 'govern') execute('governTick',()=>governTick(s,context(s,'politics')));
+  else if (g.kind === 'settle') execute('settleLife',()=>settleLife(s,context(s,'life')));
+  else if(g.kind==='shipRecover')execute('shipRecoveryAction',()=>shipRecoveryAction(s,context(s,'ship-recovery')));
+  else if(['waystoneFill','waystoneTransfer'].includes(g.kind))execute('waystoneAction',()=>waystoneAction(s,context(s,'waystones')));
+  else if(g.kind==='pactTalk')execute('pactTalkAction',()=>pactTalkAction(s,context(s,'branch-pacts')));
+  else if(g.kind==='feastJoin')execute('feastAction',()=>feastAction(s,context(s,'local-feasts')));
+  else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
+  else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
+  else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))execute('textAction',()=>textAction(s,context(s,'texts')));
+  else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))execute('homeBuildingAction',()=>homeBuildingAction(s,context(s,'home-building')));
+  else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))execute('homeAction',()=>homeAction(s,context(s,'homes')));
+  else if (g.kind === 'storyAction') execute('storyAction',()=>storyAction(s,g.story,context(s,'stories')));
+  else if (g.kind === 'moneyCache') execute('moneyCacheAction',()=>moneyCacheAction(s,context(s,'finances')));
+  else if (g.kind === 'routeMap') execute('routeMapAction',()=>routeMapAction(s,context(s,'route-maps')));
+  else if (g.kind === 'mapCopy') execute('mapCopyAction',()=>mapCopyAction(s,s.people[h.lineage],g,context(s,'route-maps')));
+  else if (g.kind === 'studyCreature') execute('studyBestiaryAction',()=>studyBestiaryAction(s,context(s,'bestiary')));
   else if(g.kind==='sequenceAdvice'){askSequenceWitness(s,s.people[h.lineage],s.people[g.person],g.key,context(s,'mechanism-sequences'));h.goal=null;}
-  else if (['layoutMove','layoutSurvey','layoutWait'].includes(g.kind))layoutAction(s,context(s,'delve-layouts'));
-  else if (g.kind === 'mechanism') mechanismAction(s,context(s,'mechanisms'));
-  else if (g.kind === 'mechanismHold') leverHoldAction(s,context(s,'mechanisms'));
-  else if (g.kind === 'liftWork') liftAction(s,context(s,'mechanisms'));
-  else if (g.kind === 'dogLesson') dogLessonAction(s,context(s,'pet-training'));
-  else if (g.kind === 'dogSearch') dogSearchAction(s,context(s,'pet-training'));
-  else if (g.kind === 'dogFeed') dogFeedAction(s,context(s,'pet-training'));
-  else if (['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(g.kind)) fieldCraftAction(s,s.people[h.lineage],g,context(s,'field-craft'));
-  else if (['creditAsk','creditWait','creditDecide','creditWork'].includes(g.kind)) heroCreditAction(s,context(s,'provision-credit'));
-  else if (['merchantBuy','merchantSell'].includes(g.kind)) heroMerchantAction(s,context(s,'merchant-trips'));
-  else if (g.kind === 'questAction') questAction(s,h.quests.find(q=>q.id===g.quest),context(s,'quests'));
+  else if (['layoutMove','layoutSurvey','layoutWait'].includes(g.kind))execute('layoutAction',()=>layoutAction(s,context(s,'delve-layouts')));
+  else if (g.kind === 'mechanism') execute('mechanismAction',()=>mechanismAction(s,context(s,'mechanisms')));
+  else if (g.kind === 'mechanismHold') execute('leverHoldAction',()=>leverHoldAction(s,context(s,'mechanisms')));
+  else if (g.kind === 'liftWork') execute('liftAction',()=>liftAction(s,context(s,'mechanisms')));
+  else if (g.kind === 'dogLesson') execute('dogLessonAction',()=>dogLessonAction(s,context(s,'pet-training')));
+  else if (g.kind === 'dogSearch') execute('dogSearchAction',()=>dogSearchAction(s,context(s,'pet-training')));
+  else if (g.kind === 'dogFeed') execute('dogFeedAction',()=>dogFeedAction(s,context(s,'pet-training')));
+  else if (['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(g.kind)) execute('fieldCraftAction',()=>fieldCraftAction(s,s.people[h.lineage],g,context(s,'field-craft')));
+  else if (['creditAsk','creditWait','creditDecide','creditWork'].includes(g.kind)) execute('heroCreditAction',()=>heroCreditAction(s,context(s,'provision-credit')));
+  else if (['merchantBuy','merchantSell'].includes(g.kind)) execute('heroMerchantAction',()=>heroMerchantAction(s,context(s,'merchant-trips')));
+  else if (g.kind === 'questAction') execute('questAction',()=>questAction(s,h.quests.find(q=>q.id===g.quest),context(s,'quests')));
   else if (g.kind === 'encounter') { const object = a.objects.find(o => o.id === g.object); if (object) encounter(s, object, context(s, 'encounters')); else h.goal = null; }
-  else if (g.kind === 'turnin') completeQuest(s, h.quests.find(q => q.id === g.quest));
-  else if (g.kind === 'trade') trade(s);
+  else if (g.kind === 'turnin') execute('completeQuest',()=>completeQuest(s, h.quests.find(q => q.id === g.quest)));
+  else if (g.kind === 'trade') execute('trade',()=>trade(s));
   else if (g.kind === 'collect') { const object = a.objects.find(o => o.id === g.object); if (object) collect(s, object); else h.goal = null; }
-  else if (g.kind === 'expand') expand(s);
+  else if (g.kind === 'expand') execute('expand',()=>expand(s));
   else if (g.kind === 'hunt') { h.combat = g.object; fight(s, a.objects.find(o => o.id === g.object)); }
   else {
     const item = a.objects.find(o => (['loot','relic'].includes(o.kind)||o.kind==='heirloom'&&cacheCollectible(s,o)||o.kind==='supplyCache'&&enabled(s,'supply')&&canLoadPackCargo(s,o)) && !o.taken || o.kind === 'herb' && o.count > 0&&stackRoom(s,h.lineage,'herbs',1)>0&&scentPlantKnown(s,h,a,o));
@@ -1043,6 +1066,7 @@ function actObserved(s) {
     else { h.goal = null; log(s, `${a.name} изучено. Герой запоминает путь и смотрит дальше.`, 'discover'); }
   }
   return s;
+  } finally {const after=actionProgress(s,g),r=executionResult(h,g,beforeAction,after,s.tick,{attemptBasis:methodRevision(s,g),finiteWaiting:goalReadiness(s,g,{knownRoute},{memory:false}).status==='waiting',...(beforeAction===after&&rejectedBy?{status:'blocked',reason:'Обработчик '+rejectedBy+' отказал без выполненного шага.',retryOn:'target-or-resources'}:{}),...(beforeAction===after&&!h.goal?{status:'blocked',reason:'Шаг завершился отказом без выполненного действия.',retryOn:'related-change'}:{})});if(r.status==='blocked'){deferMethod(h,g,r,methodRevision(s,g),s.tick);if(h.goal===g)h.goal=null;}}
 }
 export function serialize(s) { return JSON.stringify(observationPayload(rootWorld(s))); }
 export function restore(text) {

@@ -34,8 +34,8 @@ export function questMeaning(s,q,ready=false){
  const reason=urgency>=52?'Срок обещания вот-вот истечёт.':ready?'Пора вернуться и завершить обещанное.':family?'Обещание связано с его семьёй.':trust>=20?'Обещание дано человеку, которому он доверяет.':'Он ещё хочет довести это дело до конца.';
  return {domain:'quest',id:q.id,importance,urgency,value:importance+urgency,reason,ready,family};
 }
-export function chooseQuest(s,active,ready){
- const h=s.hero,blocked=h.intentions?.balance?.blocked||{},options=active.filter(q=>!blocked[q.id]&&questChoiceAvailable(s,q)).map(q=>({q,...questMeaning(s,q,ready(q))})).sort((a,b)=>b.value-a.value||tie(s,a.q)-tie(s,b.q)||(String(a.id)<String(b.id)?-1:String(a.id)>String(b.id)?1:0));
+export function chooseQuest(s,active,ready,{available=null}={}){
+ const h=s.hero,blocked=h.intentions?.balance?.blocked||{},options=active.filter(q=>(available?available(q):!blocked[q.id])&&questChoiceAvailable(s,q)).map(q=>({q,...questMeaning(s,q,ready(q))})).sort((a,b)=>b.value-a.value||tie(s,a.q)-tie(s,b.q)||(String(a.id)<String(b.id)?-1:String(a.id)>String(b.id)?1:0));
  const id=h.goal?.quest||h.intentions?.balance?.current?.id,since=h.intentions?.balance?.current&&h.intentions.balance.current.id===id?h.intentions.balance.current.since:h.goal?.started??s.tick;
  return stableAffairChoice(options,{current:id,since,tick:s.tick,locked:h.goal?.quest===id,retainedReason:'Небольшой перевес другого дела не отменяет прежний выбор. Это обещание сохраняет значение.'});
 }
