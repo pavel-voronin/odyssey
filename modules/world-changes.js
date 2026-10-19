@@ -1,3 +1,4 @@
+import {chooseEraName} from './era-names.js';
 import {DAY_TICKS} from '../calendar-units.js';
 import {recordHistoricalBoundary} from './historical-calendar.js';
 import {worldNetwork,assessGeography} from './world-change-network.js';
@@ -40,7 +41,7 @@ export function assessWorldChange(s,id){
   else {
    const event={id:'world-change/'+q.id,tick:s.tick,area:q.source.area||null,text:q.source.text+' '+q.oldLimit+' → '+q.newState,knownBy:[...(q.source.knownBy||[])],witnesses:[...(q.source.witnesses||[])],worldBoundary:{domain:q.domain,actors:[...q.actors]},worldChange:q.id};
    // This is adjudication of an already realized result. No domain effect here.
-   s.changes.push(event);const period=recordHistoricalBoundary(s,{event,name:q.name,shortName:q.shortName});
+   const naming=chooseEraName(s,q,assessment);s.changes.push(event);const period=recordHistoricalBoundary(s,{event,name:naming.name,shortName:naming.shortName,naming});
    if(period){q.period=period.id;q.recordedAt=s.tick;status='recorded';reason='Подтверждён устойчивый мировой результат этой единственной причины.';}else {status='calendar-paused';reason='Запись рубежа сейчас недоступна; мир не получает эффект повторно.';}
   }
  }
