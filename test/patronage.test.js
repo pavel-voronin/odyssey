@@ -1,0 +1,33 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {patronFixture,patronGift,patronRepair,patronFirstStock,patronManufacture,patronSave,patronContext as ctx} from '../scripts/patronage-scenarios.mjs';
+import {patronagePlan,acceptPatronage,patronStock,npcPatronagePlan,patronSale} from '../modules/patronage.js';
+import {goodsBalance,productionSources,takeGoods,completeGoodsWork} from '../modules/goods.js';import {marketWallet,tradeGoods} from '../modules/market.js';
+import {setModule} from '../rules.js';import {serialize,restore,step} from '../engine.js';import {peopleTick} from '../modules/people.js';import {goalReadiness} from '../modules/goal-readiness.js';
+const exact=f=>{const raw=patronSave(f);assert.equal(serialize(restore(raw)),raw);return raw;};
+const total=f=>f.h.gold+marketWallet(f.s,f.p.id)+f.a.civic.treasury;
+// PARTIAL: six groups <=12 actual acts/group; actual fire/repair/work/sale,
+// with prepared near-bench/counter checkpoints, no long lives or combinations.
+test('one consented project repairs the same workshop then a second finite gift produces and sells one tool for its owner alone',()=>{
+ const f=patronFixture(),coins=total(f),owner=f.o.owner,wealth=marketWallet(f.s,f.p.id),raw=productionSources(f.s,f.a).materials.stock;patronGift(f);assert.equal(f.h.gold,62);assert.equal(f.o.state,'burned');assert.equal(f.c.status,'repairing');assert.equal(f.a.civic.tools,0);assert.equal(f.o.owner,owner);assert.equal(total(f),coins);exact(f);
+ patronRepair(f);assert.equal(f.o.state,'intact');assert.equal(f.c.status,'awaiting-stock');assert.equal(f.c.material,null);assert.equal(f.h.gold,62);assert.equal(marketWallet(f.s,f.p.id),wealth);exact(f);
+ patronFirstStock(f);assert.equal(f.h.gold,58);assert.equal(productionSources(f.s,f.a).materials.stock,raw-2);assert.equal(f.c.material.state,'reserved');assert.equal(f.c.status,'working');exact(f);
+ patronManufacture(f);assert.equal(f.c.status,'selling');assert.equal(f.c.material.state,'consumed');assert.equal(f.p.marketCargo.tools,1);assert.equal(f.c.revenue,0);assert.equal(f.h.gold,58);assert.equal(marketWallet(f.s,f.p.id),wealth);f.p.area=f.a.id;f.p.x=58;f.p.agenda.task=null;f.s.tick++;assert.ok(npcPatronagePlan(f.s,f.p));assert.ok(patronSale(f.s,f.p,f.p.agenda.task,ctx));assert.equal(f.c.status,'complete');assert.equal(f.o.owner,owner);assert.equal(f.h.gold,58);assert.equal(marketWallet(f.s,f.p.id),wealth+f.c.revenue);assert.equal(total(f),coins);assert.equal(goodsBalance(f.a,'tools').difference,0);exact(f);
+ const before=total(f);assert.equal(patronSale(f.s,f.p,{patronProject:f.c.id},ctx),false);assert.equal(total(f),before);
+});
+test('the real recipient may decline disliked terms, and an unknown person or low personal generosity cannot be selected as patronage theatre',()=>{
+ const f=patronFixture(),coins=total(f);f.p.agenda.bonds[f.h.lineage]=-12;assert.ok(patronagePlan(f.s,ctx));assert.equal(acceptPatronage(f.s,ctx),false);assert.equal(f.s.patronProjects,undefined);assert.equal(f.h.patronMemory.notes.at(-1).outcome,'refused');assert.equal(total(f),coins);assert.equal(f.o.repair,null);exact(f);
+ const g=patronFixture();g.h.memory.people=g.h.memory.people.filter(id=>id!==g.p.id);assert.equal(patronagePlan(g.s,ctx),false);g.h.memory.people.push(g.p.id);g.h.personality.generosity=.2;assert.equal(patronagePlan(g.s,ctx),false);assert.equal(g.s.patronProjects,undefined);exact(g);
+});
+test('missing real tools or subsequent raw prevents the respective gift without changing money or inventing a first batch',()=>{
+ const f=patronFixture();takeGoods(f.s,f.a,'tools',1,{flow:'lost',reason:'prepared-current-missing-tool'});const coins=total(f);assert.ok(patronagePlan(f.s,ctx));assert.equal(acceptPatronage(f.s,ctx),false);assert.equal(total(f),coins);assert.equal(f.s.patronProjects,undefined);exact(f);
+ const g=patronRepair(patronGift()),raw=productionSources(g.s,g.a).materials;raw.used+=raw.stock;raw.stock=0;const money=total(g);g.s.tick++;assert.ok(patronagePlan(g.s,ctx));assert.equal(patronStock(g.s,ctx),false);assert.equal(g.c.status,'awaiting-stock');assert.equal(g.c.material,null);assert.equal(g.c.supplyAttempt.reason,'no-raw');assert.equal(total(g),money);assert.equal(g.o.state,'intact');assert.equal(patronagePlan(g.s,ctx),false);exact(g);
+});
+test('the donor can stop the second payment for real personal needs; the completed first gift and original title are never reclaimed',()=>{
+ const f=patronRepair(patronGift()),owner=f.o.owner;f.h.x=42;assert.ok(tradeGoods(f.s,f.a,f.h.lineage,'food','buy',40).quantity>0);assert.ok(f.h.gold<24);const coins=total(f),gold=f.h.gold;f.s.tick++;assert.ok(patronagePlan(f.s,ctx));assert.ok(patronStock(f.s,ctx));assert.equal(f.c.status,'stopped');assert.equal(f.c.material,null);assert.equal(f.h.gold,gold);assert.equal(f.o.owner,owner);assert.equal(f.o.state,'intact');assert.equal(total(f),coins);exact(f);
+});
+test('OFF retains the already gifted native repair while blocking new gifts, and illness interrupts funded production without an automatic first product',()=>{
+ const f=patronGift();setModule(f.s,'patronage',false);patronRepair(f);assert.equal(f.c.status,'awaiting-stock');const raw=exact(f);assert.equal(patronagePlan(f.s,ctx),false);assert.equal(patronSave(f),raw);setModule(f.s,'patronage',true);patronFirstStock(f);f.p.area=f.a.id;f.p.x=f.o.x;f.p.agenda.task=null;f.s.tick=8;peopleTick(f.s,ctx);assert.ok(f.p.agenda.task?.patronProject);f.p.ailment='лихорадка';f.p.health=70;f.s.tick=16;peopleTick(f.s,ctx);assert.equal(f.p.agenda.task,null);assert.equal(f.c.material.state,'reserved');assert.equal(f.c.work,null);assert.equal(f.c.revenue,0);exact(f);
+});
+test('current144 loads absent fields exactly, validates the gift receipt, and one ordinary registered engine act accepts the real project',()=>{
+ const f=patronFixture();delete f.s.rules.patronage;const raw=exact(f);assert.equal(serialize(restore(raw)),raw);assert.equal(f.s.patronProjects,undefined);setModule(f.s,'patronage',true);assert.ok(patronagePlan(f.s,ctx));assert.equal(goalReadiness(f.s,f.h.goal,ctx).status,'ready');f.h.goal.selectionOrder=29;step(f.s);f.c=Object.values(f.s.patronProjects||{})[0];assert.ok(f.c);assert.equal(f.h.gold,62);const field=productionSources(f.s,f.a).field.stock;assert.equal(completeGoodsWork(f.s,f.a,{id:'wrong-product',actor:f.p.id,required:3,spent:3},{kind:'food',units:1,patronProject:f.c.id}).quantity,0);assert.equal(productionSources(f.s,f.a).field.stock,field);const good=exact(f),bad=JSON.parse(good);bad.patronProjects[f.c.id].repair.toolsAfter=-1;assert.throws(()=>restore(JSON.stringify(bad)),/patronProjects/);
+});

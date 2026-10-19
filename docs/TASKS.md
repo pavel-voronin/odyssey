@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. F-03.2 выполнена этапом249: личный контакт сообщает реальную задержку/смену титула/срыв сбыта, выбор wait/help/buyout освобождает обычные дела. Собственное medicine1/2 и оплаченные18/tools1помогают прежнему лечению/трём repair acts без мгновенного результата. Согласный solvent maker выкупает4до выпуска/3после срыва из своего wallet, убыток1настоящий, повторной доли нет. F02 actual death передаёт одно право тому же escrow без прибавки estate cash; живой local heir получает один раз. PARTIAL22/22 exit0,1537мс, artifacts/checks/890f13b554fc4507.log; modules/production-partnership/finance-state/finance/schema,inheritance/people/common selector; CONTRACTS/production-finance.v1, DEVELOPMENT/249; https://odyssey.kolpaque.dev revisione8f002432275c0fe/HTTPS. F-03.3 остаётся. Следующий этап ещё не взят.
+Текущего этапа нет. F-03.3 выполнена этапом250: один добровольный проект реальной повреждённой мастерской. Gift18/tools1→триnative repair acts→отдельный gift4/raw2→триordinary work acts→один actual sale, доход и title остаются прежнему владельцу, патрон0. Отказ получателя, собственные нужды/stop второго платежа, stock0/illness/OFF сохраняют уже подаренные ресурсы/результаты. Без особого settled-gate/нового кошелька поселения/гарантированного процента. PARTIAL30/30 exit0,4160мс, artifacts/checks/c9734dc55c36979e.log; modules/patronage/state/schema,workshop-support,existing goods/people/repair/common selector; CONTRACTS/patronage.v1, DEVELOPMENT/250; https://odyssey.kolpaque.dev revision135635db18399b4b/HTTPS. PERSON-01.4/защита активов остаётся отдельно. Следующий этап ещё не взят.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 7 | F-03.3 | патронаж человека или поселения (ACTIVE-LIFE) | 8 | 6 | 1.33 | F-03.1 |
 | 8 | PERSON-01.4 | богатство, досягаемость и защита (ACTIVE-LIFE) | 9 | 7 | 1.29 | PERSON-01.3, R-06.1, R-09.1 |
 | 9 | LIT-03.3 | ущерб и восстановление | 7 | 5 | 1.40 | LIT-03.1, PERSON-01.4 |
 | 10 | R-05.1 | выбор опоры | 9 | 7 | 1.29 | R-04.2 |
@@ -1572,3 +1571,10 @@ F-03.1 выполнена этапом248: один реальный местн�
 F-03.2 выполнена этапом249: личный контакт сообщает реальную задержку/смену титула/срыв сбыта, выбор wait/help/buyout освобождает обычные дела. Собственное medicine1/2 и оплаченные18/tools1помогают прежнему лечению/трём repair acts без мгновенного результата. Согласный solvent maker выкупает4до выпуска/3после срыва из своего wallet, убыток1настоящий, повторной доли нет. F02 actual death передаёт одно право тому же escrow без прибавки estate cash; живой local heir получает один раз. PARTIAL22/22 exit0,1537мс, artifacts/checks/890f13b554fc4507.log; modules/production-partnership/finance-state/finance/schema,inheritance/people/common selector; CONTRACTS/production-finance.v1, DEVELOPMENT/249; https://odyssey.kolpaque.dev revisione8f002432275c0fe/HTTPS. F-03.3 остаётся. Следующий этап ещё не взят.
 
 6selected groups≤12actual acts: local illness report/wait/common dispatch/no time yield; mid-work illness stops, native anatomical-dose medicine gift→usual needs treatment; actual fire→finite paid repair reserve/3native repair acts→same raw-funded production; actual failed sale→cash buyout3/real loss1→actual resumed market sale without old payout; insufficient wallet/changed canonical title/OFF exact; actual near31poison death1engine act/F02same right/escrow excluded from estatecash/local NPC heir one payout/corrupt estate proof rejected.6existing finance+9short inheritance+smoke/build. Native320quests0UIтиков/exact save/no overflow, no full/SOAK/длинных жизней/комбинаторики.
+
+
+### F-03.3 · подтверждение реализации250
+
+F-03.3 выполнена этапом250: один добровольный проект реальной повреждённой мастерской. Gift18/tools1→триnative repair acts→отдельный gift4/raw2→триordinary work acts→один actual sale, доход и title остаются прежнему владельцу, патрон0. Отказ получателя, собственные нужды/stop второго платежа, stock0/illness/OFF сохраняют уже подаренные ресурсы/результаты. Без особого settled-gate/нового кошелька поселения/гарантированного процента. PARTIAL30/30 exit0,4160мс, artifacts/checks/c9734dc55c36979e.log; modules/patronage/state/schema,workshop-support,existing goods/people/repair/common selector; CONTRACTS/patronage.v1, DEVELOPMENT/250; https://odyssey.kolpaque.dev revision135635db18399b4b/HTTPS. PERSON-01.4/защита активов остаётся отдельно. Следующий этап ещё не взят.
+
+6selected groups≤12actual acts: actual fire/consent/gift/native3repair/source gift/native3work/actual sale, all monetary balances+goods ledger/same title/no patron payout; owner dislike/refusal/unknown person/low generosity; actual missing tool/current depleted raw/no partial charge/no fake output; actual food purchase changes donor budget→stop without reclaim; OFF retains gifted native repair/receipt, ON stocks then illness interrupts work; absent current144 exact/registered one engine act/corrupt gift and wrong product refused.6finance+6partnership+11bounded goods primitives+smoke/build. Native320quests0UIтиков/exact save/no overflow. Full/SOAK/длинные жизни/комбинаторика не запускались.

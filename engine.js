@@ -98,6 +98,7 @@ import {actorView,actorJournal,bindObservedJournal} from './actor-view.js';
 import {initializeSpatial,registerSpatialArea} from './modules/spatial.js';
 import {goodsTick} from './modules/goods.js';
 import {craftStudyPlan,craftStudyAction} from './modules/craft-practice.js';
+import {patronagePlan,acceptPatronage,patronStock} from './modules/patronage.js';
 import {productionPartnerPlan,reviewProduction} from './modules/production-partnership.js';
 import {productionFinancePlan,fundProduction,collectProduction} from './modules/production-finance.js';
 import {moneyCachePlan,moneyCacheAction} from './modules/money-caches.js';
@@ -450,6 +451,7 @@ function plan(s) {
   if(offer('localNeedsPlan',()=>localNeedsPlan(s,context(s,'supply'))))return planningSpent;
   if(offer('dogSearchPlan',()=>dogSearchPlan(s,context(s,'pet-training'))))return planningSpent;
   if(!q&&offer('dogTrainingPlan',()=>dogTrainingPlan(s,context(s,'pet-training'))))return planningSpent;
+  if(!q&&offer('patronagePlan',()=>patronagePlan(s,context(s,'patronage'))))return planningSpent;
   if(!q&&offer('productionPartnerPlan',()=>productionPartnerPlan(s,context(s,'production-finance'))))return planningSpent;
   if(!q&&offer('productionFinancePlan',()=>productionFinancePlan(s,context(s,'production-finance'))))return planningSpent;
   if(!q&&offer('moneyCachePlan',()=>moneyCachePlan(s,context(s,'finances'))))return planningSpent;
@@ -1080,6 +1082,8 @@ function actObserved(s) {
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))execute('homeBuildingAction',()=>homeBuildingAction(s,context(s,'home-building')));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))execute('homeAction',()=>homeAction(s,context(s,'homes')));
   else if (g.kind === 'storyAction') execute('storyAction',()=>storyAction(s,g.story,context(s,'stories')));
+  else if(g.kind==='patronOffer')execute('acceptPatronage',()=>acceptPatronage(s,context(s,'patronage')));
+  else if(g.kind==='patronStock')execute('patronStock',()=>patronStock(s,context(s,'patronage')));
   else if(g.kind==='productionReview')execute('reviewProduction',()=>reviewProduction(s,context(s,'production-finance')));
   else if(g.kind==='productionFund')execute('fundProduction',()=>fundProduction(s,context(s,'production-finance')));
   else if(g.kind==='productionPayout')execute('collectProduction',()=>collectProduction(s,context(s,'production-finance')));

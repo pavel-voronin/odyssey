@@ -1,3 +1,4 @@
+import {recordPatronRepair} from './patronage-state.js';
 import {controlBlocked} from './building-control-state.js';
 import {restoreStructure} from './building-condition.js';
 import {takeGoods} from './goods.js';
@@ -26,6 +27,7 @@ export function restoreWorkshop(s,a,o,ctx,actor=s.hero.lineage){
   if(controlBlocked(s,a,o))return false;
   const details={actor,payer:o.repair?.payer||actor,damageAt:o.damagedAt,materialCost:18,...(o.repair?.purchase?{purchase:o.repair.purchase}:{})};
   restoreStructure(s,a,o,actor);o.state='intact';o.repair=null;recordWorkshop(s,a,o,'Ремонт закончен. В мастерской снова можно работать.','repair',ctx,details);
+  recordPatronRepair(s,a,o,details);
   witnessRepair(s,a,o,details);
   recordCraftRepair(s,a,o,details);
   recordDisputeRepair(s,a,o,details,ctx);

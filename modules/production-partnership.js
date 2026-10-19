@@ -1,9 +1,8 @@
 import {fieldMedicineCost} from './skill-branches.js';
-import {reservedRepair} from './workshop-contract-state.js';
+import {supportWorkshopRepair} from './workshop-support.js';
 import {physicalDistance} from '../geometry.js';
 import {setActorMoney,selfDrivenActor} from '../actor-projection.js';
 import {marketWallet} from './market.js';
-import {takeGoods} from './goods.js';
 import {stackRoom} from './container-state.js';
 import {workshopSite} from './workshop-place.js';
 import {canStartNPCActivity,npcController} from './npc-control.js';
@@ -58,9 +57,8 @@ export function reviewProduction(s,ctx){
    (c.support ||= []).push({kind:issue,at:s.tick,by:h.lineage,amount:medicine,source:'personal-potion'});note.outcome='medicine';ctx.log(s,h.name+' передаёт свои лекарства: '+medicine+'. Партнёр использует его обычным лечением; доля и обещанная выручка не растут.','heal');return true;
   }
   const site=siteFor(s,c),o=site?.object,a=site?.area;
-  if(issue==='workshop'&&o?.owner===p.id&&o.state==='burned'&&!o.repair?.materials&&!reservedRepair(s,o,p.id)&&a.civic?.tools>=1&&h.gold>=38&&(!ctx.maySpend||ctx.maySpend(s,'investment-help',18,ctx))){
-   const before=a.civic.tools;takeGoods(s,a,'tools',1,{reason:'investment-repair',actor:h.lineage});setActorMoney(s,s.people[h.lineage],h.gold-18);a.civic.treasury+=18;o.repair={materials:true,payer:h.lineage,paidAt:s.tick,remaining:3};
-   (c.support ||= []).push({kind:issue,at:s.tick,by:h.lineage,amount:18,source:a.id,toolsBefore:before,toolsAfter:a.civic.tools});note.outcome='repair';p.agenda.due=s.tick;
+  const repair=issue==='workshop'?supportWorkshopRepair(s,h,p,a,o,ctx):null;
+  if(repair){(c.support ||= []).push(repair);note.outcome='repair';p.agenda.due=s.tick;
    ctx.log(s,h.name+' оплачивает ◈18 и один действительный инструмент для ремонта. Три рабочих действия ещё нужны; доля не увеличивается.','repair');return true;
   }
   note.outcome='unavailable';ctx.log(s,'Для предложенной помощи сейчас нет доступных средств. Партнёры откладывают решение без нового списания.','trade');return true;

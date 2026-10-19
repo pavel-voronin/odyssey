@@ -1,3 +1,4 @@
+import {patronageOn,npcPatronagePlan,finishPatronWork,patronSale} from './patronage.js';
 import {npcInheritedPayout} from './production-partnership.js';
 import {npcProductionPlan,finishFinancedWork,productionSale,productionFinanceOn} from './production-finance.js';
 import {npcQuakeRepair} from './quake-repair.js';
@@ -120,7 +121,7 @@ function plan(s,p,ctx){
   if(p.health<(p.maxHealth||100)*.85||p.ailment){
     if(a.civic?.medicine>=2){begin(p,'recover',p.area,68);return;}
   }
-  if(npcProductionPlan(s,p))return;
+  if(npcProductionPlan(s,p)||npcPatronagePlan(s,p))return;
   if(planAidRequest(s,p,ctx))return;
   if(homeBuildingNPCTask(s,p))return;
   const credit=npcCreditTask(s,p);if(credit){m.task=credit;return;}
@@ -217,7 +218,7 @@ function finish(s,p,ctx){
   if(t.kind==='roomBook'){npcBookRoom(s,p,ctx);return;}
   if(t.kind==='roomSleep'){npcRoomRest(s,p);return;}
   if(['tavernVisit','tavernLeave'].includes(t.kind)){npcTavernAction(s,p);return;}
-  if(t.productionDeal){if(finishFinancedWork(s,p,t,ctx)){const o=a.objects.find(o=>o.kind==='workshop'&&o.owner===p.id);if(o)recordToolUse(s,a,o,p.id,ctx);}m.task=null;m.due=s.tick+8;return;}
+  if(t.productionDeal||t.patronProject){if(t.patronProject?finishPatronWork(s,p,t,ctx):finishFinancedWork(s,p,t,ctx)){const o=a.objects.find(o=>o.kind==='workshop'&&o.owner===p.id);if(o)recordToolUse(s,a,o,p.id,ctx);}m.task=null;m.due=s.tick+8;return;}
   let paid=false;
   if(t.kind==='work'&&damagedWorkplace(s,p)){m.task=null;m.due=s.tick;return;}
   if(t.kind==='work'&&npcToolBlocked(s,p)){m.task=null;m.due=s.tick;return;}
@@ -332,14 +333,15 @@ export function peopleTick(s,ctx){
     if(['creditTalk','creditWork'].includes(p.agenda.task?.kind)&&!creditEnabled(s))continue;
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task?.kind)&&!fieldCraftEnabled(s))continue;
     if(p.agenda.task?.migration&&(!enabled(s,'migrations')||s.migrations[p.agenda.task.migration]?.knowledge&&!migrationKnowledgeOn(s)))continue;
-    if(p.agenda.task?.productionDeal&&!productionFinanceOn(s))continue;
-    if(p.agenda.task?.productionDeal&&p.agenda.task.kind==='work'&&(p.ailment||p.health<(p.maxHealth||100)*.85)){p.agenda.task=null;p.agenda.due=s.tick+8;continue;}
+    if(p.agenda.task?.productionDeal&&!productionFinanceOn(s)||p.agenda.task?.patronProject&&!patronageOn(s))continue;
+    if((p.agenda.task?.productionDeal||p.agenda.task?.patronProject)&&p.agenda.task.kind==='work'&&(p.ailment||p.health<(p.maxHealth||100)*.85)){p.agenda.task=null;p.agenda.due=s.tick+8;continue;}
     objectAt(s,p);
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}
     adaptNPCWork(s,p);bindNPCDeedTask(s,p);
     if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(p.agenda.task.kind==='patronSale'){patronSale(s,p,p.agenda.task,ctx);continue;}
     if(p.agenda.task.kind==='productionSell'){productionSale(s,p,p.agenda.task,ctx);continue;}
     if(feastNPCAction(s,p,ctx))continue;
     if(literacyNPCAction(s,p))continue;

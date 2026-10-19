@@ -73,9 +73,9 @@ export function workshopFor(s,a,actor){
  const position=workshopPosition(s,a,o);return p.area===position.area&&(!workshopInteriorsOn(s)||!workshopSite(s,a,o.id)?.room||physicalDistance(s.areas[position.area],p.x,position.x)<=9)?o:null;
 }
 // The existing action controller supplies an actual completed work receipt, not a second worker loop.
-export function completeGoodsWork(s,a,receipt,{kind='food',units=6,productionDeal=null}={}){
+export function completeGoodsWork(s,a,receipt,{kind='food',units=6,productionDeal=null,patronProject=null}={}){
  countMarket(s,'production');
- if(!goodsEnabled(s)||!a?.civic||!receipt||!receipt.id||!valid(units)||!valid(receipt.spent)||!valid(receipt.required)||receipt.spent<receipt.required||!(receipt.required>0))return {quantity:0,reason:'no-work'};
+ if(productionDeal&&patronProject||(productionDeal||patronProject)&&kind!=='tools'||!goodsEnabled(s)||!a?.civic||!receipt||!receipt.id||!valid(units)||!valid(receipt.spent)||!valid(receipt.required)||receipt.spent<receipt.required||!(receipt.required>0))return {quantity:0,reason:'no-work'};
  const p=s.people[receipt.actor];if(!p?.alive||p.needs?.sleeping||p.area!==a.id&&!(kind==='tools'&&workshopFor(s,a,p.id)))return {quantity:0,reason:'absent-worker'};
  if(p.goodsWork?.id===receipt.id)return {quantity:0,reason:'duplicate',repeated:true};
  const source=productionSources(s,a);let quantity=0,reason;
@@ -84,11 +84,11 @@ export function completeGoodsWork(s,a,receipt,{kind='food',units=6,productionDea
   source.field.stock-=quantity;source.field.harvested+=quantity;reason=quantity?'harvest':'exhausted-field';
  }else if(kind==='tools'){
   if(!workshopFor(s,a,p.id))reason='unavailable-workshop';
-  else if(productionDeal){const c=s.productionDeals?.[productionDeal];if(!enabled(s,'production-finance')||c?.status!=='working'||c.producer!==p.id||c.area!==a.id||c.workshop!==workshopFor(s,a,p.id)?.id||c.material.state!=='reserved'||c.material.quantity!==2||units!==1||receipt.required!==3||stackRoom(s,p.id,'tools',1)<1)reason='invalid-financed-work';else{quantity=1;reason='financed-craft';c.material.state='consumed';}}
+  else if(productionDeal||patronProject){const c=productionDeal?s.productionDeals?.[productionDeal]:s.patronProjects?.[patronProject];if(!enabled(s,productionDeal?'production-finance':'patronage')||c?.status!=='working'||c.producer!==p.id||c.area!==a.id||c.workshop!==workshopFor(s,a,p.id)?.id||c.material.state!=='reserved'||c.material.quantity!==2||units!==1||receipt.required!==3||stackRoom(s,p.id,'tools',1)<1)reason='invalid-financed-work';else{quantity=1;reason=productionDeal?'financed-craft':'gifted-craft';c.material.state='consumed';}}
   else if(source.materials.stock<2)reason='no-materials';
   else{quantity=Math.min(Math.floor(units),Math.floor(source.materials.stock/2));source.materials.stock-=quantity*2;source.materials.used+=quantity*2;reason='craft';}
  }else throw new Error('Unknown manufactured goods');
- if(quantity){putGoods(s,a,kind,quantity,{flow:'produced',reason:productionDeal?'financed-craft':reason,actor:p.id});if(productionDeal){takeGoods(s,a,kind,quantity,{flow:'exported',reason:'financed-cargo',actor:p.id});(p.marketCargo ||= {tools:0}).tools+=quantity;}}
+ if(quantity){putGoods(s,a,kind,quantity,{flow:'produced',reason,actor:p.id});if(productionDeal||patronProject){takeGoods(s,a,kind,quantity,{flow:'exported',reason:productionDeal?'financed-cargo':'gifted-cargo',actor:p.id});(p.marketCargo ||= {tools:0}).tools+=quantity;}}
  return p.goodsWork={id:receipt.id,at:s.tick,kind,quantity,reason};
 }
 export function goodsWorkReceipt(s,p,task,required=3){

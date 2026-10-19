@@ -1,3 +1,4 @@
+import {patronageActive} from './patronage-state.js';
 import {productionBeneficiary,outstandingProduction} from './production-finance-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -17,6 +18,7 @@ const active=c=>['working','selling','payable'].includes(c.status);
 const siteFor=(s,c)=>workshopSite(s,c.area,c.workshop);
 const usable=(s,site,p)=>site?.object.owner===p.id&&site.object.state==='intact'&&!site.object.closed&&!controlBlocked(s,site.area,site.object)&&workToolReady(s,site.object);
 function producerOffer(s,p){
+ if(Object.values(s.patronProjects||{}).some(c=>c.producer===p?.id&&patronageActive(c)))return null;
  if(!productionFinanceOn(s)||!p?.alive||p.role==='ребёнок'||npcController(s,p)!=='personal'||p.agenda?.job!=='artisan'||p.ailment||p.health<(p.maxHealth||100)*.85||p.needs?.energy<30||p.needs?.hunger>60||Object.values(s.productionDeals||{}).some(c=>c.producer===p.id&&active(c)))return null;
  const b=body(s,p.id),a=s.areas[b?.area];if(!a?.civic||physicalDistance(a,b.x,58)>18)return null;const o=a.objects.find(o=>o.kind==='workshop'&&o.owner===p.id),site=o&&workshopSite(s,a,o.id),m=rememberedMarket(s,p.id,a.id,'tools');
  if(!usable(s,site,p)||!m||m.source.kind!=='visit'||m.source.person!==p.id||s.tick-m.at>96||m.wanted<1||m.bid<8||productionSources(s,a).materials.stock<2)return null;
