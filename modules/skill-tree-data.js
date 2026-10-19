@@ -1,4 +1,5 @@
 export const SKILL_TREE=Object.freeze([
+ {id:'wait-for-turn',branch:'stealth',name:'Выждать отвернувшегося',requires:[]},
  {id:'compare-witnesses',branch:'scholar',name:'Сверка независимых свидетельств',requires:[]},
  {id:'cover-withdrawal',branch:'combat',name:'Прикрывающий отход',requires:[]},
  {id:'diagnose-drive',branch:'mechanic',name:'Диагностика настоящего механизма',requires:[]},

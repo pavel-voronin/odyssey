@@ -1,3 +1,4 @@
+import {validateStealth} from './modules/stealth-schema.js';
 import {validateSpellTexts} from './modules/spell-text-schema.js';
 import {validateScholar} from './modules/scholar-schema.js';
 import {validateCopyOrders} from './modules/copy-order-schema.js';
@@ -200,7 +201,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateTexts(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
+ validateTexts(s,fail);validateStealth(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateTracking(s,fail);

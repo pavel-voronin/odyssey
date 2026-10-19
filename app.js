@@ -1,3 +1,4 @@
+import {stealthHTML} from './stealth-sheet.js';
 import {causewayHTML} from './causeway-sheet.js';
 import {localMaterialHTML} from './local-material-sheet.js';
 import {recollectionHTML} from './recollection-sheet.js';
@@ -252,6 +253,7 @@ function enrichSheet(){
   if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape)+petPassageHTML(state,escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',petPassageHTML(state,escape)+packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
   if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',causewayHTML(state,escape)+localMaterialHTML(state)+recollectionHTML(state)+estateClaimHTML(state,escape)+ruinReturnHTML(state,escape)+harvestFailureHTML(state)+neighborHousingHTML(state,escape)+dwellingHTML(state,escape));
+  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',stealthHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));

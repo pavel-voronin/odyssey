@@ -1,3 +1,6 @@
+import {stealthLessonTask,stealthLessonAction} from './stealth-lessons.js';
+import {stealthWalkQuote} from './stealth-state.js';
+import {scanGuardPost,guardSearchTurn,commitStealthStep,leaveStealthArea} from './stealth.js';
 import {copyMasterTurn} from './copy-orders.js';
 import {npcCausewayPlan,causewayAction} from './causeway-actions.js';
 import {materialNPCTurn} from './local-material-actions.js';
@@ -115,6 +118,7 @@ function objectAt(s,p){
   if(!o){o={id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x};a.objects.push(o);}o.x=p.x;
 }
 function locate(s,p,id,x){
+  if(p.area!==id)leaveStealthArea(s,p.id);
   recordCrossingTrace(s,{kind:'person',id:p.id},p.area,id);
   const old=s.areas[p.area];if(old?.population)old.population=old.population.filter(person=>person!==p.id);
   p.area=id;p.x=x;const a=s.areas[id];a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);objectAt(s,p);observeNPCPlace(s,p);observeNPCContacts(s,p);observeFreightActor(s,p,p.area,true);
@@ -127,6 +131,7 @@ function safePath(s,path,p=null){const blocked=new Set(p?fordBlocked(s,p):[]);re
 function begin(p,kind,target,x,remaining=3,extra={}){p.agenda.task={kind,target,x,remaining,...(kind==='work'?{workMode:null}:{}),...extra};}
 function plan(s,p,ctx){
   const a=s.areas[p.area],m=p.agenda;
+  const quietLesson=stealthLessonTask(s,p);if(quietLesson){m.task=quietLesson;return;}
   m.home ||= p.area;
   if(releasedPersonPlan(s,p))return;
   if(p.migration&&s.migrations?.[p.migration]?.status==='active')return;
@@ -219,13 +224,14 @@ function moveTask(s,p,ctx){
     tell(s,p,`${p.name} отказывается идти через живую угрозу и меняет план.`,ctx);p.agenda.task=null;p.agenda.due=s.tick+96;p.status=t.migration?'wandering':'resident';return false;
   }
   if(escape)p.rescueFlight.blocked=null;
-  if(Math.abs(p.x-x)*areaScale(s.areas[p.area])>1){if(navigationNPCStep(s,p,x,ctx)){objectAt(s,p);return false;}p.x+=areaStep(s.areas[p.area],p.x,x,6*woundStride(s,p));woundActivity(s,p,'leg');objectAt(s,p);return false;}
+  if(Math.abs(p.x-x)*areaScale(s.areas[p.area])>1){if(navigationNPCStep(s,p,x,ctx)){objectAt(s,p);return false;}const from=p.x,quote=stealthWalkQuote(s,p.id,x);p.facing=Math.sign(x-p.x)||p.facing||1;if(['wait','greet'].includes(quote.mode)){p.needs.energy=Math.max(0,p.needs.energy-(quote.mode==='greet'?1:.25));commitStealthStep(s,p.id,from,from,x,quote);objectAt(s,p);return false;}p.x+=areaStep(s.areas[p.area],p.x,x,6*woundStride(s,p)*quote.factor);if(quote.mode==='quiet')p.needs.energy=Math.max(0,p.needs.energy-.25);commitStealthStep(s,p.id,from,p.x,x,quote);woundActivity(s,p,'leg');objectAt(s,p);return false;}
   if(next){const arrival=passage?.arrival??(x===100?5:95),r=passage?{status:'clear'}:npcFordGate(s,p,next,arrival,t,t.target,fordCargo);if(r.status==='clear')locate(s,p,next,arrival);else if(r.status==='arrived')locate(s,p,r.crossing.to,r.crossing.arrivalX);else if(r.status==='bypass')t.fordDetour={target:t.target,path:r.path};else if(['defer','unavailable','aborted'].includes(r.status)){p.agenda.task=null;p.agenda.due=s.tick+8;p.status=t.migration?'wandering':'resident';}return false;}
   return true;
 }
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
   if(t.kind==='refugeSurvey'){const found=finishRefugeSurvey(s,p);tell(s,p,found?`${p.name} обследует участок: здесь есть родник и известное место сбора пищи.`:`${p.name} обследует участок, но надёжной воды не находит.`,ctx);m.task=t.home?{kind:'return',target:t.home,x:42,remaining:1}:null;m.due=s.tick+8;return;}
+  if(t.kind==='stealthLesson'){stealthLessonAction(s,p,t,{inTurn:true});m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='causewayWork'){causewayAction(s,p,t,ctx,{inTurn:true});m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='socketService'){socketAction(s,p,t);m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='inheritanceClaim'){estateClaimAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
@@ -309,6 +315,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(guardSearchTurn(s,p))continue;
     if(neighborHostTurn(s,p,ctx))continue;
     if(estateResponse(s,p))continue;
     if(copyMasterTurn(s,p))continue;
@@ -407,6 +414,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task.kind==='work'&&p.agenda.job==='artisan'&&p.agenda.task.workMode===null)p.agenda.task.workMode=goodsEnabled(s)?'production':'service';
     if(goodsEnabled(s)&&(['farm','rawGather'].includes(p.agenda.task.kind)||p.agenda.task.kind==='work'&&p.agenda.job==='artisan')){goodsWorkReceipt(s,p,p.agenda.task);p.needs.energy=Math.max(0,p.needs.energy-2);}
     if(p.agenda.task.kind==='toolMend'&&p.needs)p.needs.energy=Math.max(0,p.needs.energy-2);
+    if(p.agenda.task.kind==='patrol')scanGuardPost(s,p);
     if(p.agenda.task.kind==='patrol'&&enabled(s,'npc-watch-needs')&&enabled(s,'npc-needs'))p.needs.energy=Math.max(0,p.needs.energy-2);
     woundActivity(s,p,['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind)?'arm':'body',p.agenda.task.kind==='rest');
     if(['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind))p.needs.energy=Math.max(0,p.needs.energy-2*(1/woundForce(s,p)-1));
