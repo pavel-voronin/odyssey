@@ -1,4 +1,5 @@
 export const SKILL_TREE=Object.freeze([
+ {id:'cover-withdrawal',branch:'combat',name:'Прикрывающий отход',requires:[]},
  {id:'diagnose-drive',branch:'mechanic',name:'Диагностика настоящего механизма',requires:[]},
  {id:'measured-ward',branch:'magic',name:'Размеренное слово укрытия',requires:[]},
  {id:'check-cargo-lashing',branch:'sailing',name:'Проверка крепления груза',requires:[]},

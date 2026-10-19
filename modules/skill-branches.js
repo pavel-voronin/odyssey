@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {profession} from '../content.js';
 
 export const SKILL_METHODS={
+ combat:{name:'Защита живого союзника',method:'cover-withdrawal',label:'Прикрывающий отход',threshold:2},
  mechanic:{name:'Точность привода',method:'diagnose-drive',label:'Диагностика настоящего механизма',threshold:2},
  magic:{name:'Практика знакомых чар',method:'measured-ward',label:'Размеренное слово укрытия',threshold:3},
  sailing:{name:'Судовое дело',method:'check-cargo-lashing',label:'Проверка крепления груза',threshold:2},

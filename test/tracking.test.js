@@ -45,7 +45,7 @@ test('fresh predator direction changes a real route at the same combat level; fa
 test('current optional records survive OFF, restore and observer changes; expired/unknown data never reveals a current address',()=>{
  const s=restore(practiceRaw),h=s.hero,p=s.people[h.lineage],memory=JSON.stringify(p.tracking),raw=exact(s);assert.ok(trackingHTML(s,x=>String(x)).includes('запись'));setModule(s,'skill-branches',false);assert.deepEqual(localTrails(s),[]);assert.equal(JSON.stringify(p.tracking),memory);const off=exact(s);const loaded=restore(off);assert.equal(serialize(loaded),off);setModule(s,'skill-branches',true);assert.equal(JSON.stringify(p.tracking),memory);
  const one={kind:'trackStudy',area:h.area,x:h.x,trace:'same-imprint',traceAt:1},two={...one,traceAt:2};assert.notEqual(actionKey(one),actionKey(two));assert.equal(actionKey(one),actionKey({...one,started:999}));
- assert.equal(acyclicSkillTree(),true);assert.equal(SKILL_TREE.length,9);assert.ok(fieldCraftNodes(s,h.lineage).some(n=>n.id==='read-trail-direction'&&n.known));
+ assert.equal(acyclicSkillTree(),true);assert.equal(SKILL_TREE.length,10);assert.ok(fieldCraftNodes(s,h.lineage).some(n=>n.id==='read-trail-direction'&&n.known));
  const other=Object.values(s.people).find(p=>p.id!==h.lineage&&p.alive&&p.status==='resident'&&p.role!=='ребёнок');assert.ok(observeExistingPerson(s,other.id));assert.ok(observeExistingPerson(s,h.lineage));assert.equal(JSON.stringify(s.people[h.lineage].tracking),memory);exact(s);
  const stale=restore(raw);stale.tick+=241;assert.equal(localTrails(stale).length,0);assert.equal(JSON.stringify(stale.people[h.lineage].tracking),memory);const bad=JSON.parse(raw);bad.edges['a1|a2'].traces[0].expires++;assert.throws(()=>restore(JSON.stringify(bad)),/trace/);
 });

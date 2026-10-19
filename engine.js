@@ -1,3 +1,4 @@
+import {coveredRetreat,retreatDrill,retreatTick} from './modules/cover-retreat.js';
 import {drivenWagon,wagonReady,wagonMoved,wagonLoad} from './modules/wagon-state.js';
 import {createWagon} from './modules/wagon-source.js';
 import {syncWagons,wagonTurn,passengerTurn} from './modules/wagon-actions.js';
@@ -608,7 +609,8 @@ function die(s, enemy,details={}) {
   finishDelve(s,'death');
   cancelWeapon(s,'Смерть прекращает подготовку.');cancelWard(s,'Смерть прекращает подготовку.');
   const mount=groupHorse(s,s.hero);if(mount)detachHorse(s,mount,'keeper-died');
-  const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';musicTick(s,context(s,'camp-music'));syncCoverPosition(s);
+  const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';retreatTick(s);
+  musicTick(s,context(s,'camp-music'));syncCoverPosition(s);
   h.intent = 'Жизнь закончилась. Мир продолжается'; h.reason = 'Можно наблюдать, что станет с этим местом, или отдельно начать другую историю.'; h.action = 'НАСЛЕДИЕ';
   for (const q of h.quests) if (q.status === 'active') q.status = 'failed';
   const grave = { name: h.name, family: h.family, lineage: h.lineage, race: h.race, area: h.area, x: h.x, tick: s.tick, born: h.born, level: h.level, kills: h.kills, cause: enemy.name };
@@ -639,6 +641,7 @@ function fight(s, enemy) {
   let choice=woundCombatChoice(s,enemy,chooseCombatAction(s,enemy));rememberCombatChoice(s,enemy,choice,context(s,'combat'));
   const warned=enabled(s,'tactics')&&enemy.tactic==='charged'&&enemy.battle?.intent==='strike'&&Math.max(1,expectedStrike(s,enemy)-legacyArmorDefense(h)-itemBonus(h,'defense'))>h.hp*(.65+h.personality.courage*.4);
   if (choice?choice.action==='flee':h.hp < h.maxHp * (.18 + (1 - h.personality.courage) * .2) || h.energy < 9||warned) {
+    if(coveredRetreat(s,enemy,{...context(s,'combat'),hurtCompanion,replyGuard:(world,e,p)=>enemyReply(world,e,e.attack+roll(world,4),context(world,'combat'),p),stepAway:move}))return;
     const escaped=random(s)<.82;resolveCombatChoice(s,'flee-attempt',{retreatAttempted:true,retreated:escaped});
     if (escaped) {
       cancelWeapon(s,'Отступление прерывает размах.');cancelWard(s,'Отступление прерывает подготовку.');
@@ -811,7 +814,7 @@ export function advanceWorld(s) {
  worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
-  applyActorExternal(s,h);weaponTick(actorView(s,h));wardTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
+  applyActorExternal(s,h);retreatTick(actorView(s,h));weaponTick(actorView(s,h));wardTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
   if(!npcAction(s,s.people[h.lineage],'actor','decision'))continue;
   const view=actorView(s,h);observeLocalRoutes(view);observeCampSites(view);
   observeRouteMap(view,s.people[h.lineage]);
@@ -997,7 +1000,7 @@ function actObserved(s) {
   if (g.kind === 'rest') {
     restoreCampRestView(s);
     if(lodgingRest(s,context(s,'lodging'),holdPoisonRest(s)||holdWoundRest(s)))return s;
-    if(!holdPoisonRest(s)&&!holdWoundRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||musicCamp(s,context(s,'camp-music'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
+    if(!holdPoisonRest(s)&&!holdWoundRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||retreatDrill(s,context(s,'skill-branches'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||musicCamp(s,context(s,'camp-music'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
     const amount = restAmount(s,a);
     h.hp = Math.min(h.maxHp, h.hp + amount); h.energy = Math.min(100, h.energy + smokeRestEnergy(s,12)); h.lastAction = 'rest';
     traitsRest(s, context(s, 'body'));

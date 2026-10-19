@@ -1,3 +1,4 @@
+import {creditProtection} from './cover-retreat-state.js';
 import {woundActivity} from './wound-state.js';
 import {actorFact,companionKey} from '../actor-facts.js';
 import {npcAction} from './npc-control.js';
@@ -70,6 +71,6 @@ export function partyCoverDamage(s,e,received,ctx){
  r.replied=true;const c=localCombatCompanions(s).find(c=>c.person===r.guard),p=c&&s.people[c.person];
  if(!p||p.partyCombat?.tick!==s.tick||p.partyCombat.action!=='cover'||p.partyCombat.enemy!==e.id)return {received,excluded:[]};
  const absorbed=Math.floor(Math.max(0,received)*P.coverShare);r.absorbed=absorbed;p.partyCombat.intercepted=absorbed;
- if(absorbed){ctx.hurtCompanion(s,c,absorbed,ctx,e.id);ctx.log(s,`${c.name} принимает ${absorbed} урона, прикрывая ${s.hero.name}. Это часть того же ответа противника.`, 'guard');}
+ if(absorbed){const before=c.hp;ctx.hurtCompanion(s,c,absorbed,ctx,e.id);creditProtection(s,e,c,before,c.hp,before-c.hp);ctx.log(s,`${c.name} принимает ${absorbed} урона, прикрывая ${s.hero.name}. Это часть того же ответа противника.`, 'guard');}
  return {received:received-absorbed,excluded:[p.id,...(r.protected?[r.protected]:[])]};
 }

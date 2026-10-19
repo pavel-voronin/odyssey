@@ -44,7 +44,7 @@ export function syncNPCActors(s){
   if(!p.alive){h.alive=false;h.hp=0;h.life.ended=true;h.life.outcome='dead';h.life.endedAt ??=p.died??s.tick;}
   else if(p.health!==previous)h.hp=clamp(h.hp+(p.health-previous)*h.maxHp/maximum,0,h.maxHp);
   if(h.actorMode==='npc'){h.maxHp=maximum;h.hp=p.alive?p.health:0;}
-  const leader=actorPartyLeader(s,p.id);p.actorLink.health=p.health;h.personPosition={area:leader?(leader.transit?null:leader.area):p.area??null,x:leader?leader.x-areaOffset(s.areas[leader.area],4):p.x??null,status:p.status};
+  const leader=actorPartyLeader(s,p.id);p.actorLink.health=p.health;h.personPosition={area:leader?(leader.transit?null:leader.area):p.area??null,x:leader?(leader.coverRetreat?.status==='active'&&leader.coverRetreat.guard===p.id?p.x:leader.x-areaOffset(s.areas[leader.area],4)):p.x??null,status:p.status};
   if(p.area&&s.areas[p.area]){h.area=p.area;h.x=p.x??h.x;}
   if(leader&&p.bodyCarry?.stage!=='carrying'){h.area=leader.area;h.x=leader.x-areaOffset(s.areas[leader.area],4);}
   h.energy=p.needs.energy;h.hunger=p.needs.hunger;h.gold=purse(p).wealth;legacyView(p,h);

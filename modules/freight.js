@@ -1,3 +1,4 @@
+import {withdrawalCover} from './cover-retreat-state.js';
 import {wagonsOn} from './wagon-state.js';
 import {attachFreightWagon,freightWagonGate,freightWagonStep,strandWagonManifest} from './wagon-actions.js';
 import {recordCrossingTrace} from './edge-traces.js';
@@ -113,11 +114,11 @@ export function advanceFreight(s,c,ctx){
   const camp=c.path[c.index+1]&&campPassage(s,p.area,c.path[c.index+1],p.id,{carrier:true});if(camp&&!camp.allowed&&(!disruptionEnabled(s)||physicalDistance(s.areas[p.area],p.x,camp.x??p.x)<=1)){freightFailure(s,c,c.returning?'return-blocked':'blocked-gate',ctx);return;}
   if(camp&&c.endX!==camp.x){c.startX=p.x;c.endX=camp.x;c.remaining=c.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,camp.x)/6));}
   const next=s.areas[c.path[c.index+1]];
-  const escort=s.actorStates?.[c.escort];if(selfDrivenActor(s,escort)&&next&&(escort.transit||escort.area!==next.id||escort.combat||next.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved)))return;
+  const escort=s.actorStates?.[c.escort];if(!withdrawalCover(s,c)&&selfDrivenActor(s,escort)&&next&&(escort.transit||escort.area!==next.id||escort.combat||next.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved)))return;
   if(c.wagon&&!freightWagonStep(s,c))return;
   c.remaining--;const progress=Math.max(0,Math.min(1,1-c.remaining/c.segmentTicks)),oldX=p.x;p.x=c.startX+(c.endX-c.startX)*progress;
   const local=s.areas[p.area],enemy=local.objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&!(c.escaped?.enemy===o.id&&c.escaped.area===p.area&&c.returning&&physicalDistance(local,p.x,o.x)>=physicalDistance(local,oldX,o.x))&&o.x>=Math.min(oldX,p.x)-areaOffset(s.areas[p.area],8)&&o.x<=Math.max(oldX,p.x)+areaOffset(s.areas[p.area],8));
-  if(enemy){p.x=Math.abs(enemy.x-oldX)*areaScale(s.areas[p.area])<=8?oldX:enemy.x-Math.sign(p.x-oldX)*areaOffset(s.areas[p.area],8);captureFreight(s,c,p,local,ctx,enemy);return;}
+  if(enemy&&!withdrawalCover(s,c,enemy)){p.x=Math.abs(enemy.x-oldX)*areaScale(s.areas[p.area])<=8?oldX:enemy.x-Math.sign(p.x-oldX)*areaOffset(s.areas[p.area],8);captureFreight(s,c,p,local,ctx,enemy);return;}
   carrierNewsContact(s,p,ctx);
   if(c.remaining>0)return;
   if(!next){if(c.path[c.index+1]){freightFailure(s,c,c.returning?'return-blocked':'blocked-road',ctx);return;}if(!local.civic){freightFailure(s,c,'market-gone',ctx);return;}finishFreight(s,c,ctx,c.returning?'returned':'delivered');return;}

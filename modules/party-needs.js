@@ -35,7 +35,7 @@ export function partyCare(s,c,ctx){
  if(!active(s))return;
  const p=s.people[c.person];if(!p?.alive)return;
  if(p.partyNeeds?.tick===s.tick||s.tick%8!==0)return;
- if(p.bodyCarry?.stage!=='carrying'){p.area=s.hero.area;p.x=s.hero.x-areaOffset(s.areas[s.hero.area],4);}initializeNeeds(p);
+ if(!(s.hero.coverRetreat?.status==='active'&&s.hero.coverRetreat.guard===p.id&&s.hero.coverRetreat.lastGuardTick>=s.tick-1)&&p.bodyCarry?.stage!=='carrying'){p.area=s.hero.area;p.x=s.hero.x-areaOffset(s.areas[s.hero.area],4);}initializeNeeds(p);
  // A passenger can eat a real carried ration without borrowing from the departure town.
  if(s.hero.transit&&p.needs.hunger>=65&&enabled(s,'supply')&&carriedFood(s.people[s.hero.lineage],s.hero.inventory)>0){const h=s.hero,opened=(s.people[h.lineage]?.roadSupplies?.food||0)>0,portions=consumeTravelMeal(s.people[h.lineage],h.inventory,partyMealSize(s));if(portions){h.hunger=Math.max(0,h.hunger-65);h.counters.meals++;feedParty(s,portions-1);ctx.log(s,opened?'В пути отряд делит открытые припасы. Запас в сумке уменьшается.':'В пути отряд делит дорожный паёк. Запас в сумке уменьшается.','food');}}
  let activity=null;
