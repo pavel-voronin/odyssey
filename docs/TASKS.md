@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. F-03.1 выполнена этапом248: один реальный местный производственный заказ. Вклад4→мастер→civic raw seller,2конечные заготовки reserved;3обычных NPCwork→один cargo tool, existing sale из конечной treasury→половина выручки earmarked→один личный расчёт. Личные сведения/недоверие/финансовый резерв влияют на согласие, время не создаёт процент/возврат. PARTIAL18/18 exit0,1384мс, artifacts/checks/274913b9536765a6.log; modules/production-finance/schema,goods/people/общий selector; CONTRACTS/production-finance.v1, DEVELOPMENT/248; https://odyssey.kolpaque.dev revision11553f170f8da187/HTTPS. F-03.2/.3 остаются. Следующий этап ещё не взят.
+Текущего этапа нет. F-03.2 выполнена этапом249: личный контакт сообщает реальную задержку/смену титула/срыв сбыта, выбор wait/help/buyout освобождает обычные дела. Собственное medicine1/2 и оплаченные18/tools1помогают прежнему лечению/трём repair acts без мгновенного результата. Согласный solvent maker выкупает4до выпуска/3после срыва из своего wallet, убыток1настоящий, повторной доли нет. F02 actual death передаёт одно право тому же escrow без прибавки estate cash; живой local heir получает один раз. PARTIAL22/22 exit0,1537мс, artifacts/checks/890f13b554fc4507.log; modules/production-partnership/finance-state/finance/schema,inheritance/people/common selector; CONTRACTS/production-finance.v1, DEVELOPMENT/249; https://odyssey.kolpaque.dev revisione8f002432275c0fe/HTTPS. F-03.3 остаётся. Следующий этап ещё не взят.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 6 | F-03.2 | задержка/выход | 8 | 6 | 1.33 | F-03.1 |
 | 7 | F-03.3 | патронаж человека или поселения (ACTIVE-LIFE) | 8 | 6 | 1.33 | F-03.1 |
 | 8 | PERSON-01.4 | богатство, досягаемость и защита (ACTIVE-LIFE) | 9 | 7 | 1.29 | PERSON-01.3, R-06.1, R-09.1 |
 | 9 | LIT-03.3 | ущерб и восстановление | 7 | 5 | 1.40 | LIT-03.1, PERSON-01.4 |
@@ -1566,3 +1565,10 @@ ERA-02.3 выполнена этапом247: actual regional earthquake повр
 F-03.1 выполнена этапом248: один реальный местный производственный заказ. Вклад4→мастер→civic raw seller,2конечные заготовки reserved;3обычных NPCwork→один cargo tool, existing sale из конечной treasury→половина выручки earmarked→один личный расчёт. Личные сведения/недоверие/финансовый резерв влияют на согласие, время не создаёт процент/возврат. PARTIAL18/18 exit0,1384мс, artifacts/checks/274913b9536765a6.log; modules/production-finance/schema,goods/people/общий selector; CONTRACTS/production-finance.v1, DEVELOPMENT/248; https://odyssey.kolpaque.dev revision11553f170f8da187/HTTPS. F-03.2/.3 остаются. Следующий этап ещё не взят.
 
 6selected groups≤12actual owner acts: настоящий вклад/сырьё/триordinary work/продажа/первый расчёт и сумма кошельков+treasury+escrow; personal quote/недоверие/нехватка raw; реальный approach/незавершённый и repeated receipt без дубликата/зарплаты; пустой buyer treasury/разрушенный workshop/отсутствующий вкладчик без дохода; OFF/точный current144 restore/ошибочный payout отказ; registered readiness/один короткий engine act. Ещё11bounded goods primitives+smoke/build, не старые длинные goods-world/local-market матрицы. Native320quests/0UIтиков/exact save/no overflow. Полные жизни/full/SOAK/комбинаторика не запускались.
+
+
+### F-03.2 · подтверждение реализации249
+
+F-03.2 выполнена этапом249: личный контакт сообщает реальную задержку/смену титула/срыв сбыта, выбор wait/help/buyout освобождает обычные дела. Собственное medicine1/2 и оплаченные18/tools1помогают прежнему лечению/трём repair acts без мгновенного результата. Согласный solvent maker выкупает4до выпуска/3после срыва из своего wallet, убыток1настоящий, повторной доли нет. F02 actual death передаёт одно право тому же escrow без прибавки estate cash; живой local heir получает один раз. PARTIAL22/22 exit0,1537мс, artifacts/checks/890f13b554fc4507.log; modules/production-partnership/finance-state/finance/schema,inheritance/people/common selector; CONTRACTS/production-finance.v1, DEVELOPMENT/249; https://odyssey.kolpaque.dev revisione8f002432275c0fe/HTTPS. F-03.3 остаётся. Следующий этап ещё не взят.
+
+6selected groups≤12actual acts: local illness report/wait/common dispatch/no time yield; mid-work illness stops, native anatomical-dose medicine gift→usual needs treatment; actual fire→finite paid repair reserve/3native repair acts→same raw-funded production; actual failed sale→cash buyout3/real loss1→actual resumed market sale without old payout; insufficient wallet/changed canonical title/OFF exact; actual near31poison death1engine act/F02same right/escrow excluded from estatecash/local NPC heir one payout/corrupt estate proof rejected.6existing finance+9short inheritance+smoke/build. Native320quests0UIтиков/exact save/no overflow, no full/SOAK/длинных жизней/комбинаторики.

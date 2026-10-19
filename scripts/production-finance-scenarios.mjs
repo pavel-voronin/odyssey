@@ -19,5 +19,5 @@ export function financeSave(f){syncActiveActor(f.s);return serialize(f.s);}
 export function fundFixture(f=financeFixture()){if(!productionFinancePlan(f.s,financeContext))throw Error('No local proposal');f.c=fundProduction(f.s,financeContext);if(!f.c)throw Error('No actual funding');return f;}
 export function manufactureFixture(f){
  const pos=workshopPosition(f.s,f.a,f.o);f.p.area=pos.area;f.p.x=pos.x;f.p.agenda.task=null;f.p.agenda.due=f.s.tick;
- for(let n=0;n<3;n++){f.s.tick+=8;peopleTick(f.s,financeContext);}return f;
+ for(let n=0;n<3;n++){f.s.tick=Math.floor(f.s.tick/8)*8+8;peopleTick(f.s,financeContext);}return f;
 }

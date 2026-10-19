@@ -1,3 +1,4 @@
+import {npcInheritedPayout} from './production-partnership.js';
 import {npcProductionPlan,finishFinancedWork,productionSale,productionFinanceOn} from './production-finance.js';
 import {npcQuakeRepair} from './quake-repair.js';
 import {npcMechanicTurn} from './mechanic-drive.js';
@@ -285,6 +286,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(npcInheritedPayout(s,p,ctx))continue;
     if(npcQuakeRepair(s,p,ctx))continue;
     if(npcMechanicTurn(s,p,ctx))continue;
     if(npcTrackingTurn(s,p))continue;
@@ -331,6 +333,7 @@ export function peopleTick(s,ctx){
     if(['fieldCraftSupply','fieldCraftStudy','fieldCraftService'].includes(p.agenda.task?.kind)&&!fieldCraftEnabled(s))continue;
     if(p.agenda.task?.migration&&(!enabled(s,'migrations')||s.migrations[p.agenda.task.migration]?.knowledge&&!migrationKnowledgeOn(s)))continue;
     if(p.agenda.task?.productionDeal&&!productionFinanceOn(s))continue;
+    if(p.agenda.task?.productionDeal&&p.agenda.task.kind==='work'&&(p.ailment||p.health<(p.maxHealth||100)*.85)){p.agenda.task=null;p.agenda.due=s.tick+8;continue;}
     objectAt(s,p);
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}

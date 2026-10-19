@@ -392,7 +392,7 @@ export function validateSave(s){
   if(own(p,'estate')){
    const e=p.estate,key=id+'.estate';fields(e,['version','id','opened','heir','total','cash','paid','status','assets'],key);for(const k of ['opened','total','cash','paid'])integer(e[k],key+'.'+k);array(e.assets,key+'.assets');
    if(e.version!==1||p.alive||e.opened!==p.died||e.opened>s.tick||e.id!==`estate/${id}/${e.opened}`||e.heir!==null&&!s.people[e.heir]||e.cash+e.paid!==e.total||!['pending','distributed'].includes(e.status)||e.status==='distributed'&&(e.cash!==0||e.heir===null))fail(key);
-   for(const a of e.assets){fields(a,['kind','area','id'],key+'.asset');if(!s.areas[a.area]||typeof a.id!=='string'||!['property','money-cache','death-cache','item','route-map','map-copy'].includes(a.kind))fail(key+'.asset');}
+   for(const a of e.assets){fields(a,['kind','area','id'],key+'.asset');if(!s.areas[a.area]||typeof a.id!=='string'||!['property','money-cache','death-cache','item','route-map','map-copy','production-right'].includes(a.kind))fail(key+'.asset');}
   }
   if(own(p,'moneyCaches')){
    const m=p.moneyCaches,key=id+'.moneyCaches';fields(m,['version','places','lastActionTick','after'],key);array(m.places,key+'.places');integer(m.lastActionTick,key+'.lastActionTick',-1);integer(m.after,key+'.after');
