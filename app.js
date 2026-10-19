@@ -1,3 +1,4 @@
+import {mechanicHTML} from './modules/mechanic-drive.js';
 import {cargoHTML} from './modules/ferry-cargo.js';
 import {trackingHTML} from './modules/tracking.js';
 import {CAMP_MELODY,musicInstrument} from './modules/camp-music-state.js';
@@ -229,7 +230,7 @@ function enrichSheet(){
     if(practice)$('detail-panel').insertAdjacentHTML('afterbegin',`<div class="habit"><b>Ремесленная практика · ${practice.total} настоящих восстановлений</b><p>${practice.method?'Освоено: подгонка рабочей детали. Материальный ремонт требует два рабочих действия вместо трёх.':practice.study?'Учёба: осталось '+practice.study.remaining+' действий.':practice.total>=3?'Опыт позволяет изучить приём у доступного верстака. Герой сам решит, когда учиться.':'До самостоятельного изучения приёма нужны три разных завершённых восстановления.'}</p></div>`);
   }
   if(tab==='map')$('detail-panel').insertAdjacentHTML('afterbegin',goodsHTML(state,escape)+marketKnowledgeHTML(state,escape)+landmarksHTML(state,escape)+fordsHTML(state,escape));
-  if(tab==='map')$('detail-panel').insertAdjacentHTML('beforeend',bestiaryHTML(state,escape)+trackingHTML(state,escape)+cargoHTML(state,escape));
+  if(tab==='map')$('detail-panel').insertAdjacentHTML('beforeend',bestiaryHTML(state,escape)+trackingHTML(state,escape)+cargoHTML(state,escape)+mechanicHTML(state,escape));
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend','<p class="empty">Уровень, мастерство и независимые приёмы — в разделе «Развитие».</p>');
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',forgingHTML(state,escape));
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',knifeRefitHTML(state,escape));

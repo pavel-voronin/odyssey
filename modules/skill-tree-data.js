@@ -1,4 +1,5 @@
 export const SKILL_TREE=Object.freeze([
+ {id:'diagnose-drive',branch:'mechanic',name:'Диагностика настоящего механизма',requires:[]},
  {id:'measured-ward',branch:'magic',name:'Размеренное слово укрытия',requires:[]},
  {id:'check-cargo-lashing',branch:'sailing',name:'Проверка крепления груза',requires:[]},
  {id:'read-trail-direction',branch:'tracking',name:'Направление настоящего следа',requires:[]},

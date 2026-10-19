@@ -1,3 +1,4 @@
+import {fitLiftDrive,blockedDrivePlan} from './mechanic-drive.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {selfDrivenActor} from '../actor-projection.js';
@@ -23,9 +24,10 @@ export function observeLift(s,p,from,to){
  const n=liftAt(s,from,to),b=p&&body(s,p);if(!enabled(s,'mechanisms')||!n||!p.alive||p.needs.sleeping||!b||![n.from,n.to].includes(b.area))return null;
  const a=s.areas[b.area],other=b.area===n.from?n.to:n.from,console=b.area===n.console.area&&a.objects.find(o=>o.id===n.console.id&&o.kind==='liftConsole');
  if(physicalDistance(a,b.x,console?.x??(Number(other.slice(1))>Number(b.area.slice(1))?100:0))>30)return null;
- const m=memory(p),key=[from,to].sort().join('|'),old=m.known.find(k=>k.key===key),note={key,status:n.status,remaining:n.charge.remaining,at:s.tick,consoleArea:console?b.area:old?.consoleArea??null};if(old?.after!==undefined)note.after=old.after;const index=m.known.findIndex(k=>k.key===key);if(index<0)m.known.push(note);else m.known[index]=note;if(m.known.length>24)m.known.shift();return note;
+ const m=memory(p),key=[from,to].sort().join('|'),old=m.known.find(k=>k.key===key),note={key,status:n.status,remaining:n.charge.remaining,at:s.tick,consoleArea:console?b.area:old?.consoleArea??null};if(old?.after!==undefined)note.after=old.after;if(old?.driveRetry)note.driveRetry=old.driveRetry;const index=m.known.findIndex(k=>k.key===key);if(index<0)m.known.push(note);else m.known[index]=note;if(m.known.length>24)m.known.shift();return note;
 }
 export function workLift(s,p,key,action,ctx={}){
+ if(action==='repair'&&s.edges[key]?.lift?.drive)return fitLiftDrive(s,p,key,ctx);
  const n=s.edges[key]?.lift,h=p&&actor(s,p),b=p&&body(s,p),a=b&&s.areas[b.area],console=a?.objects.find(o=>o.id===n?.console.id&&o.kind==='liftConsole'),energy=h?.energy??p?.needs?.energy,inventory=(h||s.actorStates[p?.id])?.inventory;
  if(!enabled(s,'mechanisms')||!n||n.status==='dismantled'||!p?.alive||p.needs.sleeping||!b||b.area!==n.console.area||!console||physicalDistance(a,b.x,console.x)>9||partyBodySpent(s,p)||energy<5||!['repair','fuel','dismantle'].includes(action))return false;
  if(action==='repair'&&(n.status!=='broken'||n.parts.length!==2)||action==='fuel'&&(n.charge.remaining>0||!(inventory?.relics>0)))return false;
@@ -39,7 +41,7 @@ export function workLift(s,p,key,action,ctx={}){
  ctx.log?.(s,`${p.name} ${action==='repair'?(n.status==='ready'?'восстанавливает привод подъёмника':'правит привод подъёмника'):action==='fuel'?'вставляет свой осколок света: хватит на три поездки':'разбирает подъёмник и забирает две его детали. Прямой путь теперь не работает'}.`,'craft');return true;
 }
 export function blockedLiftPlan(s,to,ctx){
- const h=s.hero,p=s.people[h.lineage],n=liftAt(s,h.area,to),note=observeLift(s,p,h.area,to);if(!note)return false;
+ const h=s.hero,p=s.people[h.lineage],n=liftAt(s,h.area,to),note=observeLift(s,p,h.area,to);if(!note)return false;if(blockedDrivePlan(s,n,[h.area,to].sort().join('|'),ctx,note))return true;
  let action=null;if(note.consoleArea===h.area&&h.energy>=35&&h.personality.curiosity>=.5&&n.status!=='dismantled'){
   if(h.gold<8&&h.personality.generosity<.4)action='dismantle';else if(n.status==='broken')action='repair';else if(h.inventory.relics>0&&!(h.inventory.relics===1&&h.quests.some(q=>q.status==='active'&&q.kind==='relic')))action='fuel';
  }

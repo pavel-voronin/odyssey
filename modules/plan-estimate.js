@@ -24,6 +24,8 @@ export function estimatePlan(s,g,ctx){
   if(g.kind==='forgeWork'){const q=s.people[h.lineage]?.forging,o=q?.orders[q.active];cost+=Math.max(0,(o?.required??6)-(o?.progress??0))*2;}
   if(g.kind==='refitWork'){const q=s.people[h.lineage]?.knifeRefit,o=q?.orders[q.active];cost+=Math.max(0,(o?.required??4)-(o?.progress??0))*2;}
   if(g.kind==='itemRepairWork'){const q=s.people[h.lineage]?.itemRepair,o=q?.orders[q.active];cost+=Math.max(0,(o?.required??4)-(o?.progress??0))*2;}
+  if(g.kind==='liftWork'&&g.operation==='repair'&&s.edges[g.key]?.lift?.drive?.current)cost+=Math.max(0,3-(s.edges[g.key].lift.drive.work?.steps.length||0))*3;
+  if(g.kind.startsWith('drive'))cost+=2;
   if(g.kind==='hunt')cost+=12;
   const knownSpells=enabled(s,'magic')?SPELLS.filter(sp=>h.magic.spells.includes(sp.id)):[];
   const mana=g.kind==='hunt'&&knownSpells.length?Math.min(h.magic.maxMana,Math.min(...knownSpells.map(sp=>enabled(s,'place-rules')?spellInvoice(s,h,sp,{area:g.area,known:true}).totalManaCost:sp.mana))*2):0;

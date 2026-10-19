@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {profession} from '../content.js';
 
 export const SKILL_METHODS={
+ mechanic:{name:'Точность привода',method:'diagnose-drive',label:'Диагностика настоящего механизма',threshold:2},
  magic:{name:'Практика знакомых чар',method:'measured-ward',label:'Размеренное слово укрытия',threshold:3},
  sailing:{name:'Судовое дело',method:'check-cargo-lashing',label:'Проверка крепления груза',threshold:2},
  tracking:{name:'Чтение следов',method:'read-trail-direction',label:'Направление настоящего следа',threshold:2},
@@ -96,4 +97,8 @@ export function recordPracticalSailing(s,event){
 
 export function recordPracticalWard(s,event){
  const h=s.hero;if(h.magic.wardLastImpact!==event||h.magic.wardActive?.cast!==event.cast||h.combat!==event.enemy||!(event.before>event.after))return null;const q=practicalSkill(s,h.lineage,'magic');if(q?.total>=3||q?.operations.some(e=>e.enemy===event.enemy))return null;return credit(s,h.lineage,'magic',event,{enemy:event.enemy,cast:event.cast,castAt:event.castAt,paid:event.paid,raw:event.raw,before:event.before,after:event.after,form:event.form});
+}
+
+export function recordPracticalMechanic(s,p,event){
+ const n=s.edges[event.key]?.lift,d=n?.drive,q=practicalSkill(s,p.id,'mechanic');if(!d?.repairs.includes(event)||event.actor!==p.id||event.finished!==s.tick||event.steps.length!==3||event.material?.quantity!==1||q?.method||q?.operations.some(r=>r.part===event.part))return null;return credit(s,p.id,'mechanic',event,{key:event.key,node:n.id,part:event.part,episode:event.episode,material:event.material,steps:event.steps,ride:event.ride});
 }

@@ -1,3 +1,4 @@
+import {validateMechanicDrive} from './modules/mechanic-drive-schema.js';
 import {validateMeasuredWard} from './modules/measured-ward-schema.js';
 import {validateFerryCargo} from './modules/ferry-cargo-schema.js';
 import {validateTracking} from './modules/tracking-schema.js';
@@ -181,7 +182,7 @@ export function validateSave(s){
  validateTracking(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateMechanicDrive(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

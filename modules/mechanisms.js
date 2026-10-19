@@ -1,3 +1,4 @@
+import {planGrateDiagnosis} from './mechanic-drive.js';
 import {mechanismMemory as memory} from './mechanism-memory.js';
 import {newSequence,sequencesOn} from './sequence-memory.js';
 import {sequenceOperation,blockedSequencePlan} from './mechanism-sequences.js';
@@ -33,7 +34,7 @@ export function operateGrate(s,p,key,action='open',ctx={}){
  if(g.holding&&action!=='inspect')return false;
  if(g.sequence&&!sequencesOn(s))return false;
  if(!h&&!npcAction(s,p,'personal'))return false;
- const n=observeGrate(s,p,g.from,g.to);if(!n)return false;
+ const n=observeGrate(s,p,g.from,g.to);if(!n)return false;if(planGrateDiagnosis(s,p,g,ctx))return true;
  if(g.sequence&&sequencesOn(s)&&action!=='close')return sequenceOperation(s,p,g,action,ctx);
  const cost=action==='inspect'?1:2;if(h)h.energy-=cost;else p.needs.energy-=cost;
  memory(p).lastActionTick=s.tick;

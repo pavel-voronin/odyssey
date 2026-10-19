@@ -1,3 +1,4 @@
+import {driveAction} from './modules/mechanic-drive.js';
 import {wardTick,cancelWard} from './modules/measured-ward.js';
 import {recordCrossingTrace} from './modules/edge-traces.js';
 import {trackingPlan,trackingAction,confirmTracking} from './modules/tracking.js';
@@ -1068,6 +1069,7 @@ function actObserved(s) {
   else if (g.kind === 'studyCreature') execute('studyBestiaryAction',()=>studyBestiaryAction(s,context(s,'bestiary')));
   else if(g.kind==='sequenceAdvice'){askSequenceWitness(s,s.people[h.lineage],s.people[g.person],g.key,context(s,'mechanism-sequences'));h.goal=null;}
   else if (['layoutMove','layoutSurvey','layoutWait'].includes(g.kind))execute('layoutAction',()=>layoutAction(s,context(s,'delve-layouts')));
+  else if (['driveInspect','driveConsent','driveLesson'].includes(g.kind)) execute('driveAction',()=>driveAction(s,context(s,'mechanisms')));
   else if (g.kind === 'mechanism') execute('mechanismAction',()=>mechanismAction(s,context(s,'mechanisms')));
   else if (g.kind === 'mechanismHold') execute('leverHoldAction',()=>leverHoldAction(s,context(s,'mechanisms')));
   else if (g.kind === 'liftWork') execute('liftAction',()=>liftAction(s,context(s,'mechanisms')));
