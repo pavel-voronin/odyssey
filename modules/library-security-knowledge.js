@@ -1,0 +1,5 @@
+import {bookFund,fundChest,libraryPosition} from './library-state.js';
+import {physicalDistance} from '../geometry.js';
+import {presentItem} from './item-originals.js';
+export function libraryLedgerSnapshot(s,a){const f=bookFund(a),q=f?.security;if(!q)return null;return {version:1,room:a.id,seen:s.tick,audit:q.lastAudit,witness:q.guard,entries:f.copies.map(id=>{const i=presentItem(s,id)?.item,loan=i?.libraryLoan;return {id,name:i?.name||'Том',state:q.missing.includes(id)?'missing':loan?.returned===null?'loan':'shelf',borrower:loan?.returned===null?loan.borrower:null};}),banned:q.banned.map(n=>({person:n.person,witness:n.witness,tick:n.tick,item:n.item}))};}
+export function rememberLibraryLedger(s,a){const memo=libraryLedgerSnapshot(s,a);if(!memo)return;for(const p of Object.values(s.people)){const b=p.alive&&!p.needs.sleeping&&libraryPosition(s,p);if(!b||b.transit||b.area!==a.id||physicalDistance(a,b.x,56)>12)continue;p.libraryLedgers ||= {};p.libraryLedgers[a.id]=structuredClone(memo);const keys=Object.keys(p.libraryLedgers);if(keys.length>6)delete p.libraryLedgers[keys[0]];}}

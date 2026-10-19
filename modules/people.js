@@ -1,3 +1,4 @@
+import {libraryGuardTurn} from './library-security.js';
 import {libraryNPCTask,libraryNPCAction} from './libraries.js';
 import {advanceNPCRoadCamp} from './road-stops.js';
 import {displacedOwnerTurn} from './building-control.js';
@@ -118,6 +119,7 @@ function plan(s,p,ctx){
   const mapCopy=npcMapCopyPlan(s,p);if(mapCopy){m.task=mapCopy;return;}
   if(npcDeedAllows(s,p,'learning')&&personalVisitPlan(s,p,ctx))return;
   if(npcLodgingPlan(s,p))return;
+  if(a.interior?.kind==='room'&&a.home){const book=libraryNPCTask(s,p)||textNPCTask(s,p);if(book){m.task=book;return;}}
   if(npcTavernPlan(s,p))return;
   if(goodsEnabled(s)&&a.civic&&a.goods?.harvestRequest?.until>=s.tick&&a.civic.food<(a.goods.harvestRequest.target??100)&&(m.job==='farmer'||m.duty>.4)&&productionSources(s,a).field.stock>0){begin(p,'farm',p.area,42);return;}
   if(a.civic?.food<40&&(m.duty>.35||a.civic.food<20)){
@@ -273,6 +275,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(libraryGuardTurn(s,p,ctx))continue;
     if(p.bodyCarry?.stage==='stopped'&&p.roadStop&&advanceNPCRoadCamp(s,p,ctx))continue;
     if(p.bodyCarry?.stage==='stopped'&&p.roadTransit){moveTask(s,p,ctx);continue;}
     if(displacedOwnerTurn(s,p,ctx))continue;

@@ -1,3 +1,4 @@
+import {librarySecurityPlan,librarySecurityAction} from './modules/library-security.js';
 import {libraryPlan,libraryAction} from './modules/libraries.js';
 import {peopleCarryTurn,endPeopleCarry} from './modules/people-carry.js';
 import {buildingControlTick} from './modules/building-control.js';
@@ -385,7 +386,7 @@ function delveContext(s){
 function plan(s) {
   const h = s.hero, a = s.areas[h.area], q = currentQuest(h,s);
   if(cookingPlan(s,context(s,'hearth-food'),{lesson:false}))return;
-  if(a.interior){if(a.interior.kind==='workshop'&&(itemRepairPlan(s,context(s,'item-wear'))||toolPlan(s,context(s,'workshop-tools'))||refitPlan(s,context(s,'knife-refit'))||forgePlan(s,context(s,'forging'))))return;if(lodgingPlan(s,context(s,'lodging')))return;tavernPlan(s,context(s,'interiors'));return;}
+  if(a.interior){if(a.interior.kind==='workshop'&&(itemRepairPlan(s,context(s,'item-wear'))||toolPlan(s,context(s,'workshop-tools'))||refitPlan(s,context(s,'knife-refit'))||forgePlan(s,context(s,'forging'))))return;if(lodgingPlan(s,context(s,'lodging')))return;if(a.interior.kind==='room'&&!q&&(librarySecurityPlan(s,context(s,'library-security'))||libraryPlan(s,context(s,'libraries'))||textPlan(s,context(s,'texts'))||homePlan(s,context(s,'homes'))))return;tavernPlan(s,context(s,'interiors'));return;}
   if(a.temporaryCamp){leaveCamp(s,context(s,'fieldcamp'));return;}
   if(partyDemand(s)==='food'&&foodPlan(s,context(s,'supply')))return;
   if(textValuesOn(s)&&textNeed(s,s.people[h.lineage])&&literacyPlan(s,context(s,'text-values'),{urgentOnly:true}))return;
@@ -437,6 +438,7 @@ function plan(s) {
   if(!q&&pactTalkPlan(s,context(s,'branch-pacts')))return;
   if(!q&&feastPlan(s,context(s,'local-feasts')))return;
   if(!q&&literacyPlan(s,context(s,'literacy')))return;
+  if(!q&&librarySecurityPlan(s,context(s,'library-security')))return;
   if(!q&&libraryPlan(s,context(s,'libraries')))return;
   if(!q&&textPlan(s,context(s,'texts')))return;
   if(!q&&homeBuildingPlan(s,context(s,'home-building')))return;
@@ -1003,6 +1005,7 @@ function actObserved(s) {
   else if(g.kind==='pactTalk')pactTalkAction(s,context(s,'branch-pacts'));
   else if(g.kind==='feastJoin')feastAction(s,context(s,'local-feasts'));
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))literacyAction(s,context(s,'literacy'));
+  else if(['libraryProtect','librarySteal'].includes(g.kind))librarySecurityAction(s,context(s,'library-security'));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))libraryAction(s,context(s,'libraries'));
   else if(['textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))textAction(s,context(s,'texts'));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))homeBuildingAction(s,context(s,'home-building'));

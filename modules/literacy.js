@@ -72,7 +72,7 @@ export function askTextReader(s,p,t,id,ctx=null){
 }
 function tradeReady(s,p){const h=textActor(s,p?.id);return p?.alive&&!p.needs.sleeping&&(h?!h.transit&&!h.combat&&h.energy>=12&&h.hp>=h.maxHp*.25:p.needs.energy>=12&&p.health>=(p.maxHealth||100)*.25);}
 export function sellTextWithoutReading(s,p,buyer,id){
- const item=heldTexts(s,p?.id).find(i=>i.id===id&&i.textCopy?.owner===p.id&&i.libraryLoan?.returned!==null),work=textWork(s,item),a=pos(s,p),b=pos(s,buyer);
+ const item=heldTexts(s,p?.id).find(i=>i.id===id&&i.textCopy?.owner===p.id&&i.libraryLoan?.returned!==null&&i.libraryTheft?.returned!==null),work=textWork(s,item),a=pos(s,p),b=pos(s,buyer);
  const ownTurn=p?.actionControl?.tick===s.tick&&p.actionControl.owner==='personal'&&p.actionControl.phases.includes('act')&&p.agenda.task?.kind==='literacySell'&&p.agenda.task.item===id&&p.agenda.task.buyer===buyer?.id;
  const valued=textValuesOn(s),decision=valued&&textValue(s,p,item),price=valued?textBuyerPrice(s,buyer,item):2;
  if(!literacyEnabled(s)||!(valued?tradeReady(s,p):healthy(s,p))||!healthy(s,buyer)||valued&&(!decision.sell||price===null)||spent(s,p)||spent(s,buyer)||!item||!work||p.id===buyer.id||!a||!b||a.area!==b.area||physicalDistance(s.areas[a.area],a.x,b.x)>3||textActor(s,buyer.id)||npcController(s,buyer)!=='personal'||buyer.agenda.task||buyer.literacyTeaching||!['merchant','scholar'].includes(buyer.agenda.job)||marketWallet(s,buyer.id)<price||heldTexts(s,buyer.id).some(i=>i.textCopy?.content===work.id)||!fitsPack(s,buyer.id,{items:[...heldTexts(s,buyer.id),item]})||buyer.textPurchase&&buyer.textPurchase.until>=s.tick&&buyer.textPurchase.seller!==p.id||!textActor(s,p.id)&&!canStartNPCActivity(s,p)&&!ownTurn)return false;

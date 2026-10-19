@@ -11,3 +11,5 @@ export const libraryPosition=(s,p)=>textActor(s,p?.id)||(p?.alive?personLocation
 export function libraryHere(s,p,a){const h=textActor(s,p?.id),b=p?.alive&&libraryPosition(s,p);return Boolean(librariesOn(s)&&a?.home?.state==='ready'&&b&&!b.transit&&b.area===a.id&&physicalDistance(a,b.x,56)<=6&&roomAdmission(s,a,p.id)&&!h?.combat&&!p.needs.sleeping&&(h?h.energy:p.needs.energy)>=30&&(h?h.hunger:p.needs.hunger)<60&&(p.textCraft?.lastActionTick??-1)<s.tick);}
 export function borrowedReading(s,p,item){const q=item?.libraryLoan,f=bookFund(s.areas[q?.source]);return Boolean(activeBookLoan(item)&&q.borrower===p.id&&f?.copies.includes(item.id)&&f.owner===item.textCopy.owner);}
 export function libraryMembership(s,id){for(const a of Object.values(s.areas))if(bookFund(a)?.copies.includes(id))return a;return null;}
+
+export function stolenReading(s,p,item){const q=item?.libraryTheft,f=bookFund(s.areas[q?.source]);return Boolean(q?.version===1&&q.returned===null&&q.recoveredAt===null&&q.thief===p.id&&f?.copies.includes(item.id)&&f.owner===item.textCopy.owner);}

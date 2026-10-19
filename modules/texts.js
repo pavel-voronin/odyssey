@@ -1,4 +1,4 @@
-import {borrowedReading} from './library-state.js';
+import {borrowedReading,stolenReading} from './library-state.js';
 import {literacyOn,registerLiteracy,readingScript,writingScript} from './literacy-state.js';
 import {sequenceNote,learnSequence,SEQUENCE_NAMES} from './sequence-memory.js';
 import {physicalDistance} from '../geometry.js';
@@ -47,12 +47,12 @@ export function writeSequenceManual(s,p,paperID,node){
 }
 export function copyText(s,p,sourceID,paperID){
  const b=ready(s,p),items=heldTexts(s,p?.id),source=items.find(i=>i.id===sourceID),paper=items.find(i=>i.id===paperID&&i.kind==='writingPaper'),work=textWork(s,source);
- if(!b||!work||!paper||(!literacyOn(s)?!canWriteText(s,p):!readingScript(s,p,work.language,textActor(s,p.id))||!writingScript(s,p,work.language,textActor(s,p.id)))||source.textCopy.owner!==p.id||source.libraryLoan?.returned===null||source.textCopy.condition!=='intact'||p.textCraft?.copied.includes(work.id))return null;
+ if(!b||!work||!paper||(!literacyOn(s)?!canWriteText(s,p):!readingScript(s,p,work.language,textActor(s,p.id))||!writingScript(s,p,work.language,textActor(s,p.id)))||source.textCopy.owner!==p.id||source.libraryLoan?.returned===null||source.libraryTheft?.returned===null||source.textCopy.condition!=='intact'||p.textCraft?.copied.includes(work.id))return null;
  textMemory(p).copied.push(work.id);const result=inscribe(s,p,paper,work,source.id);p.textCraft.offer={item:result.id,content:work.id,tick:s.tick};return result;
 }
 export function readText(s,p,id){
  const b=ready(s,p),item=heldTexts(s,p?.id).find(i=>i.id===id),work=textWork(s,item);
- if(!b||!work||!canReadText(s,p,work.language)||item.textCopy.owner!==p.id&&!borrowedReading(s,p,item)||item.textCopy.condition!=='intact'||p.textCraft?.readings.some(e=>e.content===work.id))return false;
+ if(!b||!work||!canReadText(s,p,work.language)||item.textCopy.owner!==p.id&&!borrowedReading(s,p,item)&&!stolenReading(s,p,item)||item.textCopy.condition!=='intact'||p.textCraft?.readings.some(e=>e.content===work.id))return false;
  const a=s.areas[b.area];spend(s,p,1);
  if(!a.interior&&!a.civic&&['rain','storm'].includes(weatherAt(s,a).id)){
   item.textCopy.condition='damaged';item.textCopy.damage={kind:'rain-while-open',actor:p.id,tick:s.tick,area:a.id};item.history.push({tick:s.tick,text:'Открытая запись промокла при чтении вне укрытия. Другие экземпляры не изменились.'});return false;
@@ -76,7 +76,7 @@ export function rememberTextReading(s,p,item){
 }
 export function giveText(s,from,to,id){
  const a=ready(s,from),b=ready(s,to),item=heldTexts(s,from?.id).find(i=>i.id===id),work=textWork(s,item);
- if(!a||!b||from.id===to.id||!work||item.textCopy.owner!==from.id||item.libraryLoan?.returned===null||a.area!==b.area||physicalDistance(s.areas[a.area],a.x,b.x)>3||!fitsPack(s,to.id,{items:[...heldTexts(s,to.id),item]}))return false;
+ if(!a||!b||from.id===to.id||!work||item.textCopy.owner!==from.id||item.libraryLoan?.returned===null||item.libraryTheft?.returned===null||a.area!==b.area||physicalDistance(s.areas[a.area],a.x,b.x)>3||!fitsPack(s,to.id,{items:[...heldTexts(s,to.id),item]}))return false;
  const sourceActor=textActor(s,from.id),targetActor=textActor(s,to.id);
  if(!sourceActor&&(npcController(s,from)!=='personal'||heldTexts(s,from.id).filter(i=>i.textCopy?.content===work.id).length<2||from.agenda.duty<.5)||!targetActor&&(npcController(s,to)!=='personal'||!canReadText(s,to)&&to.agenda.curiosity<.65))return false;
  if(!sourceActor&&!npcAction(s,from,'personal')||!targetActor&&!npcAction(s,to,'personal'))return false;
