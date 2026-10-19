@@ -98,6 +98,7 @@ import {actorView,actorJournal,bindObservedJournal} from './actor-view.js';
 import {initializeSpatial,registerSpatialArea} from './modules/spatial.js';
 import {goodsTick} from './modules/goods.js';
 import {craftStudyPlan,craftStudyAction} from './modules/craft-practice.js';
+import {productionFinancePlan,fundProduction,collectProduction} from './modules/production-finance.js';
 import {moneyCachePlan,moneyCacheAction} from './modules/money-caches.js';
 import {openInheritance} from './modules/inheritance.js';
 import {observeRouteMap,routeMapPlan,routeMapAction} from './modules/route-maps.js';
@@ -448,6 +449,7 @@ function plan(s) {
   if(offer('localNeedsPlan',()=>localNeedsPlan(s,context(s,'supply'))))return planningSpent;
   if(offer('dogSearchPlan',()=>dogSearchPlan(s,context(s,'pet-training'))))return planningSpent;
   if(!q&&offer('dogTrainingPlan',()=>dogTrainingPlan(s,context(s,'pet-training'))))return planningSpent;
+  if(!q&&offer('productionFinancePlan',()=>productionFinancePlan(s,context(s,'production-finance'))))return planningSpent;
   if(!q&&offer('moneyCachePlan',()=>moneyCachePlan(s,context(s,'finances'))))return planningSpent;
   if(!q&&offer('routeMapPlan',()=>routeMapPlan(s,context(s,'route-maps'))))return planningSpent;
   if(!q&&offer('mapCopyPlan',()=>mapCopyPlan(s,context(s,'route-maps'))))return planningSpent;
@@ -1076,6 +1078,8 @@ function actObserved(s) {
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))execute('homeBuildingAction',()=>homeBuildingAction(s,context(s,'home-building')));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))execute('homeAction',()=>homeAction(s,context(s,'homes')));
   else if (g.kind === 'storyAction') execute('storyAction',()=>storyAction(s,g.story,context(s,'stories')));
+  else if(g.kind==='productionFund')execute('fundProduction',()=>fundProduction(s,context(s,'production-finance')));
+  else if(g.kind==='productionPayout')execute('collectProduction',()=>collectProduction(s,context(s,'production-finance')));
   else if (g.kind === 'moneyCache') execute('moneyCacheAction',()=>moneyCacheAction(s,context(s,'finances')));
   else if (g.kind === 'routeMap') execute('routeMapAction',()=>routeMapAction(s,context(s,'route-maps')));
   else if (g.kind === 'mapCopy') execute('mapCopyAction',()=>mapCopyAction(s,s.people[h.lineage],g,context(s,'route-maps')));

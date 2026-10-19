@@ -1,3 +1,4 @@
+import {validateProductionFinance} from './modules/production-finance-schema.js';
 import {validateEarthquakes} from './modules/earthquake-schema.js';
 import {validateWorldChanges} from './modules/world-changes-schema.js';
 import {validateCoverRetreat} from './modules/cover-retreat-schema.js';
@@ -188,7 +189,7 @@ export function validateSave(s){
  validateTracking(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validateWoundInfection(s,fail);validateFractures(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateWagons(s,fail);validateCoverRetreat(s,fail);validateWorldChanges(s,fail);validateEarthquakes(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateMechanicDrive(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validateWoundInfection(s,fail);validateFractures(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateWagons(s,fail);validateCoverRetreat(s,fail);validateWorldChanges(s,fail);validateEarthquakes(s,fail);validateProductionFinance(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateMechanicDrive(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

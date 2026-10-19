@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. ERA-02.3 выполнена этапом247: actual regional earthquake повреждает существующие пути/уязвимые owned structures, ID/люди/конечный cargo/stock сохраняются. Physical passage/metric/ferry держат достижимую сторону и один progress; личные сведения только из наблюдения. Paid merchant возвращается/меняет адрес, public road reserve2raw+1tool+2coins/3work, собственный ремонт и actual household migration дают разные истории. Долгий раскол canonical сети→одна era той же причины; пригодный bypass→local, scars после shock остаются. Код modules/earthquakes/quake-state/knowledge/repair/schema, routing/freight/migrations; test/earthquakes.test.js, CONTRACTS/earthquakes.v1. PARTIAL13/13 exit0,2760мс, artifacts/checks/7dc849582fac5a86.log; https://odyssey.kolpaque.dev revision67584cd86e48dadc/HTTPS. Остальные ERA-02 не закрыты. Следующий этап ещё не взят.
+Текущего этапа нет. F-03.1 выполнена этапом248: один реальный местный производственный заказ. Вклад4→мастер→civic raw seller,2конечные заготовки reserved;3обычных NPCwork→один cargo tool, existing sale из конечной treasury→половина выручки earmarked→один личный расчёт. Личные сведения/недоверие/финансовый резерв влияют на согласие, время не создаёт процент/возврат. PARTIAL18/18 exit0,1384мс, artifacts/checks/274913b9536765a6.log; modules/production-finance/schema,goods/people/общий selector; CONTRACTS/production-finance.v1, DEVELOPMENT/248; https://odyssey.kolpaque.dev revision11553f170f8da187/HTTPS. F-03.2/.3 остаются. Следующий этап ещё не взят.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 5 | F-03.1 | ограниченный производственный договор | 8 | 6 | 1.33 | R-06.4a, R-06.4b |
 | 6 | F-03.2 | задержка/выход | 8 | 6 | 1.33 | F-03.1 |
 | 7 | F-03.3 | патронаж человека или поселения (ACTIVE-LIFE) | 8 | 6 | 1.33 | F-03.1 |
 | 8 | PERSON-01.4 | богатство, досягаемость и защита (ACTIVE-LIFE) | 9 | 7 | 1.29 | PERSON-01.3, R-06.1, R-09.1 |
@@ -1560,3 +1559,10 @@ ERA-02.1 выполнена этапом246: общий source/effects registrar
 ERA-02.3 выполнена этапом247: actual regional earthquake повреждает существующие пути/уязвимые owned structures, ID/люди/конечный cargo/stock сохраняются. Physical passage/metric/ferry держат достижимую сторону и один progress; личные сведения только из наблюдения. Paid merchant возвращается/меняет адрес, public road reserve2raw+1tool+2coins/3work, собственный ремонт и actual household migration дают разные истории. Долгий раскол canonical сети→одна era той же причины; пригодный bypass→local, scars после shock остаются. Код modules/earthquakes/quake-state/knowledge/repair/schema, routing/freight/migrations; test/earthquakes.test.js, CONTRACTS/earthquakes.v1. PARTIAL13/13 exit0,2760мс, artifacts/checks/7dc849582fac5a86.log; https://odyssey.kolpaque.dev revision67584cd86e48dadc/HTTPS. Остальные ERA-02 не закрыты. Следующий этап ещё не взят.
 
 6малых групп≤12актов/≤16executed ticks: source/dependent/independent real damage/сохранность stock+IDs/постшоковый раскол+пригодный portal bypass; настоящий metric bank/finite food/единый ferry+ticket/нет оплаты закрытого рейса; настоящий paid merchant purchase/возврат или новый лично известный buyer; finite public reserve/3work/body phase/stock0; собственный workshop reserve+3work либо actual family/food cargo к лично известному адресу; locality/OFF/scheduling/recordOnly при world-eras OFF/current144/corrupt source. Явные checkpoints239/one-year clock/последний return leg/тело у worksite без прогона префиксов. Native320 scene scar/date0UI-тиков/exact save. Pages246 Actions39258982398 success/HTML1dd8096aa13c7131. Full/SOAK/жизни/комбинаторика не запускались.
+
+
+### F-03.1 · подтверждение реализации248
+
+F-03.1 выполнена этапом248: один реальный местный производственный заказ. Вклад4→мастер→civic raw seller,2конечные заготовки reserved;3обычных NPCwork→один cargo tool, existing sale из конечной treasury→половина выручки earmarked→один личный расчёт. Личные сведения/недоверие/финансовый резерв влияют на согласие, время не создаёт процент/возврат. PARTIAL18/18 exit0,1384мс, artifacts/checks/274913b9536765a6.log; modules/production-finance/schema,goods/people/общий selector; CONTRACTS/production-finance.v1, DEVELOPMENT/248; https://odyssey.kolpaque.dev revision11553f170f8da187/HTTPS. F-03.2/.3 остаются. Следующий этап ещё не взят.
+
+6selected groups≤12actual owner acts: настоящий вклад/сырьё/триordinary work/продажа/первый расчёт и сумма кошельков+treasury+escrow; personal quote/недоверие/нехватка raw; реальный approach/незавершённый и repeated receipt без дубликата/зарплаты; пустой buyer treasury/разрушенный workshop/отсутствующий вкладчик без дохода; OFF/точный current144 restore/ошибочный payout отказ; registered readiness/один короткий engine act. Ещё11bounded goods primitives+smoke/build, не старые длинные goods-world/local-market матрицы. Native320quests/0UIтиков/exact save/no overflow. Полные жизни/full/SOAK/комбинаторика не запускались.
