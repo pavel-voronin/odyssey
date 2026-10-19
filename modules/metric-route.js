@@ -5,7 +5,7 @@ import {woundStride} from './wound-state.js';
 import {metricKey,metricRate,routeLoad} from './metric-route-state.js';
 import {physicalDistance} from '../geometry.js';
 const pets=b=>b.lineage?b.companions||[]:b.pets||[],petBody=c=>c.packCargo?.body||c.petCustody?.body;
-export function metricTravelRate(s,body,metric,options={}){const weather=weatherAt(s,s.areas[body.area]),foot=metricRate(metric,weather,routeLoad(s,body,options),woundStride(s,s.people[body.lineage||body.id])),mount=ridingOn(s)&&groupHorse(s,body);if(!mount)return foot;const rate=horseMotion(s,body,mount,weather,{mounted:mount.rider===(body.lineage||body.id),terrain:metric.terrain});return {speed:mount.rider?rate.speed:Math.min(foot.speed,rate.speed),energy:mount.rider ? .2 : foot.energy,mount,mountEnergy:rate.energy};}
+export function metricTravelRate(s,body,metric,options={}){const weather=weatherAt(s,s.areas[body.area]),foot=metricRate(metric,weather,routeLoad(s,body,options),woundStride(s,s.people[body.lineage||body.id])),mount=ridingOn(s)&&groupHorse(s,body);if(!mount)return body.bodyCarry?.stage==='carrying'?{...foot,energy:foot.energy+1}:foot;const rate=horseMotion(s,body,mount,weather,{mounted:mount.rider===(body.lineage||body.id),terrain:metric.terrain});return {speed:mount.rider?rate.speed:Math.min(foot.speed,rate.speed),energy:mount.rider ? .2 : foot.energy,mount,mountEnergy:rate.energy};}
 export function roadCampWaypoint(s,body,t,speed){
  const energy=body.lineage?body.energy:body.needs.energy;if(energy>=20||s.rules.fieldcamp===false||s.rules['camp-sites']===false)return null;
  const edge=metricKey(t.from,t.to),e=s.edges[edge],m=t.metric,near=[];

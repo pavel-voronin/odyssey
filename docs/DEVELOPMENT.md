@@ -2579,3 +2579,14 @@ Pages223: Actions39184635613 success, HTML HTTP200/build6cb2373; commit2779756f2
 PARTIAL28/28 exit0,954мс, artifacts/checks/7362d17177bc38bc.log; revisionb8d5536f2c266b5e.8малых групп seed1/2, ≤4actual world ticks либо≤10изолированных действий, выбранные service-access/smoke; build. Browser настоящий app320/лист имущества осмотрен, стили загружены, controls ticks0/save неизменен. Full/SOAK/жизни/перебор не запускались. Опубликовано https://odyssey.kolpaque.dev:b8d5536f2c266b5e;464 payload-хеша/HTTPS подтверждены, проверки переиспользованы.
 
 Pages224: Actions39192031706 success, HTML HTTP200/build322a8e9; commit2f11158bc5811bd5fbb2ccd80c16b588d765476d.
+
+<a id="stage-226"></a>
+## Этап226 · C-01.7 · добровольный носитель со своим делом
+
+Физически способный NPC-попутчик переносит героя только на общем известном участке. Согласие требует двух направленных связей, настоящей силы/анатомии и полной нагрузки; срочное/расходящееся личное дело даёт отказ. Реальная порция может стать отдельной взаимной помощью. Его прежняя personalJourney/цель/срок сохраняются. Один carrier-owned metric-progress, силы/еда и party-контроллер; пассажир не делает второй шаг. Остановка/ранение/OFF и гибель ставят оригинальные тела в точную пустую дорожную точку; surviving personal-контроллер продолжает остаток пути. Scene рисует два тела с общей опорой, включая наблюдение за NPC. Код people-carry*/engine/party/social/metric/spatial/scene; people-carry.v1, schema144 без backfill.
+
+PARTIAL31/31 exit0,1323мс, artifacts/checks/8835e8027a1c921f.log; revision24efe3f6cfb3c09e.8малых групп seed1/2, ≤16actual ticks/случай,4offline +metric/horse/road-stop/smoke; голодные/персональные pulses подготовлены отдельно, не длинная жизнь. Browser3кадра320/390/320 осмотрены, ровно2тела/save не меняется; build. Full/SOAK/жизни/перебор не запускались.
+
+Pages225: Actions39193891072 success, HTML HTTP200/buildb8d5536; commit88165ad6748967e0f94660ec6aac424a27770fe3.
+
+Опубликовано https://odyssey.kolpaque.dev:24efe3f6cfb3c09e;468 payload-хешей/HTTPS подтверждены, целевые проверки переиспользованы.

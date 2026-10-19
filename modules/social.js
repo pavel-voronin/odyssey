@@ -89,6 +89,7 @@ export function hurtCompanion(s,c,damage,ctx,source=null){
   const h=s.hero,p=s.people[c.person];
   if((petPack(c)||c.petCustody)&&!petNear(s,c,12)&&source!=='pack-starvation')return 0;
   if(damage<=0||c.hp<=0||!h.companions.includes(c)||p&&!p.alive)return 0;
+  const wasCarrier=p?.bodyCarry?.stage==='carrying'&&h.carriedBy===p.id;if(wasCarrier)ctx.stopPeopleCarry?.(s,'носитель ранен');
   const previousHp=c.hp;c.hp=Math.max(0,c.hp-damage);
   const previousPersonHealth=p?.health;
   actorFact(s,'hurt',companionKey(c),source,previousHp-c.hp);
@@ -100,7 +101,7 @@ export function hurtCompanion(s,c,damage,ctx,source=null){
     if(!c.uid)throw new Error('У попутчика отсутствует текущая личность');
     h.companions=h.companions.filter(other=>other!==c);h.social.lostCompanions++;
     if(p){p.alive=false;p.died=s.tick;p.status='dead';p.health=0;}
-    const memorial=petPack(c)||c.petCustody?custodyTrace(s,c,'dead'):{id:'memorial-'+c.uid,kind:'grave',name:c.name,x:h.x-areaOffset(s.areas[h.area],4)};
+    const memorial=petPack(c)||c.petCustody?custodyTrace(s,c,'dead'):{id:'memorial-'+c.uid,kind:'grave',name:c.name,x:wasCarrier?h.x:h.x-areaOffset(s.areas[h.area],4)};
     const marked=markActorDeath(s,memorial,companionKey(c),companionShape(c));
     if(source&&!marked)actorFact(s,'death',companionKey(c));
     if(!petPack(c)&&!c.petCustody)s.areas[h.area].objects.push(memorial);recordCompanionRemains(s,c,memorial,{transit:petPack(c)||c.petCustody?null:h.transit});
@@ -134,7 +135,7 @@ export function releaseParty(s,ctx){
   const h=s.hero,a=s.areas[h.area];
   for(const c of [...h.companions]){
     if(petPack(c)||c.petCustody){custodyTrace(s,c,'owner-lost');h.companions=h.companions.filter(v=>v!==c);continue;}
-    if(c.person&&s.people[c.person]?.alive){const p=s.people[c.person];p.status='resident';p.area=a.id;a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);if(!a.objects.some(o=>o.person===p.id))a.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:Math.max(areaOffset(a,8),Math.min(100-areaOffset(a,8),h.x-areaOffset(a,10)))});}
+    if(c.person&&s.people[c.person]?.alive){const p=s.people[c.person];p.status='resident';p.area=a.id;const stopped=p.bodyCarry;if(stopped?.stage==='stopped'&&stopped.stopSite===a.id&&stopped.stoppedJourney&&!p.roadStop)p.roadStop={version:1,site:a.id,journey:structuredClone(stopped.stoppedJourney),entered:s.tick,phase:'leave'};a.population ||= [];if(!a.population.includes(p.id))a.population.push(p.id);if(!a.objects.some(o=>o.person===p.id))a.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:Math.max(areaOffset(a,8),Math.min(100-areaOffset(a,8),h.x-areaOffset(a,10)))});}
     else if(!c.person&&c.hp>0)a.objects.push({id:'waiting-'+c.uid,kind:'encounter',encounter:'familiar',icon:'pet',name:c.name,x:Math.max(areaOffset(a,8),Math.min(100-areaOffset(a,8),h.x-areaOffset(a,12))),resolved:false,existingPet:{...c,previousOwner:h.lineage,loyalty:Math.max(25,c.loyalty-20)}});
   }
 }

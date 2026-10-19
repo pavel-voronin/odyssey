@@ -1,3 +1,4 @@
+import {carrySupport,paintCarrySupport,paintCarriedObserver} from './people-carry-view.js';
 import {paintFerry} from './ferry-view.js';
 import {horses,horsePosition,riddenHorse} from './modules/horse-state.js';
 import {paintHorse} from './horse-view.js';
@@ -322,12 +323,13 @@ export class Scene {
     canvas.dataset.travellers=String(travellersDrawn);
     const vessel=a.boatDeck?.ship===s.ferry?.id?s.ferry:null;canvas.dataset.ferry=vessel?.id||'';if(vessel){this.ferryHull(w/2,ground,w-28,vessel);for(const id of [vessel.captain,...Object.keys(vessel.passengers)]){if(id===h.lineage)continue;const person=s.people[id];if(!person?.alive)continue;const look=looks(person,person.appearance);this.person(screenX(person.x),ground,look?.cloak||'#a89e77',false,1,0,false,false,look,s.rules?.lineage===false?null:race(person.race),{kind:'idle',progress:phase});}}else if(s.ferry?.phase==='docked'&&s.ferry.port===a.id)this.ferryHull(screenX(50),ground,90,s.ferry);
     let detailedDrawn=0;
-    if(!h.transit)for(const other of Object.values(s.actorStates||{}))if(other!==h&&selfDrivenActor(s,other)&&!other.transit&&other.area===a.id){
+    if(!h.transit)for(const other of Object.values(s.actorStates||{}))if(other!==h&&other.carriedBy!==h.lineage&&selfDrivenActor(s,other)&&!other.transit&&other.area===a.id){
       detailedDrawn++;const track=this.beastTracks.tracks.get(other.lineage),from=track?.from??other.x,to=track?.to??other.x,walking=animate&&from!==to&&phase<1,px=screenX(from+(to-from)*phase),direction=track?.direction||other.facing||1;
       const look=withLimbLook(s.people[other.lineage],s.rules?.appearance===false?{...other.appearance,prop:other.weapon>0?'blade':'none'}:heroAppearance({...s,hero:other}));
-      this.person(px,ground,look?.cloak||'#a9c686',false,direction,0,Boolean(track?.attack)&&actionPhase<.8,other.lastAction==='rest'||Boolean(occupiedCover(s,other)),look,s.rules?.lineage===false?null:race(other.race),{kind:occupiedCover(s,other)?'rest':other.lastAction,progress:actionPhase,walking,distance:Math.abs(to-from)*(w-48)/100,hurt:Boolean(track?.hurt)&&actionPhase>.45&&actionPhase<.95});
+      const support=carrySupport(s,other);paintCarrySupport(this,s,other,px,ground,phase);
+      this.person(px-(support?7*(other.facing||1):0),ground-(support?25:0),look?.cloak||'#a9c686',false,direction,0,Boolean(track?.attack)&&actionPhase<.8,other.lastAction==='rest'||Boolean(occupiedCover(s,other)),look,s.rules?.lineage===false?null:race(other.race),{supportGround:ground,kind:support?'rest':occupiedCover(s,other)?'rest':other.lastAction,progress:actionPhase,walking,distance:Math.abs(to-from)*(w-48)/100,hurt:Boolean(track?.hurt)&&actionPhase>.45&&actionPhase<.95});
       if(s.rules?.companions!==false)for(let i=0;i<other.companions.length;i++){
-        const companion=other.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(companion.person===h.lineage||body&&body.area!==a.id)continue;const cx=body?screenX(body.x):px-direction*petPartyOffset(other.companions,i),petTrack=this.beastTracks.tracks.get(companionKey(companion));
+        const companion=other.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(companion.person===h.lineage||companion.person===other.carriedBy||body&&body.area!==a.id)continue;const cx=body?screenX(body.x):px-direction*petPartyOffset(other.companions,i),petTrack=this.beastTracks.tracks.get(companionKey(companion));
         if(companion.role==='person'){const p=s.people[companion.person],look=p?looks(p,p.appearance):null;this.person(cx,ground,look?.cloak||'#ad9872',false,direction,0,Boolean(petTrack?.attack)&&phase<.8,other.lastAction==='rest',look,s.rules?.lineage===false?null:race(companion.race),{kind:other.lastAction==='rest'?'rest':walking?'walk':'idle',progress:phase,walking,distance:Math.abs(to-from)*(w-48)/100});}
         else if(petShape(companion)){const pose=petMotion(companion.id,petTrack,phase,{pixelsPerUnit:(w-48)/100,animate:animate&&s.rules?.['creature-motion']!==false,facing:companion.facing||other.facing,rest:other.lastAction==='rest'});this.pet(cx,ground,companion.id,pose.direction,pose.rest,pose.hurt,pose);}
         else if(companion.id==='dog'&&(s.rules?.['creature-motion']!==false||companion.packCargo))this.companionPet(companion,cx,ground,petTrack,phase);
@@ -341,16 +343,19 @@ export class Scene {
     if (!h.transit&&s.merchant.area === a.id) { const look=looks({id:'merchant-sava',role:'merchant'});this.person(screenX(58), ground, look?.cloak||'#867cac', false, -1, 0,false,false,look); c.fillStyle = '#957c58'; c.fillRect(screenX(58) + 12, ground - 13, 18, 13); c.strokeStyle = '#c3a982'; c.strokeRect(screenX(58) + 12, ground - 13, 18, 13); }
     if(h.transit&&['portal','time'].includes(h.transit.mode)){c.strokeStyle=h.transit.mode==='time'?'#d2b779':'#ac93cb';c.lineWidth=4;c.beginPath();c.ellipse(hx,ground-24,24,38,0,0,7);c.stroke();}
     const mount=riddenHorse(s,h);let horseCount=0;for(const m of horses(s)){if(m===mount)continue;const at=horsePosition(s,m);if(!h.transit&&at?.area===a.id){this.horse(screenX(at.x),ground,m,{direction:1,phase});horseCount++;}}canvas.dataset.horses=String(horseCount+(mount?1:0));
+    canvas.dataset.peopleCarry=h.carriedBy||s.people[h.lineage]?.bodyCarry?.stage==='carrying'?String(h.carriedBy||h.lineage):'';
     if (h.alive) {
       const walking = h.lastAction === 'walk' && actionPhase < 1 && !this.reduced&&this.to!==this.from;
       const bob = 0;
       if (h.lastAction === 'rest') { c.fillStyle = '#bcd18e'; c.font = '12px Georgia'; c.fillText('z', hx + 16, ground - 43); }
       const heroLook=withLimbLook(s.people[h.lineage],s.rules?.appearance===false?h.appearance:heroAppearance(s));
+      const support=carrySupport(s,h);paintCarrySupport(this,s,h,hx,ground,actionPhase);
       if(mount)this.horse(hx,ground,mount,{direction:stance.direction,walking,phase:actionPhase});
-      this.person(hx, ground - bob-(mount?29:0), heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{supportGround:ground,kind:occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking:walking&&!mount,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
+      this.person(hx-(support?7*stance.direction:0), ground - bob-(mount?29:support?25:0), heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, Boolean(support)||h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{supportGround:ground,kind:support?'rest':occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking:walking&&!mount&&!support,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
+      paintCarriedObserver(this,s,h,hx,ground,actionPhase);
       if(s.rules?.equipment!==false&&s.rules?.enchantments!==false&&h.equipment?.charm){const color=CHARM_LIGHT_COLORS[h.equipment.charm.modifier];if(color){c.fillStyle=color;c.shadowColor=color;c.shadowBlur=5;c.fillRect(hx+3,ground-24-bob,3,3);c.shadowBlur=0;}}
       if (s.rules?.companions !== false) for (let i=0;i<(h.companions?.length||0);i++) {
-        const companion=h.companions[i],body=companion.packCargo?.body||companion.petCustody?.body;if(body&&body.area!==a.id)continue;
+        const companion=h.companions[i];if(companion.person===h.carriedBy)continue;const body=companion.packCargo?.body||companion.petCustody?.body;if(body&&body.area!==a.id)continue;
         const restSide=restPoint>(this.camera.scroll||0)+this.camera.viewportWidth/2?-1:1;
         const cx=body?screenX(body.x):stance.campRest?restPoint+restSide*petPartyOffset(h.companions,i):hx-h.facing*petPartyOffset(h.companions,i);
         if(companion.role==='person'){const person=s.people[companion.person]||{id:companion.id},look=looks(person,person.appearance);this.person(cx,ground,look?.cloak||'#ad9872',false,stance.campRest?-1:h.facing,0,false,stance.campRest,look,s.rules?.lineage===false?null:race(companion.race),{kind:stance.campRest?'rest':'idle',progress:phase});}

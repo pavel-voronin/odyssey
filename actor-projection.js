@@ -46,7 +46,7 @@ export function syncNPCActors(s){
   if(h.actorMode==='npc'){h.maxHp=maximum;h.hp=p.alive?p.health:0;}
   const leader=actorPartyLeader(s,p.id);p.actorLink.health=p.health;h.personPosition={area:leader?(leader.transit?null:leader.area):p.area??null,x:leader?leader.x-areaOffset(s.areas[leader.area],4):p.x??null,status:p.status};
   if(p.area&&s.areas[p.area]){h.area=p.area;h.x=p.x??h.x;}
-  if(leader){h.area=leader.area;h.x=leader.x-areaOffset(s.areas[leader.area],4);}
+  if(leader&&p.bodyCarry?.stage!=='carrying'){h.area=leader.area;h.x=leader.x-areaOffset(s.areas[leader.area],4);}
   h.energy=p.needs.energy;h.hunger=p.needs.hunger;h.gold=purse(p).wealth;legacyView(p,h);
   Object.assign(p.actorLink,{wallet:h.gold,energy:p.needs.energy,hunger:p.needs.hunger,area:p.area,x:p.x});
   if(h.actorMode==='npc')projectNPCView(s,h,p,leader,position);

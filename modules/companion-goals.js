@@ -32,6 +32,7 @@ function leaveForOwnLife(s,c,ctx,reason){
   }
   p.area=a.id;p.x=h.x;p.status='wandering';p.health=Math.max(1,Math.ceil((p.maxHealth||100)*c.hp/c.maxHp));
   a.population ||= [];a.population.push(p.id);a.objects.push({id:'resident-'+p.id,kind:'resident',person:p.id,name:p.name,x:p.x});
+  const stopped=p.bodyCarry;if(stopped?.stage==='stopped'&&stopped.stopSite===a.id&&stopped.stoppedJourney&&!p.roadStop)p.roadStop={version:1,site:a.id,journey:structuredClone(stopped.stoppedJourney),entered:s.tick,phase:'leave'};
   g.phase='independent';g.parted=s.tick;if(g.kind!=='seekMentor')g.abandonAfter=s.tick+2400;
   p.rejoinAfter=s.tick+480;
   p.agenda.task=null;p.agenda.due=s.tick;

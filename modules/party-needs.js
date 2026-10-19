@@ -25,9 +25,9 @@ export function feedParty(s,portions=3){
  for(const c of humanParty(s).slice(0,Math.max(0,portions))){const p=s.people[c.person];initializeNeeds(p);p.needs.hunger=Math.max(0,p.needs.hunger-48);p.needs.meals++;}
 }
 function lost(s,c,p,ctx){
- const h=s.hero;h.companions=h.companions.filter(other=>other!==c);h.social.lostCompanions++;c.hp=0;
+ const h=s.hero,wasCarrier=p.bodyCarry?.stage==='carrying'&&h.carriedBy===p.id;if(wasCarrier)ctx.stopPeopleCarry?.(s,'носитель погиб');h.companions=h.companions.filter(other=>other!==c);h.social.lostCompanions++;c.hp=0;
  if(h.transit){p.deathJourney={from:h.transit.from,to:h.transit.to,mode:h.transit.mode,tick:s.tick};p.area=null;p.x=null;}
- else {p.area=h.area;p.x=h.x-areaOffset(s.areas[h.area],4);const a=s.areas[h.area],id='npc-grave-'+p.id;if(!a.objects.some(o=>o.id===id)){const grave={id,kind:'grave',name:p.name,x:p.x};markActorDeath(s,grave,companionKey(c),companionShape(c));a.objects.push(grave);}}
+ else {p.area=h.area;p.x=wasCarrier?h.x:h.x-areaOffset(s.areas[h.area],4);const a=s.areas[h.area],id='npc-grave-'+p.id;if(!a.objects.some(o=>o.id===id)){const grave={id,kind:'grave',name:p.name,x:p.x};markActorDeath(s,grave,companionKey(c),companionShape(c));a.objects.push(grave);}}
  recordCompanionRemains(s,c,s.areas[h.area].objects.find(o=>o.id==='npc-grave-'+p.id));
  h.mind.stress=Math.min(100,h.mind.stress+18);ctx.log(s,p.name+' не переживает голод в общей дороге. Отряд теряет своего человека.','loss');
 }
@@ -35,7 +35,7 @@ export function partyCare(s,c,ctx){
  if(!active(s))return;
  const p=s.people[c.person];if(!p?.alive)return;
  if(p.partyNeeds?.tick===s.tick||s.tick%8!==0)return;
- p.area=s.hero.area;p.x=s.hero.x-areaOffset(s.areas[s.hero.area],4);initializeNeeds(p);
+ if(p.bodyCarry?.stage!=='carrying'){p.area=s.hero.area;p.x=s.hero.x-areaOffset(s.areas[s.hero.area],4);}initializeNeeds(p);
  // A passenger can eat a real carried ration without borrowing from the departure town.
  if(s.hero.transit&&p.needs.hunger>=65&&enabled(s,'supply')&&carriedFood(s.people[s.hero.lineage],s.hero.inventory)>0){const h=s.hero,opened=(s.people[h.lineage]?.roadSupplies?.food||0)>0,portions=consumeTravelMeal(s.people[h.lineage],h.inventory,partyMealSize(s));if(portions){h.hunger=Math.max(0,h.hunger-65);h.counters.meals++;feedParty(s,portions-1);ctx.log(s,opened?'В пути отряд делит открытые припасы. Запас в сумке уменьшается.':'В пути отряд делит дорожный паёк. Запас в сумке уменьшается.','food');}}
  let activity=null;

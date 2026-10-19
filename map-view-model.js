@@ -21,7 +21,7 @@ function localContact(s,a,h){
  for(const r of [...s.society.journeys,...s.logistics.convoys]){if(own.has(r.person))continue;const p=personLocation(s,r.person);if(p?.area===a.id&&near(p.x))return true;}return false;
 }
 export function roadMapModel(s,{inspect=false,scope=mapScopeProposal(s),layer='current'}={}){
- const h=s.hero,a=s.areas[h.area],edgeTravel=Boolean(h.transit?.metric||h.transit?.ferry);
+ const h=s.hero,a=s.areas[h.area],edgeTravel=Boolean(h.transit?.metric||h.transit?.ferry||h.transit?.carry);
  if(!a||!inspect&&(!h.alive||h.life?.ended||h.combat||h.roadStop||h.roadContact||h.transit&&!edgeTravel||!edgeTravel&&(h.lastAction!=='walk'||a.interior||a.temporaryCamp||a.dungeon||!['road','forest','desert','mountain','island','village','port','citadel','undercity'].includes(a.type)||h.goal?.area===a.id||localContact(s,a,h))))return null;
  const address=actorSpatialAddress(s),currentLayer=address.layer||a.spatial?.layer,layers=knownMapLayers(s);
  if(!inspect&&(address.status!=='known'||!address.point||!['scene','edge','vessel'].includes(address.precision)))return null;
