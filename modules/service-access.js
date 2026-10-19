@@ -1,3 +1,4 @@
+import {controlBlocked} from './building-control-state.js';
 import {enabled} from '../rules.js';
 import {rescueQuestAvailable} from './rescue-escape.js';
 import {observeMarket} from './market-knowledge.js';
@@ -28,6 +29,7 @@ export function consumeMerchantGood(s,kind){
  if(!on(s))return true;if(!merchantCanSell(s,kind))return false;const stock=merchantGoods(s);stock[kind==='potion'?'medicine':'gear']--;s.merchant.stock=stock.gear+stock.medicine;return true;
 }
 export function actualService(s,a,kind,{job=null,units=1,workshop=null}={}){
+ if(kind==='employment'&&job==='repair'&&controlBlocked(s,a,workshop))return {available:false,reason:'Мастерская занята вооружённым захватчиком. Право владельца сохранилось, но доступа нет.'};
  if(!on(s))return {available:true,reason:null};
  if(a?.interior?.kind==='workshop'&&kind==='employment'&&job==='repair'){
   const site=workshopSite(s,a);if(!workshopInteriorsOn(s)||!site||site.object.state!=='intact'||!s.people[site.object.owner]?.alive)return {available:false,reason:'Мастерская больше не принимает работу.'};

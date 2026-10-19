@@ -1,3 +1,4 @@
+import {controlBlocked,controllingThreat,buildingControlOn} from './building-control-state.js';
 import {homeWorkbenchSite,homeAdmission} from './home-place.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
@@ -52,15 +53,17 @@ export function observeProperty(s,a,ctx){
   const physical=a.id,inside=workshopSite(s,a);if(inside?.inside)a=inside.area;
   initializeProperty(s.hero);const o=workshopAt(s,a);if(!o)return;
   const owner=s.people[o.owner];
-  const workplace=s.hero.goal?.workplace||s.hero.goal?.workspace,observedClosure=enabled(s,'work-loss')&&o.state!=='intact'&&(workplace?.id===o.id||s.hero.workLife?.last?.id===o.id);
+  const workplace=s.hero.goal?.workplace||s.hero.goal?.workspace,observedClosure=enabled(s,'work-loss')&&(o.state!=='intact'||controlBlocked(s,a,o))&&(workplace?.id===o.id||s.hero.workLife?.last?.id===o.id);
   if(o.owner===s.hero.lineage||owner?.alive&&owner.area===physical&&owner.status==='resident'||observedClosure){
-    s.hero.property.known[o.id]={area:a.id,name:o.name,owner:o.owner,price:o.offer?.price??null,state:o.state,seen:s.tick};
+    const prior=s.hero.property.known[o.id]?.control,threat=controllingThreat(s,a,o),control=buildingControlOn(s)&&(threat||prior)?{version:1,blocked:Boolean(threat),captor:threat?.enemy.id||null,name:threat?.enemy.name||null,seen:s.tick}:prior;
+    s.hero.property.known[o.id]={area:a.id,name:o.name,owner:o.owner,price:o.offer?.price??null,state:o.state,seen:s.tick,...(control?{control}:{})};
     if(s.hero.property.lost[o.id]){delete s.hero.property.lost[o.id];ctx?.log(s,o.owner===s.hero.lineage?'Старая мастерская нашлась. Адрес снова записан.':'Мастерская нашлась, но её нынешний владелец уже другой.','memory');}
   }
 }
 function find(s,id){for(const a of Object.values(s.areas)){const object=a.objects.find(o=>o.id===id&&o.kind==='workshop');if(object)return{area:a,object};}return null;}
-function availableSeller(s,a,o){const p=s.people[o.owner];return p?.alive&&p.status==='resident'&&p.area===a.id?p:null;}
+function availableSeller(s,a,o){if(controlBlocked(s,a,o))return null;const p=s.people[o.owner];return p?.alive&&p.status==='resident'&&p.area===a.id?p:null;}
 function propertySeller(s,a,o){
+ if(controlBlocked(s,a,o))return null;
  const site=workshopInteriorsOn(s)&&workshopSite(s,a,o.id),p=s.people[o.owner];
  return site?.room&&p?.alive&&['resident','wandering'].includes(p.status)&&[a.id,site.room.id].includes(p.area)?p:availableSeller(s,a,o);
 }
@@ -68,7 +71,7 @@ export function wantsWorkshop(h){return h.career.path==='peaceful'&&h.career.ran
 export function transferProperty(s,ctx,{id,seller,price,cash=price,credit=0,contract=null,basis='purchase',gift=null,recipient=null,aid=null}){
   if(!enabled(s,'property')||![price,cash,credit].every(Number.isInteger)||cash<0||credit<0||cash+credit!==price)return null;
   const h=s.hero,found=find(s,id),o=found?.object,donation=basis==='gift',p=o&&(donation?s.people[o.owner]:propertySeller(s,found.area,o));
-  if(workshopService(s,o)?.status==='active')return null;
+  if(workshopService(s,o)?.status==='active'||o&&controlBlocked(s,found.area,o))return null;
   const room=o&&workshopInteriorsOn(s)&&workshopSite(s,found.area,o.id)?.room;
   if(!p?.alive||![found.area.id,room?.id].includes(p.area)||!h.alive||h.life.ended||h.area!==p.area||Math.abs(h.x-(p.x??42))*areaScale(s.areas[h.area])>9||o.owner!==seller)return null;
   const receiver=recipient??h.lineage,assisted=receiver!==h.lineage,help=o.aid;
@@ -129,7 +132,7 @@ export function workspaceAccess(s,ctx){
   const home=homeWorkbenchSite(s,s.hero.area);if(home)return homeAdmission(s,home.room,s.hero.lineage)?'ready':'denied';
   if(!enabled(s,'property'))return 'ready';
   const h=s.hero,g=h.goal,physical=s.areas[h.area],site=workshopSite(s,physical,g.kind==='forgeWork'?g.property:null),a=site?.inside?site.area:physical,o=g.kind==='forgeWork'?site?.object:workshopAt(s,physical);initializeProperty(h);observeProperty(s,physical,ctx);
-  if(!o||o.state!=='intact'||enabled(s,'work-loss')&&g.workplace&&g.workplace.id!==o.id){
+  if(!o||o.state!=='intact'||controlBlocked(s,a,o)||enabled(s,'work-loss')&&g.workplace&&g.workplace.id!==o.id){
     const anchor=g.workplace||g.workspace,known=anchor&&h.property.known[anchor.id];
     if(enabled(s,'work-loss')&&known&&(!o||o.id!==anchor.id))Object.assign(known,{state:'missing',seen:s.tick});
     recordWorkplaceLoss(s,ctx,anchor,s.tick);h.goal=null;h.workAfter=s.tick+48;return 'denied';

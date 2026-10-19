@@ -1,3 +1,4 @@
+import {controlBlocked} from './building-control-state.js';
 import {confirmWord} from './word-custom.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
@@ -102,7 +103,7 @@ export function acceptService(s,ctx){
  setActorMoney(s,p,p.agenda.wealth-c.price);c.escrow=c.price;c.status='active';c.accepted=s.tick;c.deadline=s.tick+480;c.localToolSeen=s.areas[h.area].civic.tools>0;o.service=c.id;h.goal=null;h.lastAction='talk';h.speech='Договорились.';
  tell(s,c,`${p.name} оставляет ◈${c.price} на заказ: материалы и работа оплачиваются отдельно по результату. ${h.name} берётся восстановить помещение.`,ctx);return true;
 }
-export function serviceRepairAllowed(s,o,person){const c=s.workOrders?.[o.service],h=s.actorStates?.[person];return Boolean(active(s)&&c?.status==='active'&&s.people[c.client]?.alive&&h?.alive&&!h.transit&&h.area===c.area&&h.goal?.service===c.id&&c.property===o.id&&c.helper===person&&c.client===o.owner&&c.damageAt===o.damagedAt);}
+export function serviceRepairAllowed(s,o,person){const c=s.workOrders?.[o.service],h=s.actorStates?.[person];return Boolean(active(s)&&!controlBlocked(s,c?.area,o)&&c?.status==='active'&&s.people[c.client]?.alive&&h?.alive&&!h.transit&&h.area===c.area&&h.goal?.service===c.id&&c.property===o.id&&c.helper===person&&c.client===o.owner&&c.damageAt===o.damagedAt);}
 export function fundServiceRepair(s,a,o,cost){
  const id=s.hero.goal?.service;if(!id)return undefined;const c=s.workOrders?.[id];
  if(!c||!serviceRepairAllowed(s,o,s.hero.lineage)||c.materialCost!==cost)return false;

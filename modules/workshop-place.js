@@ -1,3 +1,4 @@
+import {controlBlocked} from './building-control-state.js';
 import {homeWorkbenchSite} from './home-place.js';
 import {enabled} from '../rules.js';
 
@@ -24,11 +25,11 @@ export function ownedWorkshopSite(s,area,person){
  return object?workshopSite(s,a,object.id):null;
 }
 export function workshopHostPresent(s,site){
- const p=s.people[site?.object.owner];return Boolean(p?.alive&&p.health>0&&['resident','wandering'].includes(p.status)&&[site.area.id,site.room?.id].includes(p.area));
+ const p=s.people[site?.object.owner];return Boolean(!controlBlocked(s,site?.area,site?.object)&&p?.alive&&p.health>0&&['resident','wandering'].includes(p.status)&&[site.area.id,site.room?.id].includes(p.area));
 }
 export function workshopSheltered(s,area){return area?.interior?.kind!=='workshop'||workshopSite(s,area)?.object.state==='intact';}
 export function workshopAdmission(s,inside,person){
  const site=workshopSite(s,inside),p=s.people[person],h=s.hero.lineage===person?s.hero:s.actorStates?.[person],lease=h?.goal?.workspace,o=site?.object;
  const paid=lease?.id===o?.id&&lease.kind==='lease'&&lease.owner===o.owner&&lease.until>=s.tick;
- return Boolean(workshopInteriorsOn(s)&&site?.room===inside&&o.state==='intact'&&!o.closed&&p?.alive&&s.people[o.owner]?.alive&&s.people[o.owner].health>0&&(o.owner===person||paid||workshopHostPresent(s,site)));
+ return Boolean(workshopInteriorsOn(s)&&!controlBlocked(s,site?.area,o)&&site?.room===inside&&o.state==='intact'&&!o.closed&&p?.alive&&s.people[o.owner]?.alive&&s.people[o.owner].health>0&&(o.owner===person||paid||workshopHostPresent(s,site)));
 }

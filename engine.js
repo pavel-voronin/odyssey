@@ -1,3 +1,4 @@
+import {buildingControlTick} from './modules/building-control.js';
 import {ferryWorldTick} from './modules/ferry-actions.js';
 import {ferryOn} from './modules/ferry-state.js';
 import {createPortFerry} from './modules/ferry-source.js';
@@ -754,7 +755,7 @@ export function advanceWorld(s) {
  initializeInteriors(s);
  initializeLodging(s);
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
- worldTick(s);horseWorldTick(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
+ worldTick(s);buildingControlTick(s);horseWorldTick(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
   applyActorExternal(s,h);weaponTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;

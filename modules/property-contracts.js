@@ -1,3 +1,4 @@
+import {controlBlocked} from './building-control-state.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
 import {maySpend} from './finances.js';
@@ -17,7 +18,7 @@ function claim(s,c,reason,ctx){
 }
 function accept(s,c,o,ctx){
   const seller=present(s,c.seller,c.area);
-  if(c.accepted||!c.completed||o.owner!==c.seller||o.state!=='intact'||o.damagedAt!==c.damageAt||!seller||s.hero.area!==c.area||Math.abs(s.hero.x-(seller.x??42))*areaScale(s.areas[s.hero.area])>9)return false;
+  if(controlBlocked(s,c.area,o)||c.accepted||!c.completed||o.owner!==c.seller||o.state!=='intact'||o.damagedAt!==c.damageAt||!seller||s.hero.area!==c.area||Math.abs(s.hero.x-(seller.x??42))*areaScale(s.areas[s.hero.area])>9)return false;
   c.accepted=true;c.credit=c.creditValue;c.acceptedAt=s.tick;if(c.status==='performed')c.status='credited';
   note(s,c,`Хозяин принимает восстановленную мастерскую. В счёт цены зачтено ◈${c.credit}; доплата — ◈${c.price-c.credit}.`,ctx);return true;
 }

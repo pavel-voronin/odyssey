@@ -1,3 +1,4 @@
+import {displacedOwnerTurn} from './building-control.js';
 import {rivalryNPCTurn} from './craft-rivalry.js';
 import {releasedPersonPlan} from './enemy-mercy.js';
 import {prostheticNPCTurn} from './prosthetics.js';
@@ -270,6 +271,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(displacedOwnerTurn(s,p,ctx))continue;
     if(prostheticNPCTurn(s,p,ctx))continue;
     if(rivalryNPCTurn(s,p,ctx))continue;
     if(pactLeaderTurn(s,p,ctx))continue;

@@ -2569,3 +2569,13 @@ PARTIAL31/31 exit0,1113мс, artifacts/checks/e6e3af4e717fc4e2.log; revision6cb2
 PARTIAL31/31 exit0,1123мс, artifacts/checks/c52eb8eec8010076.log; revision322a8e9cffd253ef.8малых групп seed0/1, ≤18actual ticks/случай/4offline +horse/metric/road-stop/smoke; build. Browser3кадра320/390/320 осмотрены, view не меняет save. Full/SOAK/жизни/перебор не запускались. Опубликовано https://odyssey.kolpaque.dev:322a8e9cffd253ef;461 payload-хеш/HTTPS подтверждены, проверки переиспользованы.
 
 Pages223: Actions39184635613 success, HTML HTTP200/build6cb2373; commit2779756f2276e19b298ce98449b54b6a3c1ce970.
+
+
+<a id="stage-225"></a>
+## Этап225 · A-01.6a · захват и сохранённое право
+
+Один настоящий human-противник перекрывает ближайшую мастерскую. Общий predicate закрывает дверь/работу/аренду/передачу/оба NPC repair-adapter; выход остаётся. Право, платные материалы и остаток ремонта сохраняются; уход/победа не дарят помещение и не оживляют хозяина. Владелец уходит/ждёт/возвращается своими personal-действиями. Лист имущества показывает личное знание последнего осмотра, OFF его сохраняет. Код building-control*/service/property/workshop/adapters; building-control.v1.
+
+PARTIAL28/28 exit0,954мс, artifacts/checks/7362d17177bc38bc.log; revisionb8d5536f2c266b5e.8малых групп seed1/2, ≤4actual world ticks либо≤10изолированных действий, выбранные service-access/smoke; build. Browser настоящий app320/лист имущества осмотрен, стили загружены, controls ticks0/save неизменен. Full/SOAK/жизни/перебор не запускались. Опубликовано https://odyssey.kolpaque.dev:b8d5536f2c266b5e;464 payload-хеша/HTTPS подтверждены, проверки переиспользованы.
+
+Pages224: Actions39192031706 success, HTML HTTP200/build322a8e9; commit2f11158bc5811bd5fbb2ccd80c16b588d765476d.

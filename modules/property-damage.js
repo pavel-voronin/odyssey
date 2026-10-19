@@ -1,3 +1,4 @@
+import {controlBlocked} from './building-control-state.js';
 import {damageStructure,structureFor} from './building-condition.js';
 import {takeGoods} from './goods.js';
 import {areaScale} from '../geometry.js';
@@ -32,7 +33,7 @@ export function repairPlan(s,ctx){
   const h=s.hero;if(h.hp<h.maxHp*.65||h.energy<40||enabled(s,'body')&&h.hunger>=65)return false;
   for(const [id,k]of Object.entries(h.property?.known||{})){
       if(h.life.residence?.away?.cause==='food'&&h.life.residence.away.from===k.area&&h.area!==k.area)continue;
-    if(k.state!=='burned')continue;const o=property(s,k.area,id);if(!o||o.owner!==h.lineage)continue;
+    if(k.state!=='burned')continue;const o=property(s,k.area,id);if(!o||o.owner!==h.lineage||controlBlocked(s,k.area,o))continue;
     const path=(ctx.knownRoute||ctx.route)(s,h.area,k.area);if(!path.length||path.length>5)continue;
     if(!o.repair?.materials&&(!maySpend(s,'repair',18,ctx)||h.area===k.area&&!(s.areas[k.area].civic?.tools>0)))continue;
     ctx.goal(s,'propertyRepair',k.area,o.x,'Восстановить свою мастерскую','Право сохранилось, но для работы нужны исправное помещение, инструмент и время.',{property:id});return true;
@@ -42,7 +43,7 @@ export function repairPlan(s,ctx){
 export function repairProperty(s,ctx){
   const h=s.hero,g=h.goal;if(g?.kind!=='propertyRepair')return false;
   const a=s.areas[h.area],o=property(s,h.area,g.property);
-  if(!active(s)||!o||(o.owner!==h.lineage&&!ctx.mayRepairProperty?.(s,o,h.lineage))||o.state!=='burned'){h.goal=null;return false;}
+  if(!active(s)||!o||controlBlocked(s,a,o)||(o.owner!==h.lineage&&!ctx.mayRepairProperty?.(s,o,h.lineage))||o.state!=='burned'){h.goal=null;return false;}
   if(!o.repair?.materials){
     if(!(a.civic?.tools>0)&&!ctx.hasRepairTool?.(s,o)){h.goal=null;return false;}
     const funding=ctx.repairFunding?.(s,a,o,18);
