@@ -1,3 +1,4 @@
+import {quakeBlocked,quakeTravelLimit} from './quake-state.js';
 import {secureFerryCargo,loadFerryCargo,consumeFerryFood,confirmCargoDeparture,ferryCargoStorm,requestCargoLesson,captainCargoTurn,passengerCargoTurn} from './ferry-cargo.js';
 import {assessFerryBoard} from './ferry-offer.js';import {ferryRefusal,sameFerryRefusal,rememberFerryRefusal,rejectFerryGoal} from './ferry-refusals.js';
 import {weatherAt} from './weather.js';
@@ -46,12 +47,12 @@ export function ferryWorldTick(input,ctx={}){const s=rootWorld(input),f=s.ferry;
  }
  if(f.phase==='docked'){
   // A body still disembarking owns its seat. A dead body remains aboard with its belongings.
-  if(ferryOn(s)&&s.tick>=f.departure&&ferryDock(s,f.port)&&f.hull>=25&&!Object.values(f.passengers).some(t=>t.to===f.port&&!t.deadAt)){
+  if(!quakeBlocked(s,f.port,f.ports.find(id=>id!==f.port))&&ferryOn(s)&&s.tick>=f.departure&&ferryDock(s,f.port)&&f.hull>=25&&!Object.values(f.passengers).some(t=>t.to===f.port&&!t.deadAt)){
 
    if(f.food>=1){f.food--;consumeFerryFood(s);f.from=f.port;f.to=f.ports.find(id=>id!==f.port);const a=s.areas[f.from],b=s.areas[f.to],sa=s.geographyFrame.sites[a.geography.site],sb=s.geographyFrame.sites[b.geography.site];f.geometry={version:1,layer:a.spatial.layer,from:{...sa.berth},to:{...sb.berth}};f.port=null;f.phase='sailing';f.voyage++;f.travelled=0;f.eventDone=false;f.lastEvent=null;f.pause=0;confirmCargoDeparture(s);ferryHistory(s,'departed',captain.id,{from:f.from,to:f.to});}
   }
  }else if(f.phase==='sailing'){
-  if(f.pause>0)f.pause--;else{const wind=weatherAt(s,s.areas[f.from]).speed;f.travelled=Math.min(f.distance,f.travelled+f.speed*wind);captain.needs.energy=Math.max(0,captain.needs.energy-.2);event(s,f,ctx);}
+  if(f.pause>0)f.pause--;else{const wind=weatherAt(s,s.areas[f.from]).speed;f.travelled=quakeTravelLimit(s,{from:f.from,to:f.to,metric:{travelled:f.travelled,distance:f.distance}},Math.min(f.distance,f.travelled+f.speed*wind));captain.needs.energy=Math.max(0,captain.needs.energy-.2);event(s,f,ctx);}
   if(f.hull<=0){f.phase='sunk';drown(s,captain);ferryHistory(s,'sunk');}else if(f.travelled>=f.distance){if(ferryDock(s,f.to)){f.phase='docked';f.port=f.to;f.departure=s.tick+4;f.rigging=1;ferryHistory(s,'arrived',captain.id,{port:f.port});}else{f.phase='disabled';ferryHistory(s,'blocked-port',null,{port:f.to});}}
  }
  for(const [id,t]of Object.entries(f.passengers)){const p=s.people[id],h=ferryActor(s,id);if(!p?.alive||h&&selfDrivenActor(s,h))continue;if(!npcAction(s,p,'ferry','passenger'))continue;passengerEvent(s,p,null,t,ctx);if(!p.alive)continue;if(f.phase==='sunk'){drown(s,p,t);continue;}p.needs.energy=Math.max(0,p.needs.energy-.2);p.needs.hunger=Math.min(100,p.needs.hunger+.16);if(passengerCargoTurn(s,p.id,ctx))continue;if(f.phase==='docked'&&f.port===t.to&&f.voyage===t.voyage)disembarkNPC(s,p,t);}

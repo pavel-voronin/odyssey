@@ -1,3 +1,4 @@
+import {structurallySound} from './building-condition.js';
 import {migrationKnowledgeOn,localSettlement,migrationBody} from './migration-memory.js';
 import {knownMigrationDestination,migrationKnownPath,migrationBelief,migrationHasFood,shareFamilyRoute,migrationTravelFood} from './migration-choice.js';
 import {localContact} from './npc-contacts.js';
@@ -13,6 +14,7 @@ import {npcController,canStartNPCActivity,markNPCDeparture} from './npc-control.
 
 export function migrationArea(a){if(isTown(a)&&a.civic)a.exodus ||= {pressure:null,nextAttempt:0,departures:[]};}
 export function initializeMigrations(s){s.migrations ||= {};s.nextMigration ??=0;}
+const quakeHome=p=>{const h=p.structure?.history||[];return !structurallySound(p)&&h.findLastIndex(e=>e.kind==='earthquake')>h.findLastIndex(e=>e.kind==='repair');};
 const present=(s,a)=>(a.population||[]).map(id=>s.people[id]).filter(p=>p?.alive&&p.area===a.id&&p.status==='resident');
 function kin(a,b){return a.parents.includes(b.id)||b.parents.includes(a.id)||a.parents.some(id=>b.parents.includes(id));}
 function safe(s,path){return path.length>0&&path.length<=9&&path.every(id=>!s.areas[id].objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved));}
@@ -112,14 +114,16 @@ export function migrationsTick(s,ctx){
   for(const a of Object.values(s.areas)){
     const e=a.exodus;if(!e||a.civic===undefined)continue;
     const c=a.civic;let reason=null;
-    if(c.food<22)reason='долгая нехватка еды';
+    if(c.earthquake&&a.facades?.profiles.some(quakeHome))reason='дом повреждён землетрясением';
+    else if(c.food<22)reason='долгая нехватка еды';
     else if(c.crisis?.kind==='raid'&&c.safety<30&&s.areas[c.crisis.area]?.objects.some(o=>o.id===c.crisis.enemy&&o.alive&&!o.resolved))reason='дорогу и дома больше некому защитить';
     else if(c.crisis?.kind==='epidemic'&&c.medicine<2)reason='болезнь и отсутствие лекарств';
     if(reason){if(e.pressure?.reason!==reason)e.pressure={since:s.tick,reason};}
+    else if(e.pressure?.reason==='дом повреждён землетрясением'&&!a.facades?.profiles.some(p=>!structurallySound(p)))e.pressure=null;
     else if(e.pressure?.reason==='долгая нехватка еды'&&c.food>=35||e.pressure?.reason==='дорогу и дома больше некому защитить'&&(c.crisis?.kind!=='raid'||c.safety>=45)||e.pressure?.reason==='болезнь и отсутствие лекарств'&&(c.crisis?.kind!=='epidemic'||c.medicine>=6))e.pressure=null;
     if(!e.pressure||s.tick-e.pressure.since<96||s.tick<e.nextAttempt)continue;
     e.nextAttempt=s.tick+96;
-    const leaders=present(s,a).filter(p=>p.role!=='ребёнок'&&!selfDrivenActor(s,p.id)&&!p.migration&&(p.lastMigration===undefined||s.tick-p.lastMigration>2400)&&(p.agenda.duty<.9||c.food<8)).sort((p,q)=>Number(p.agenda.duty)-Number(q.agenda.duty));
+    const leaders=present(s,a).filter(p=>e.pressure.reason!=='дом повреждён землетрясением'||p.agenda.duty<.7&&a.facades.profiles.some(b=>(b.owner===p.id||a.objects.some(o=>o.building===b.id&&o.owner===p.id))&&quakeHome(b))).filter(p=>p.role!=='ребёнок'&&!selfDrivenActor(s,p.id)&&!p.migration&&(p.lastMigration===undefined||s.tick-p.lastMigration>2400)&&(p.agenda.duty<.9||c.food<8)).sort((p,q)=>Number(p.agenda.duty)-Number(q.agenda.duty));
     for(const p of leaders){const members=family(s,a,p),target=destination(s,a,members,a.id,ctx);if(target&&depart(s,a,members,target,ctx))break;if(!target&&migrationKnowledgeOn(s))a.exodus.knowledgeWait={tick:s.tick,leader:p.id,reason:'no-known-address'};}
   }
 }

@@ -1,3 +1,4 @@
+import {npcQuakeRepair} from './quake-repair.js';
 import {npcMechanicTurn} from './mechanic-drive.js';
 import {npcTrackingTurn} from './tracking.js';
 import {recordCrossingTrace} from './edge-traces.js';
@@ -281,6 +282,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(npcQuakeRepair(s,p,ctx))continue;
     if(npcMechanicTurn(s,p,ctx))continue;
     if(npcTrackingTurn(s,p))continue;
     if(remainsCarryTurn(s,p,ctx))continue;

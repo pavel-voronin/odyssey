@@ -1,3 +1,5 @@
+import {quakeBlocked} from './quake-state.js';
+import {observeRupture} from './quake-knowledge.js';
 import {heroFerryBoard,ferryBodyTurn} from './ferry-actions.js';
 import {eat} from './supply.js';
 import {carriedFood} from './stores.js';
@@ -102,6 +104,7 @@ export function expandRoutes(s,ctx){
 export function beginTransit(s,next,arrivalX,ctx){
   const h=s.hero,edge=s.edges?.[edgeKey(h.area,next)];
   if(h.transit)return true;
+  if(quakeBlocked(s,h.area,next)){observeRupture(s,s.people[h.lineage],h.area,next,{atGate:true});h.goal=null;h.lastAction='wait';ctx.log?.(s,'Разрушенный участок не пропускает: он запоминает преграду и ищет другое дело или путь.','plan');return true;}
   if(supportedPatient(s,h)&&(edge?.lift||['sea','portal','time'].includes(edge?.mode))){h.goal=null;ctx.log?.(s,'Этот переход не принимает человека на руках. Нужна отдельная безопасная перевозка.','plan');return true;}
   if(grateClosed(s,h.area,next)){h.goal=null;ctx.log?.(s,'Решётка закрыла проход. Нужен местный рычаг или обход.','plan');return true;}
   if(liftBlocked(s,h.area,next)){h.goal=null;return true;}

@@ -13,15 +13,15 @@ export function readWorldEffect(s,ref){
  if(!ref||!['areas','edges','people','society','geographyFrame'].includes(ref.root)||typeof ref.id!=='string'||!Array.isArray(ref.path)||ref.path.length>8||ref.path.some(k=>typeof k!=='string'||['__proto__','prototype','constructor'].includes(k)))return null;
  let v=ref.root==='society'||ref.root==='geographyFrame'?s[ref.root]?.[ref.id]:s[ref.root]?.[ref.id];for(const k of ref.path)v=v?.[k];return v===undefined?{exists:false}:{exists:true,value:clone(v)};
 }
-export function beginWorldChange(s,{event,domain='geography',oldLimit,effects=[],name,shortName,actors=[]}={}){
- if(!on(s)||!names.has(domain)||typeof event?.id!=='string'||!event.id||event.id.length>300||event.tick!==s.tick||!(s.changes.includes(event)||s.society.events.includes(event))||typeof event.text!=='string'||!event.text||event.text.length>4000||event.area!==undefined&&event.area!==null&&!s.areas[event.area]||typeof oldLimit!=='string'||!oldLimit.trim()||oldLimit.length>400||typeof name!=='string'||!name.trim()||name.length>80||typeof shortName!=='string'||!shortName.trim()||shortName.length>24||!Array.isArray(actors)||actors.some(id=>!s.people[id])||!Array.isArray(effects)||effects.length<1||effects.length>32)return null;
+export function beginWorldChange(s,{event,domain='geography',oldLimit,effects=[],name,shortName,actors=[],recordOnly=false}={}){
+ if(!on(s)&&!recordOnly||!names.has(domain)||typeof event?.id!=='string'||!event.id||event.id.length>300||event.tick!==s.tick||!(s.changes.includes(event)||s.society.events.includes(event))||typeof event.text!=='string'||!event.text||event.text.length>4000||event.area!==undefined&&event.area!==null&&!s.areas[event.area]||typeof oldLimit!=='string'||!oldLimit.trim()||oldLimit.length>400||typeof name!=='string'||!name.trim()||name.length>80||typeof shortName!=='string'||!shortName.trim()||shortName.length>24||!Array.isArray(actors)||actors.some(id=>!s.people[id])||!Array.isArray(effects)||effects.length<1||effects.length>32)return null;
  const present=s.chronology.worldChanges?.causes[key(event.id)];if(present)return present;const refs=effects.map(ref=>({ref:clone(ref),before:readWorldEffect(s,ref)}));if(refs.some(v=>v.before===null)||new Set(refs.map(v=>JSON.stringify(v.ref))).size!==refs.length)return null;
  const adapter=domains.get(domain),q={version:1,id:event.id,domain,causeTick:s.tick,source:clone(event),oldLimit:oldLimit.trim(),name:name.trim(),shortName:shortName.trim(),actors:[...actors],beforeNetwork:adapter?clone(adapter.capture(s)):null,effects:refs,status:'captured',reports:[],newState:null,firstWorld:null,lastSignature:null,period:null};
  const t=s.chronology.worldChanges ||= {version:1,causes:{}};t.causes[key(q.id)]=q;return q;
 }
-export function finishWorldChange(s,id,{newState}={}){
- const q=s.chronology.worldChanges?.causes[key(id)];if(!q||!on(s)||q.period)return q||null;if(typeof newState!=='string'||!newState.trim()||newState.length>400)return null;
- q.newState=newState.trim();for(const e of q.effects)e.after=readWorldEffect(s,e.ref);return assessWorldChange(s,id);
+export function finishWorldChange(s,id,{newState,recordOnly=false}={}){
+ const q=s.chronology.worldChanges?.causes[key(id)];if(!q||!on(s)&&!recordOnly||q.period)return q||null;if(typeof newState!=='string'||!newState.trim()||newState.length>400)return null;
+ q.newState=newState.trim();for(const e of q.effects)e.after=readWorldEffect(s,e.ref);return on(s)?assessWorldChange(s,id):q;
 }
 export function assessWorldChange(s,id){
  const q=s.chronology.worldChanges?.causes[key(id)];if(!q||!on(s)||q.period||!q.newState)return q||null;

@@ -1,3 +1,5 @@
+import {quakeBlocked} from './quake-state.js';
+import {observeRupture} from './quake-knowledge.js';
 import {npcMetricGate} from './metric-route.js';
 import {fordPassage,fordChoice} from './fords.js';
 import {liftAt,npcLiftPassage} from './lift-policy.js';
@@ -16,6 +18,7 @@ export function heroFordGate(s,next,arrivalX,ctx){const h=s.hero,r=fordPassage(s
 // Caller already owns the person's one action and movement/cargo. This adapter
 // never locates the person or transfers goods, including on the arriving tick.
 export function npcFordGate(s,p,to,arrivalX,holder,target,{carrier=false,cargoFood=0}={}){
+ if(!p.roadTransit&&quakeBlocked(s,p.area,to)){observeRupture(s,p,p.area,to,{atGate:true});return {status:'unavailable',reason:'rupture'};}
  const metric=npcMetricGate(s,p,to,arrivalX,{carrier,cargoFood,canCamp:holder?.movement==='physical'&&s.society.journeys.includes(holder)});if(metric)return metric;
  if(p.liftTransit||liftAt(s,p.area,to))return npcLiftPassage(s,p,to,arrivalX);
  const r=fordPassage(s,p,to,arrivalX,{carrier});if(r.status!=='closed')return r;

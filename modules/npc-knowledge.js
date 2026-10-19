@@ -1,3 +1,5 @@
+import {observeRupture} from './quake-knowledge.js';
+import {quakeBlocked,knownQuakeBlocked} from './quake-state.js';
 import {rememberRoadPrice} from './metric-route-state.js';
 import {layoutStair} from './shortcut-state.js';
 import {observeMigrationPlace} from './migration-memory.js';
@@ -24,7 +26,7 @@ export function observeNPCPlace(s,p){
   for(const id of a.links){const b=s.areas[id],edge=s.edges[key(a.id,id)];
     if(!b||!(['road','door',undefined].includes(edge?.mode)||edge?.ferry===s.ferry?.id&&s.ferry?.ports.includes(a.id)&&s.ferry.ports.includes(b.id))||a.era!==b.era||a.realm!==b.realm)continue;
     if(a.temporaryCamp||b.temporaryCamp){const passage=campPassage(s,a.id,b.id,p.id);if(!passage?.allowed||!passage.exit&&physicalDistance(a,p.x,passage.x)>18)continue;}
-    const place=remember(b);if(b.temporaryCamp?.site?.version===1)place.campSite={parent:a.id,x:b.temporaryCamp.site.parentX,seen:s.tick};if(s.edges[key(a.id,id)]?.metric||s.geographyFrame){nav.roadCosts ||= {};rememberRoadPrice(s,nav.roadCosts,a.id,id);}const road=nav.roads.find(e=>e.key===key(a.id,id));
+    observeRupture(s,p,a.id,id);const place=remember(b);if(b.temporaryCamp?.site?.version===1)place.campSite={parent:a.id,x:b.temporaryCamp.site.parentX,seen:s.tick};if(s.edges[key(a.id,id)]?.metric||s.geographyFrame){nav.roadCosts ||= {};rememberRoadPrice(s,nav.roadCosts,a.id,id);}const road=nav.roads.find(e=>e.key===key(a.id,id));
     if(road)road.seen=s.tick;else nav.roads.push({key:key(a.id,id),from:a.id,to:id,seen:s.tick});
   }
   if(nav.places.length>NPC_PLACE_LIMIT){const keep=new Set([p.area,p.agenda?.home]);nav.places.sort((a,b)=>Number(keep.has(a.area))-Number(keep.has(b.area))||a.seen-b.seen).splice(0,nav.places.length-NPC_PLACE_LIMIT);}
@@ -33,7 +35,7 @@ export function observeNPCPlace(s,p){
 export function npcKnownRoute(p,from,to,avoided=[]){
  if(from===to)return [from];const roads=p.navigation?.roads||[],costs=p.navigation?.roadCosts,queue=[from],seen=new Set(),parents={[from]:null},prices={[from]:0};
  while(queue.length){if(costs)queue.sort((a,b)=>prices[a]-prices[b]||a.localeCompare(b));const last=queue.shift();if(seen.has(last))continue;seen.add(last);if(last===to){const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();}
- for(const e of roads){const next=e.from===last?e.to:e.to===last?e.from:null;if(!next||seen.has(next)||avoided.includes(next)||e.layoutGate&&p.mechanisms?.known.find(n=>n.key===e.layoutGate)?.state!=='open')continue;
+ for(const e of roads){const next=e.from===last?e.to:e.to===last?e.from:null;if(!next||knownQuakeBlocked(p,last,next)||seen.has(next)||avoided.includes(next)||e.layoutGate&&p.mechanisms?.known.find(n=>n.key===e.layoutGate)?.state!=='open')continue;
  const q=costs?.[e.key],weight=q?.distance?Math.ceil(q.distance/(q.speed*({road:1,trail:.85,sand:.8,mountain:.7}[q.terrain]||1)))+16:1,candidate=prices[last]+weight;
  if(next in prices&&prices[next]<=candidate)continue;prices[next]=candidate;parents[next]=last;queue.push(next);}}
  return [];
@@ -49,5 +51,5 @@ export function rememberNPCHazard(s,p){const place=p.navigation?.places.find(e=>
 export function forgetNPCRoad(p,from,to){if(p.navigation)p.navigation.roads=p.navigation.roads.filter(e=>e.key!==key(from,to));}
 export function roadStillPresent(s,from,to){
   const a=s.areas[from],b=s.areas[to],edge=s.edges[key(from,to)];
-  return Boolean(a?.links.includes(to)&&b&&(['road','door',undefined].includes(edge?.mode)||edge?.ferry===s.ferry?.id&&s.ferry?.ports.includes(from)&&s.ferry.ports.includes(to)||layoutStair(s,from,to))&&a.era===b.era&&a.realm===b.realm&&(!b.temporaryCamp||b.temporaryCamp.site?.version===1));
+  return Boolean(!quakeBlocked(s,from,to)&&a?.links.includes(to)&&b&&(['road','door',undefined].includes(edge?.mode)||edge?.ferry===s.ferry?.id&&s.ferry?.ports.includes(from)&&s.ferry.ports.includes(to)||layoutStair(s,from,to))&&a.era===b.era&&a.realm===b.realm&&(!b.temporaryCamp||b.temporaryCamp.site?.version===1));
 }

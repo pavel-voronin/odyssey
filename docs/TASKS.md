@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. ERA-02.1 выполнена этапом246: общий source/effects registrar без повторного применения доменных эффектов. Географический adapter проверяет весь canonical backbone, неизвестный герою, вне зависимости от политики; реальный обход даёт local, чужие/устаревшие последствия не присваиваются причине. Следующая явная оценка подтверждает результат, физическая пауза240не запускает событие; одна распространяющаяся причина→один period. Код modules/world-changes/network/schema, historical-calendar; test/world-changes.test.js, CONTRACTS/world-eras.v1. PARTIAL13/13 exit0,1172мс, artifacts/checks/1a448646016f7df0.log; https://odyssey.kolpaque.dev revision1dd8096aa13c7131/HTTPS. Конкретные ERA-02.2/.3/.4/.5 остаются отдельными задачами. Следующий этап ещё не взят.
+Текущего этапа нет. ERA-02.3 выполнена этапом247: actual regional earthquake повреждает существующие пути/уязвимые owned structures, ID/люди/конечный cargo/stock сохраняются. Physical passage/metric/ferry держат достижимую сторону и один progress; личные сведения только из наблюдения. Paid merchant возвращается/меняет адрес, public road reserve2raw+1tool+2coins/3work, собственный ремонт и actual household migration дают разные истории. Долгий раскол canonical сети→одна era той же причины; пригодный bypass→local, scars после shock остаются. Код modules/earthquakes/quake-state/knowledge/repair/schema, routing/freight/migrations; test/earthquakes.test.js, CONTRACTS/earthquakes.v1. PARTIAL13/13 exit0,2760мс, artifacts/checks/7dc849582fac5a86.log; https://odyssey.kolpaque.dev revision67584cd86e48dadc/HTTPS. Остальные ERA-02 не закрыты. Следующий этап ещё не взят.
 
 ## Следующие этапы
 
@@ -41,7 +41,6 @@
 | № | Подэтап | Результат | I | C | I/C | Ещё будущие основания/условие |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | LIT-03.2 | Королевский доступ: блок, нет настоящей основы; охрана .2a выполнена228 | 7 | 5 | 1.40 | royal/castle-конструктор отсутствует; IMPL-LIT228-ROYAL-SOURCE |
-| 4 | ERA-02.3 | катастрофический вариант, после B-03/R-04/R-05/R-06 | 8 | 6 | 1.33 | ERA-02.1, R-06.4a |
 | 5 | F-03.1 | ограниченный производственный договор | 8 | 6 | 1.33 | R-06.4a, R-06.4b |
 | 6 | F-03.2 | задержка/выход | 8 | 6 | 1.33 | F-03.1 |
 | 7 | F-03.3 | патронаж человека или поселения (ACTIVE-LIFE) | 8 | 6 | 1.33 | F-03.1 |
@@ -1554,3 +1553,10 @@ SK-01.10 выполнена этапом245: combat skill от двух поло
 ERA-02.1 выполнена этапом246: общий source/effects registrar без повторного применения доменных эффектов. Географический adapter проверяет весь canonical backbone, неизвестный герою, вне зависимости от политики; реальный обход даёт local, чужие/устаревшие последствия не присваиваются причине. Следующая явная оценка подтверждает результат, физическая пауза240не запускает событие; одна распространяющаяся причина→один period. Код modules/world-changes/network/schema, historical-calendar; test/world-changes.test.js, CONTRACTS/world-eras.v1. PARTIAL13/13 exit0,1172мс, artifacts/checks/1a448646016f7df0.log; https://odyssey.kolpaque.dev revision1dd8096aa13c7131/HTTPS. Конкретные ERA-02.2/.3/.4/.5 остаются отдельными задачами. Следующий этап ещё не взят.
 
 6малых групп≤12актов/≤16short phases: canonical unknown backbone, real route split/one later assessment/no clock or effect reset, surviving bypass/local→world samecause, actual near-cooldown checkpoint/one engine tick without auto epoch, unrelated/stale/missing domain adapter, OFF/absent144/calendar pause/corrupted cause. Historical-calendar6/smoke кратко переиспользуют тот же неизменённый слой. UI не менялся: отдельный browser не требовался. Pages245 Actions39256930996 success/HTML50c58c6f342070f7. Full/SOAK/жизни/комбинаторика не запускались.
+
+
+### ERA-02.3 · подтверждение реализации247
+
+ERA-02.3 выполнена этапом247: actual regional earthquake повреждает существующие пути/уязвимые owned structures, ID/люди/конечный cargo/stock сохраняются. Physical passage/metric/ferry держат достижимую сторону и один progress; личные сведения только из наблюдения. Paid merchant возвращается/меняет адрес, public road reserve2raw+1tool+2coins/3work, собственный ремонт и actual household migration дают разные истории. Долгий раскол canonical сети→одна era той же причины; пригодный bypass→local, scars после shock остаются. Код modules/earthquakes/quake-state/knowledge/repair/schema, routing/freight/migrations; test/earthquakes.test.js, CONTRACTS/earthquakes.v1. PARTIAL13/13 exit0,2760мс, artifacts/checks/7dc849582fac5a86.log; https://odyssey.kolpaque.dev revision67584cd86e48dadc/HTTPS. Остальные ERA-02 не закрыты. Следующий этап ещё не взят.
+
+6малых групп≤12актов/≤16executed ticks: source/dependent/independent real damage/сохранность stock+IDs/постшоковый раскол+пригодный portal bypass; настоящий metric bank/finite food/единый ferry+ticket/нет оплаты закрытого рейса; настоящий paid merchant purchase/возврат или новый лично известный buyer; finite public reserve/3work/body phase/stock0; собственный workshop reserve+3work либо actual family/food cargo к лично известному адресу; locality/OFF/scheduling/recordOnly при world-eras OFF/current144/corrupt source. Явные checkpoints239/one-year clock/последний return leg/тело у worksite без прогона префиксов. Native320 scene scar/date0UI-тиков/exact save. Pages246 Actions39258982398 success/HTML1dd8096aa13c7131. Full/SOAK/жизни/комбинаторика не запускались.

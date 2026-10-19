@@ -1,0 +1,13 @@
+export function validateEarthquakes(s,fail){
+ const tick=n=>Number.isSafeInteger(n)&&n>=0&&n<=s.tick,int=(n,min=0)=>Number.isSafeInteger(n)&&n>=min,t=s.seismic;
+ if(t&&(t.version!==1||!tick(t.created)||!int(t.nextAt)||t.nextAt<t.created||!int(t.serial)||!Array.isArray(t.events)||t.events.length>16))fail('seismic');
+ const causes=new Set(Object.values(s.chronology.worldChanges?.causes||{}).filter(q=>q.source.kind==='earthquake').map(q=>q.id));
+ for(const q of t?.events||[]){if(typeof q.id!=='string'||!q.id.startsWith('earthquake/'+s.seed+'/')||!tick(q.at)||typeof q.zone!=='string'||!s.areas[q.area]||!Array.isArray(q.keys)||!q.keys.length||q.keys.length>3||q.keys.some(k=>!s.edges[k])||!Array.isArray(q.buildings)||q.buildings.length>2||q.buildings.some(b=>!s.areas[b.area]?.facades?.profiles.some(p=>p.id===b.id))||q.shockUntil!==q.at+8||!int(q.nextAssessment)||typeof q.recorded!=='boolean')fail('seismic.event');causes.add(q.id);}
+ for(const [key,e]of Object.entries(s.edges)){const d=e.rupture;if(!d)continue;const path='rupture.'+key;if(d.version!==1||!causes.has(d.cause)||!tick(d.at)||!['broken','repaired'].includes(d.state)||d.position!==.5||!['channel','pass','bridge'].includes(d.kind))fail(path);
+  const r=d.repair;if(r!==null){const m=r?.material;if(r?.version!==1||!s.people[r.person]||![e.a,e.b].includes(r.area)||!tick(r.started)||!tick(r.lastTick)||r.started>r.lastTick||!int(r.progress)||r.progress>3||r.required!==3||!int(r.escrow)||r.escrow>2||!m||typeof m.source!=='string'||m.wood!==2||m.tools!==1||m.rawBefore-m.rawAfter!==2||m.rawAfter<0||m.toolsBefore-m.toolsAfter!==1||m.toolsAfter<0||!Array.isArray(r.actions)||r.actions.length>16||r.actions.some(a=>!tick(a.tick)||!s.people[a.person]||!['reserve','approach','work'].includes(a.kind)))fail(path+'.repair');if(d.state==='repaired'&&(r.progress!==3||r.escrow!==0||r.paid!==2||!tick(d.repairedAt)))fail(path+'.completed');}
+ }
+ for(const p of Object.values(s.people)){const m=p.ruptureMemory;if(m){if(m.version!==1||!m.known||Object.keys(m.known).length>24)fail(p.id+'.ruptureMemory');for(const [key,n]of Object.entries(m.known))if(n.key!==key||!s.edges[key]?.rupture||!['broken','repaired'].includes(n.state)||!causes.has(n.cause)||!tick(n.at)||n.witness!==p.id)fail(p.id+'.ruptureMemory.note');}
+  if(p.quakeNotice&&(!causes.has(p.quakeNotice.cause)||!tick(p.quakeNotice.at)||!s.areas[p.quakeNotice.area]))fail(p.id+'.quakeNotice');if(p.quakeRepairTick!==undefined&&!tick(p.quakeRepairTick))fail(p.id+'.quakeRepairTick');
+  const r=p.roadRepairPlan;if(r&&(!s.edges[r.key]?.rupture||!s.areas[r.area]||!causes.has(r.cause)||!['inspect','supply','work'].includes(r.stage)||r.failedUntil!==undefined&&!int(r.failedUntil)))fail(p.id+'.roadRepairPlan');
+ }
+}

@@ -1,3 +1,4 @@
+import {quakeBlocked,quakeTravelLimit,quakeDamage} from './quake-state.js';
 import {wagonRate,wagonMoved} from './wagon-state.js';
 import {recordCrossingTrace} from './edge-traces.js';
 import {groupHorse,horseMotion,ridingOn} from './horse-state.js';
@@ -15,7 +16,7 @@ export function roadCampWaypoint(s,body,t,speed){
  near.sort((a,b)=>a.gap-b.gap||a.id.localeCompare(b.id));return near[0]?.at??null;
 }
 export function startMetricTravel(s,body,to,arrivalX,options={}){
- const edge=s.edges?.[metricKey(body.area,to)],m=edge?.metric;if(!m||edge.mode!=='road'||s.rules?.travel===false||s.rules?.['geography-frame']===false)return null;
+ const edge=s.edges?.[metricKey(body.area,to)],m=edge?.metric;if(!m||quakeBlocked(s,body.area,to)||edge.mode!=='road'||s.rules?.travel===false||s.rules?.['geography-frame']===false)return null;
  const rate=metricTravelRate(s,body,m,options);if(rate.blocked)return null;const {speed,mount}=rate,total=Math.ceil(m.distance/speed);
  const map=metricMap(s,body.area,to,arrivalX),group=pets(body).filter(c=>c.uid&&c.hp>0&&c.petTraining&&petBody(c)?.area===body.area&&physicalDistance(s.areas[body.area],petBody(c).x,body.x)<=2).map(c=>c.uid);
  return {from:body.area,to,mode:'road',arrivalX,remaining:total,total,...(mount?{carrier:mount.id}:{}),metric:{...m,travelled:0,started:s.tick,lastTick:s.tick,departureX:body.x,departureVersion:edge.spatial?.revision||1,...(map?{map}:{})},...(group.length?{group}:{}),eventDone:true,crew:false};
@@ -27,7 +28,7 @@ export function advanceMetricTravel(s,body,t,options={}){
  const group=pets(body).filter(c=>t.group?.includes(c.uid)&&c.hp>0&&c.petTraining);
  if(rate.mount&&(rate.mount.energy<rate.mountEnergy||rate.mount.lastMove===s.tick||rate.mount.lastAction===s.tick)){m.restedAt=s.tick;if(body.lineage)body.lastAction='rest';return false;}
  if(energy&&energy.energy<rate.energy||group.some(c=>c.petTraining.energy<.5)){if(energy)energy.energy=Math.min(100,energy.energy+2);for(const c of group)c.petTraining.energy=Math.min(100,c.petTraining.energy+2);m.restedAt=s.tick;if(body.lineage)body.lastAction='rest';return false;}
- const waypoint=body.lineage||options.canCamp?roadCampWaypoint(s,body,t,rate.speed):null,next=waypoint??Math.min(m.distance,m.travelled+rate.speed),walked=Math.abs(next-m.travelled);m.travelled=next;t.remaining=Math.ceil(Math.max(0,m.distance-m.travelled)/rate.speed);
+ const waypoint=body.lineage||options.canCamp?roadCampWaypoint(s,body,t,rate.speed):null,next=quakeTravelLimit(s,t,waypoint??Math.min(m.distance,m.travelled+rate.speed)),walked=Math.abs(next-m.travelled);if(next===m.travelled&&quakeBlocked(s,t.from,t.to)){m.ruptureHold={cause:quakeDamage(s,t.from,t.to).cause,at:s.tick,point:m.travelled};if(body.lineage)body.lastAction='wait';return false;}m.travelled=next;t.remaining=Math.ceil(Math.max(0,m.distance-m.travelled)/rate.speed);
  if(rate.wagon)wagonMoved(s,rate.wagon);
  if(rate.mount){rate.mount.energy=Math.max(0,rate.mount.energy-rate.mountEnergy);rate.mount.hunger=Math.min(100,rate.mount.hunger+.12);rate.mount.lastMove=s.tick;}
  if(energy)energy.energy=Math.max(0,energy.energy-rate.energy);if(body.lineage)body.distance+=walked;

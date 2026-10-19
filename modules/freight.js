@@ -1,3 +1,4 @@
+import {observeRupture} from './quake-knowledge.js';
 import {withdrawalCover} from './cover-retreat-state.js';
 import {wagonsOn} from './wagon-state.js';
 import {attachFreightWagon,freightWagonGate,freightWagonStep,strandWagonManifest} from './wagon-actions.js';
@@ -111,7 +112,7 @@ export function advanceFreight(s,c,ctx){
   if(c.wagon&&!freightWagonGate(s,c)){strandWagonManifest(s,c);finishFreight(s,c,ctx,'stranded');return;}
   if(c.handoff){const result=approachFreightKeeper(s,c);if(result==='accepted'){p.freightStored={id:c.id,keeper:c.handoff.keeper,area:p.area,owner:c.trade?p.id:'civic/'+c.source};releaseDriver(s,c);const proof=freightEvent(s,c,s.areas[p.area],`${p.name} оставляет тот же груз у ${s.people[c.handoff.keeper].name}. Хранение оплачено ◈${c.custodyFee||0}; доставка адресату не состоялась.`,ctx);freightHistory(s,c,'stored',proof);removeFreight(s,c);}else if(result==='failed')freightFailure(s,c,'keeper-declined',ctx);return;}
   if(p.fordCrossing||p.liftTransit||p.roadTransit){const r=npcFordGate(s,p,(p.fordCrossing||p.liftTransit||p.roadTransit).to,(p.fordCrossing||p.liftTransit||p.roadTransit).arrivalX,c,c.path.at(-1),{carrier:true,cargoFood:c.food});if(r.status==='arrived'){recordCrossingTrace(s,{kind:'person',id:p.id},p.area,r.crossing.to);p.area=r.crossing.to;p.x=r.crossing.arrivalX;c.index++;observeFreightActor(s,p);observeConvoy(s,c);configureLeg(s,c,p);}else if(['aborted','unavailable'].includes(r.status))returnFreight(s,c,ctx);return;}
-  const camp=c.path[c.index+1]&&campPassage(s,p.area,c.path[c.index+1],p.id,{carrier:true});if(camp&&!camp.allowed&&(!disruptionEnabled(s)||physicalDistance(s.areas[p.area],p.x,camp.x??p.x)<=1)){freightFailure(s,c,c.returning?'return-blocked':'blocked-gate',ctx);return;}
+  const camp=c.path[c.index+1]&&campPassage(s,p.area,c.path[c.index+1],p.id,{carrier:true});if(camp&&!camp.allowed&&(!disruptionEnabled(s)||physicalDistance(s.areas[p.area],p.x,camp.x??p.x)<=1)){if(camp.kind==='rupture')observeRupture(s,p,p.area,c.path[c.index+1],{atGate:true});freightFailure(s,c,c.returning?'return-blocked':'blocked-gate',ctx);return;}
   if(camp&&c.endX!==camp.x){c.startX=p.x;c.endX=camp.x;c.remaining=c.segmentTicks=Math.max(1,Math.ceil(physicalDistance(s.areas[p.area],p.x,camp.x)/6));}
   const next=s.areas[c.path[c.index+1]];
   const escort=s.actorStates?.[c.escort];if(!withdrawalCover(s,c)&&selfDrivenActor(s,escort)&&next&&(escort.transit||escort.area!==next.id||escort.combat||next.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved)))return;

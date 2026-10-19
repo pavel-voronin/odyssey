@@ -1,3 +1,4 @@
+import {quakePassage} from './modules/quake-state.js';
 import {gratePassage} from './modules/mechanism-policy.js';
 import {liftPassage} from './modules/lift-policy.js';
 // Saved x remains a percentage of one area. Physical budgets and radii use these units.
@@ -10,6 +11,7 @@ export function campLink(s,from,to){return (!s.areas[from]?.temporaryCamp||s.are
 // One physical side passage. Personal-mode entry records come only from a
 // real pitch with the module OFF; an absent record cannot invent an exit.
 export function campPassage(s,from,to,person=s.hero?.lineage,{carrier=false,knowledge=true}={}){
+ const rupture=quakePassage(s,from,to);if(rupture)return rupture;
  const barrier=gratePassage(s,from,to);if(barrier)return barrier;
  const lift=liftPassage(s,from,to);if(lift)return lift;
  const a=s.areas[from],b=s.areas[to],exit=a?.temporaryCamp?.parent===to,camp=exit?a:b?.temporaryCamp?.parent===from?b:null;

@@ -4,11 +4,11 @@ export function worldBackbone(s){
  const f=s.geographyFrame,ids=f?[...Object.values(f.regions).map(r=>f.sites[r.center]?.area),...Object.values(f.countries).map(c=>f.sites[c.capital]?.area)]:Object.values(s.areas).filter(a=>a.civic&&!a.interior&&!a.temporaryCamp&&(!a.city||a.city===a.id)&&a.era===0).map(a=>a.id);
  return [...new Set(ids.filter(id=>s.areas[id]))].sort();
 }
-export function worldNetwork(s){
+export function worldNetwork(s,{blocked=()=>false}={}){
  // Physical backbone only: a lever, missing lift charge or weather phase does
  // not destroy the world's geography. Concrete lasting-damage owners extend
  // their adapter when introducing their actual persistent access contract.
- const centers=worldBackbone(s),links=[];for(const [key,e]of Object.entries(s.edges||{})){const a=s.areas[e.a],b=s.areas[e.b];if(!a||!b||a.era!==0||b.era!==0||!a.links.includes(b.id)||!b.links.includes(a.id))continue;links.push([key,e.a,e.b]);}links.sort((a,b)=>a[0].localeCompare(b[0]));
+ const centers=worldBackbone(s),links=[];for(const [key,e]of Object.entries(s.edges||{})){const a=s.areas[e.a],b=s.areas[e.b];if(!a||!b||blocked(s,e.a,e.b)||a.era!==0||b.era!==0||!a.links.includes(b.id)||!b.links.includes(a.id))continue;links.push([key,e.a,e.b]);}links.sort((a,b)=>a[0].localeCompare(b[0]));
  const adjacency=new Map();for(const [,a,b]of links){if(!adjacency.has(a))adjacency.set(a,[]);if(!adjacency.has(b))adjacency.set(b,[]);adjacency.get(a).push(b);adjacency.get(b).push(a);}
  const pairs=[];for(let n=0;n<centers.length;n++){const seen=new Set(),todo=[centers[n]];while(todo.length){const id=todo.pop();if(seen.has(id))continue;seen.add(id);todo.push(...(adjacency.get(id)||[]));}for(let k=n+1;k<centers.length;k++)pairs.push([centers[n],centers[k],seen.has(centers[k])]);}
  return {version:1,kind:'canonical-backbone',centers,pairs,links};
