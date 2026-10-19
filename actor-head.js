@@ -6,8 +6,8 @@ export function drawHead(c,look={},species=null,color='#a9c686',skin=actorSkin(l
     if(look.hairStyle==='crest'){c.fillRect(-1,-48,4,8);c.fillRect(2,-45,3,5);}
     if(look.hairStyle==='curls'){for(let i=0;i<4;i++){c.beginPath();c.arc(-4+i*3,-43,3,0,7);c.fill();}}
     c.fillStyle = species?.id==='automaton'?'#9bcecf':'#2a3a2c'; c.fillRect(3, -36, 2, 2);
-    if(look.glasses){c.strokeStyle='#c8bda1';c.lineWidth=1;c.strokeRect(-1,-38,7,5);c.beginPath();c.moveTo(-1,-36);c.lineTo(-5,-36);c.stroke();}
-    if(look.earring){c.strokeStyle='#e3c17e';c.lineWidth=1;c.beginPath();c.arc(-4,-33,2,0,7);c.stroke();}
+    if(look.glasses&&look.compact){c.fillStyle='#ded5b9';c.fillRect(-2,-38,8,look.detailLine||1);}else if(look.glasses){c.strokeStyle='#c8bda1';c.lineWidth=1;c.strokeRect(-1,-38,7,5);c.beginPath();c.moveTo(-1,-36);c.lineTo(-5,-36);c.stroke();}
+    if(look.earring&&!look.compact){c.strokeStyle='#e3c17e';c.lineWidth=1;c.beginPath();c.arc(-4,-33,2,0,7);c.stroke();}
     if(look.hat==='cap'){c.fillStyle=color;c.fillRect(-6,-46,12,5);c.fillRect(3,-42,6,2);}
     if(look.hat==='brim'){c.fillStyle=look.shoes;c.fillRect(-4,-48,8,7);c.fillRect(-9,-42,18,2);}
     if(look.hat==='hood'){c.strokeStyle=color;c.lineWidth=3;c.beginPath();c.moveTo(-6,-34);c.lineTo(-6,-43);c.lineTo(0,-47);c.lineTo(7,-41);c.stroke();}

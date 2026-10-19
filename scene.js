@@ -1,3 +1,4 @@
+import {physicalActorLook,readableActorLook,drawActorPack,drawProstheticLeg,drawWoundMarks,actorLabelPoint} from './actor-readability.js';
 import {remainsObservationView} from './remains-observation.js';import {paintRemainsAt,paintCarriedRemains,paintRemainsCarrier} from './remains-carry-view.js';
 import {carrySupport,paintCarrySupport,paintCarriedObserver} from './people-carry-view.js';
 import {paintFerry} from './ferry-view.js';
@@ -139,7 +140,7 @@ export class Scene {
     const p=pair?pair[0].map((color,i)=>blendColor(color,pair[1][i],travel.mix.progress)):s.rules?.scenery===false?base:areaPalette(terrain),ground=this.composition?.actorGround??ht*.72,backGround=this.composition?.buildingGround??ground;
     const weather=weatherAt(s,a);
     const profile=s.rules?.['color-profile']===false||this.profileMode==='legacy'?null:sceneProfile(s,terrain,weather),pass=this.grade.begin(viewportWidth,ht,dpr,profile,this.profileMode);this.ctx=c=pass.context;
-    const view=travel?.mix?blendScenery(scenery(s.seed,travel.mix.from),scenery(s.seed,travel.mix.to),travel.mix.progress):scenery(s.seed,terrain,s.rules?.scenery!==false),looks=(actor,legacy)=>withLimbLook(actor,s.rules?.appearance===false?legacy:personAppearance(s,actor,legacy));
+    const view=travel?.mix?blendScenery(scenery(s.seed,travel.mix.from),scenery(s.seed,travel.mix.to),travel.mix.progress):scenery(s.seed,terrain,s.rules?.scenery!==false),looks=(actor,legacy)=>withLimbLook(actor,s.rules?.appearance===false?physicalActorLook(s,actor,legacy||{}):personAppearance(s,actor,legacy));
     const underground=['cave','dungeon','undercity'].includes(terrain.type)||terrain.realm==='underground',water=terrain.type==='sea';
     const animate=!this.reduced&&s.rules?.animation!==false;if(!animate)this.actionObserved=false;
     const phase=animate?Math.min(1,(now-this.started)/240):1,actionPhase=this.actionObserved?phase:1,fall=this.deathMotion.progress(now,animate);
@@ -342,7 +343,7 @@ export class Scene {
         else this.creature(cx,ground,companion.id==='mushroom'?'fungus':companion.id==='moth'?'ghost':'pet',s.tick);
       }
       paintPatient(this,s,other,px,ground,phase);
-      c.fillStyle='#d7d9c4';c.font='10px Georgia';c.textAlign='center';c.fillText(other.name,px,ground-62,Math.min(120,w*.3));c.textAlign='left';
+      c.fillStyle='#e3e5d1';c.font='10px Georgia';const nameWidth=Math.min(c.measureText(other.name).width,120,viewportWidth-12),label=actorLabelPoint(px,ground,54*(s.rules?.lineage===false?1:race(other.race).height),{left:this.camera.scroll,width:viewportWidth,labelWidth:nameWidth});c.textAlign='center';c.fillText(other.name,label.x,label.y,nameWidth);c.textAlign='left';
     }
     canvas.dataset.detailedActors=String(detailedDrawn);
     for(const b of Object.values(s.remains?.byId||{}))if(b.transport&&!b.carrier&&b.position.kind==='area'&&b.position.area===a.id&&!(!h.alive&&b.source.kind==='person'&&b.source.id===h.lineage)&&!a.objects.some(o=>o.remainsId===b.id||o.deathView?.remainsId===b.id))paintRemainsAt(this,s,b,screenX(b.position.x),ground);
@@ -354,7 +355,7 @@ export class Scene {
       const walking = h.lastAction === 'walk' && actionPhase < 1 && !this.reduced&&this.to!==this.from;
       const bob = 0;
       if (h.lastAction === 'rest') { c.fillStyle = '#bcd18e'; c.font = '12px Georgia'; c.fillText('z', hx + 16, ground - 43); }
-      const heroLook=withLimbLook(s.people[h.lineage],s.rules?.appearance===false?h.appearance:heroAppearance(s));
+      const heroLook=withLimbLook(s.people[h.lineage],s.rules?.appearance===false?physicalActorLook(s,s.people[h.lineage],h.appearance):heroAppearance(s));
       const support=carrySupport(s,h);paintCarrySupport(this,s,h,hx,ground,actionPhase);
       if(mount)this.horse(hx,ground,mount,{direction:stance.direction,walking,phase:actionPhase});
       this.person(hx-(support?7*stance.direction:0), ground - bob-(mount?29:support?25:0), heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, Boolean(support)||h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{supportGround:ground,kind:support?'rest':occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking:walking&&!mount&&!support,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
@@ -579,6 +580,7 @@ export class Scene {
     const c = this.ctx; c.fillStyle = '#69756a'; c.fillRect(x - 28, y - 84, 13, 84); c.fillRect(x + 15, y - 63, 13, 63); c.fillStyle = '#838b79'; c.fillRect(x - 31, y - 85, 19, 6); c.fillRect(x + 12, y - 65, 19, 6); c.fillRect(x - 28, y - 87, 40, 9); c.strokeStyle = '#4c6150'; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(x - 27, y - i * 20); c.lineTo(x - 15, y - i * 20 - 3); c.stroke(); }
   }
   person(x, y, color, hero, direction, stride, attack = false, rest = false, appearance=null, species=null,pose={}) {
+    const screenTransform=this.ctx.getTransform?.(),scale=screenTransform&&Number.isFinite(screenTransform.a)?Math.hypot(screenTransform.a,screenTransform.b)/(this.pixelRatio||1):1;appearance=readableActorLook(appearance||{},scale*(species?.height||1));
     if(this.state?.rules?.['contour-shadows']===false){if(pose.kind!=='death')this.castShadow(x,this.ground,14*(species?.height||1),(rest?31:44)*(species?.height||1),hero);return this.paintPerson(x,y,color,hero,direction,stride,attack,rest,appearance,species,pose);}
     const changing=attack||pose.walking||['work','farm','medicine','tool','learn','factionDuty','talk'].includes(pose.kind);
     const sampled={...pose,progress:changing?Math.round((pose.progress||0)*60)/60:0};
@@ -605,14 +607,14 @@ export class Scene {
     for(let i=0;i<2;i++){
       const side=i?'rightLeg':'leftLeg',peg=look.prostheticLegs?.[side];
       if(look.missingLimbs?.[side]&&!peg)continue;
-      if(peg){const foot=feet[i],hip=i?3:-3;c.strokeStyle='#c39a60';c.lineWidth=3;c.beginPath();c.moveTo(hip,-12+gait.bodyY);c.lineTo(foot.x,foot.y-1);c.stroke();c.strokeStyle='#674b32';c.lineWidth=2;c.beginPath();c.moveTo(hip-3,-10+gait.bodyY);c.lineTo(hip+3,-10+gait.bodyY);c.moveTo(foot.x-2,foot.y);c.lineTo(foot.x+3,foot.y);c.stroke();continue;}
+      if(peg){drawProstheticLeg(c,i?3:-3,feet[i],gait.bodyY);continue;}
       const hip=i?3:-3,foot=feet[i];c.strokeStyle=look.trousers||'#283629';c.lineWidth=4;c.beginPath();c.moveTo(hip,-12+gait.bodyY);c.lineTo((hip+foot.x)/2+2,(-12+foot.y)/2-1);c.lineTo(foot.x,foot.y-1);c.stroke();
       c.fillStyle=look.shoes||'#3f382e';c.fillRect(foot.x-3,foot.y-3,7,3);
     }
     c.translate(pose.hurt?-2:attack?Math.sin(t*Math.PI)*2:0,gait.bodyY);
     if(pose.hurt)color='#aa8270';
-    drawGarment(c,look,color,lower);
-    if (hero) { c.fillStyle = look.capeColor||'#64794f'; c.beginPath(); c.moveTo(-5, -30); c.lineTo(-11, -12); c.lineTo(-3, -16); c.fill(); c.fillStyle = look.packColor||'#88704f';const size=look.packSize||6;c.fillRect(-9-size/2,-27,size,size+5);c.strokeStyle='#b3a07a';c.lineWidth=1;c.strokeRect(-9-size/2,-27,size,size+5); }
+    drawActorPack(c,look);drawGarment(c,look,color,lower);
+
     drawHead(c,look,species,color,skin,hero);
     if(species?.id==='fae'){c.globalAlpha=.55;c.fillStyle='#b9d8c4';c.beginPath();c.ellipse(-8,-24,7,13,-.4,0,7);c.fill();c.globalAlpha=1;}
     let hand={x:10+gait.arm,y:-17};
@@ -632,7 +634,7 @@ export class Scene {
     if(windup){c.translate(hand.x-10,hand.y+17);c.translate(10,-17);c.rotate(-.6);c.translate(-10,17);}
     else if(lower){const base=['staff','spear','rake','hammer','axe'].includes(prop)?2:prop==='satchel'?5:prop==='lute'?8:prop==='book'?10:lower;c.translate(-3,base-lower);}
     else c.translate(hand.x-10,hand.y+17);
-    this.prop(prop,{attack,working,progress:t});c.restore();
+    this.prop(prop,{attack,working,progress:t});c.restore();drawWoundMarks(c,look,{feet,hand});
     c.restore();
   }
   prop(kind,pose={}){

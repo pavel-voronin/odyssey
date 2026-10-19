@@ -1,3 +1,4 @@
+import {physicalActorLook} from './actor-readability.js';
 import {limbLook,withLimbLook} from './modules/limb-state.js';
 import {visualRandom} from './visual-random.js';
 export {visualRandom} from './visual-random.js';
@@ -30,16 +31,16 @@ function legacyHeroAppearance(s){
 export function heroAppearance(s){
  const look=legacyHeroAppearance(s),h=s.hero;
  look.injuryMarks=injuryLook(s.people[h.lineage]);Object.assign(look,withLimbLook(s.people[h.lineage],look));
- if(s.rules?.['outfit-appearance']===false||s.rules?.appearance===false)return look;
+ if(s.rules?.['outfit-appearance']===false||s.rules?.appearance===false)return physicalActorLook(s,s.people[h.lineage],look);
  // A myconid's cap is physiology, even though old saves stored its tint in cloak.
  look.capColor=look.cloak;
  if(s.rules?.equipment!==false){const outfit=itemOutfit(h.equipment?.armor);if(outfit)Object.assign(look,outfit);
   if(h.actorMode==='npc'&&h.equipment?.weapon){const base=h.equipment.weapon.base||String(h.equipment.weapon.name||'').split(':')[0];look.prop=['staff','посох'].includes(base)?'staff':['axe','топор'].includes(base)?'axe':'blade';}
  }
- return look;
+ return physicalActorLook(s,s.people[h.lineage],look);
 }
 export function personAppearance(s,p,legacy=p?.appearance){
  const h=s.actorStates?.[p.id];
  if(s.rules?.['outfit-appearance']!==false&&h)return heroAppearance({...s,hero:h});
- return appearance(s.seed,p,legacy);
+ return physicalActorLook(s,p,appearance(s.seed,p,legacy));
 }
