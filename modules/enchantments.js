@@ -1,3 +1,4 @@
+import {socketDefense} from './socket-state.js';
 import {enabled,moduleRandom} from '../rules.js';
 import {profile,hasHabit} from './common.js';
 import {itemWorking} from './item-condition.js';
@@ -27,7 +28,7 @@ export function enchantedAttack(s,enemy,damage,ctx){
 }
 export function enchantedDefense(s,damage,ctx){
   const shield=enchantmentStrength(s.hero,'blessing'),result=Math.max(1,damage-shield);
-  if(result<damage)remember(s,'blessing','defense',`Благословение ослабило удар на ${damage-result}.`,ctx);return result;
+  if(result<damage)remember(s,'blessing','defense',`Благословение ослабило удар на ${damage-result}.`,ctx);return socketDefense(s,result,ctx);
 }
 export function enchantedRest(s,ctx){
   const h=s.hero,healing=enchantmentStrength(h,'healing'),amount=Math.min(healing,h.maxHp-h.hp);

@@ -1,3 +1,4 @@
+import {socketRoots} from './socket-items.js';
 import {recordEstatePickup} from './estate-pickup.js';
 import {observeEstateClaims,estateClaimsOn,estateById,estateSource} from './estate-claim-state.js';
 import {petItemsAt,petPack} from './pack-pet-state.js';
@@ -20,6 +21,7 @@ export function presentItem(input,id){
  for(const p of Object.values(s.people))for(const order of Object.values(p.forging?.orders||{}))if(order.status==='working')for(const m of order.materials)if(m.state==='reserved'&&m.original?.id===id)return {item:m.original,kind:'forge-order',id:order.id};
  for(const a of Object.values(s.areas))for(const o of a.objects)for(const item of [...(o.items||[]),...(o.paymentItems||[])])if(item.id===id)return {item,kind:o.paymentItems?.includes(item)?'object':'cache',area:a.id,object:o.id};
  for(const p of Object.values(s.people)){const items=actors.has(p.id)?[]:[...(p.looseItems||[]),...(p.legacy?.keepsakes||[])];for(const item of items)if(item.id===id)return {item,kind:'person',id:p.id};}
+ for(const parent of socketRoots(s)){if(parent.socket?.component?.id===id)return {item:parent.socket.component,kind:'socket',id:parent.id};if(parent.id===id&&parent.physical?.holder.kind==='socket-order')return {item:parent,kind:'socket-order',id:parent.physical.holder.id};}
  return null;
 }
 export function itemLocation(s,item,holder){

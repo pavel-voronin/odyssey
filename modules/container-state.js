@@ -13,7 +13,7 @@ export function packView(s,id=s.hero.lineage,{items,stacks={},passenger=true}={}
 export function fitsPack(s,id,options){return !containersOn(s)||packView(s,id,options).used<=PACK_CAPACITY;}
 export function fitsAcquisition(s,item,h=s.hero){
  if(!containersOn(s))return true;if(packView(s,h.lineage).excess)return false;
- const current=h.equipment?.[item.slot],wearable=['weapon','armor','charm'].includes(item.slot)&&!['workPart','bioMaterial'].includes(item.kind);if(wearable&&!current)return true;return fitsPack(s,h.lineage,{items:[...h.bag,...(current?[current]:[])]})&&fitsPack(s,h.lineage,{items:[...h.bag,item]});
+ const current=h.equipment?.[item.slot],wearable=['weapon','armor','charm'].includes(item.slot)&&!['workPart','bioMaterial','socketComponent'].includes(item.kind);if(wearable&&!current)return true;return fitsPack(s,h.lineage,{items:[...h.bag,...(current?[current]:[])]})&&fitsPack(s,h.lineage,{items:[...h.bag,item]});
 }
 export function stackRoom(s,id,kind,wanted){
  if(!containersOn(s))return wanted;const {p,inventory:i}=packContents(s,id),map={rations:i.rations,potions:i.potions,herbs:i.herbs,food:p?.roadSupplies?.food,medicine:p?.roadSupplies?.medicine,tools:p?.marketCargo?.tools,mushroom:p?.localFood?.stock?.mushroom,fish:p?.localFood?.stock?.fish},old=nonnegative(map[kind]);if(!Object.hasOwn(map,kind)||packView(s,id).excess)return 0;

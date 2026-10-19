@@ -57,6 +57,7 @@ import {fordLabel,fordsHTML} from './ford-view.js';
 import {marketKnowledgeHTML} from './market-knowledge-sheet.js';
 import {renderProgressionPanel} from './progression-panel.js';
 import {skillBranchesHTML,progressionHeader,progressionHeaderTitle} from './skill-branches-sheet.js';
+import {socketHTML} from './socket-sheet.js';
 import {forgingHTML} from './forging-sheet.js';
 import {knifeRefitHTML} from './knife-refit-sheet.js';
 import {itemConditionHTML,itemRepairHTML,itemWorking,itemWorth} from './item-condition-sheet.js';
@@ -238,7 +239,7 @@ function enrichSheet(){
   if(tab==='map')$('detail-panel').insertAdjacentHTML('afterbegin',goodsHTML(state,escape)+marketKnowledgeHTML(state,escape)+landmarksHTML(state,escape)+fordsHTML(state,escape));
   if(tab==='map')$('detail-panel').insertAdjacentHTML('beforeend',bestiaryHTML(state,escape)+trackingHTML(state,escape)+cargoHTML(state,escape)+mechanicHTML(state,escape));
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend','<p class="empty">Уровень, мастерство и независимые приёмы — в разделе «Развитие».</p>');
-  if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',forgingHTML(state,escape));
+  if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',forgingHTML(state,escape)+socketHTML(state,escape));
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',knifeRefitHTML(state,escape));
   if(tab==='hero')$('detail-panel').insertAdjacentHTML('beforeend',itemRepairHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',`<div id="delivery-cargo-live">${deliveryCargoHTML(state,state.people[state.hero.lineage],escape)}</div>`+localBodyMaterialsHTML(state,escape));

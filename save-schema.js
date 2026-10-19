@@ -1,3 +1,4 @@
+import {validateSockets} from './modules/socket-schema.js';
 import {validateEstateClaims} from './modules/estate-claim-schema.js';
 import {validateRuinReturns} from './modules/ruin-return-schema.js';
 import {validateHarvestFailures,validateHarvestShortfalls} from './modules/harvest-failure-schema.js';
@@ -202,7 +203,7 @@ export function validateSave(s){
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);
- validateMigrationKnowledge(s,fail);validateRefuges(s,fail);validateFoundations(s,fail);validateNeighborHousing(s,fail);validateDwellings(s,fail);validateRuinReturns(s,fail);validateEstateClaims(s,fail);
+ validateMigrationKnowledge(s,fail);validateRefuges(s,fail);validateFoundations(s,fail);validateNeighborHousing(s,fail);validateDwellings(s,fail);validateRuinReturns(s,fail);validateEstateClaims(s,fail);validateSockets(s,fail);
  for(const life of s.lives){fields(life,['generation','lineage','born','ended','outcome','cause','name','items','timeline'],'life');if(life.outcome!=='dead'||!s.people[life.lineage])fail('life.outcome');integer(life.born,'life.born');integer(life.ended,'life.ended');if(life.ended<life.born||life.ended>s.tick)fail('life.ended');if(own(life,'portraitSnapshot')){const q=life.portraitSnapshot;fields(q,['version','race','alive','look'],'life.portraitSnapshot');if(q.version!==1||q.alive!==false||q.race!==null&&!RACES.some(r=>r.id===q.race)||!object(q.look)||!['skin','hair','hairStyle','hat'].every(k=>typeof q.look[k]==='string')||!Array.isArray(q.look.injuryMarks)||q.look.injuryMarks.some(m=>!object(m)||!['scar','burn'].includes(m.kind)||!['face','cap','plating'].includes(m.part)))fail('life.portraitSnapshot');}}
  fields(s.society,['events','journeys','orders','nextEvent','nextEnemy'],'society');
  fields(s.logistics,['convoys','nextConvoy','nextDispatch','deliveries','losses','history'],'logistics');

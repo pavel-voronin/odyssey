@@ -41,7 +41,7 @@ export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=fal
   itemBearer(s,item);
   actorItemLocation(s,item);
   item.history ||= [];item.history.push({tick:s.tick,text:`${crafted?'Принято из собственного заказа':purchased?'Куплено':'Найдено'}: ${h.name} ${h.family||''}.`});
-  const canUse = itemWorking(item)&&!['workPart','bioMaterial','prosthesis','fieldTool','textCopy','writingPaper','waystone'].includes(item.kind)&&(!enabled(s,'enchantments')||item.modifier !== 'curse' || hasHabit(h, 'gambler') || h.alignment < -20);
+  const canUse = itemWorking(item)&&!['workPart','bioMaterial','prosthesis','fieldTool','textCopy','writingPaper','waystone','socketComponent'].includes(item.kind)&&(!enabled(s,'enchantments')||item.modifier !== 'curse' || hasHabit(h, 'gambler') || h.alignment < -20);
   const weight = value => itemWorking(value)?(armorChoice(s,value,ctx)?.value??value.power) + (value.stat === 'magic' && profile(h).skill === 'magic' ? 2 : 0)+enchantmentPreference(h,value)+weaponAcquisitionValue(s,value):0;
   let used=canUse && (!equipped ? !armorChoice(s,item,ctx)||weight(item)>0 : weight(item) > weight(equipped));if(containersOn(s)){
     if(used&&equipped&&!fitsPack(s,h.lineage,{items:[...h.bag,equipped]}))used=false;
