@@ -1,3 +1,4 @@
+import {recordWardReply} from './measured-ward.js';
 import {weaponBody} from './limb-state.js';
 import {woundForce} from './wound-state.js';
 import {cacheItems} from './item-originals.js';
@@ -44,6 +45,7 @@ export function combatProtection(s,enemy,raw,{blessed=hasCondition(s.hero,'bless
 export function combatResponse(s, enemy, raw, ctx) {
   const h = s.hero;
   let received = combatProtection(s,enemy,raw);
+  recordWardReply(s,enemy,raw,combatProtection(s,enemy,raw,{blessed:false}),received);
   enemyRecovery(s,enemy,h.lastAction!=='windup'&&(profile(h).skill==='magic'||h.lastAction==='spell'));
   received=racialDefense(s,enchantedDefense(s,received,ctx),ctx);
   received=braceDamage(s,enemy,received);

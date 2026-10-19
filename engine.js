@@ -1,3 +1,4 @@
+import {wardTick,cancelWard} from './modules/measured-ward.js';
 import {recordCrossingTrace} from './modules/edge-traces.js';
 import {trackingPlan,trackingAction,confirmTracking} from './modules/tracking.js';
 import {admitAction,dependency,preparationAccepted,preparationProgress} from './modules/action-admission.js';
@@ -328,6 +329,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   return s;
 }
 function enter(s, id) {
+  cancelWard(s,'Переход прекращает подготовку.');
   const a = s.areas[id], h = s.hero;
   if(!h.carriedBy)recordCrossingTrace(s,{kind:'person',id:h.lineage},h.area,id);
   openSettlement(s,a,context(s,'districts'));
@@ -599,7 +601,7 @@ function die(s, enemy,details={}) {
   if(s.hero.carriedBy)endPeopleCarry(s,context(s,'people-carry'),'пассажир погиб');
   const meaning=deathMeaning(s,enemy),report=deathRecord(s,enemy,details);
   finishDelve(s,'death');
-  cancelWeapon(s,'Смерть прекращает подготовку.');
+  cancelWeapon(s,'Смерть прекращает подготовку.');cancelWard(s,'Смерть прекращает подготовку.');
   const mount=groupHorse(s,s.hero);if(mount)detachHorse(s,mount,'keeper-died');
   const h = s.hero; h.alive = false; h.hp = 0; h.combat = null; h.goal = null; h.lastAction = 'death';musicTick(s,context(s,'camp-music'));syncCoverPosition(s);
   h.intent = 'Жизнь закончилась. Мир продолжается'; h.reason = 'Можно наблюдать, что станет с этим местом, или отдельно начать другую историю.'; h.action = 'НАСЛЕДИЕ';
@@ -621,20 +623,20 @@ function die(s, enemy,details={}) {
 }
 function fight(s, enemy) {
   const h = s.hero;
-  if (!enemy?.alive||enemy.resolved) { cancelWeapon(s,'Противник больше не участвует в бою.');h.combat = null; h.goal = null; return; }
+  if (!enemy?.alive||enemy.resolved) { cancelWeapon(s,'Противник больше не участвует в бою.');cancelWard(s,'Противник больше не участвует в бою.');h.combat = null; h.goal = null; return; }
   encounterBestiary(s,s.people[h.lineage],enemy);
   contactDelve(s,enemy);
   causalReturn(s,enemy);
-  if(storyCombatChoice(s,enemy,context(s,'stories'))){cancelWeapon(s,'Выбрано другое действие.');observeRejected(s,s.areas[h.area]);return;}
+  if(storyCombatChoice(s,enemy,context(s,'stories'))){cancelWeapon(s,'Выбрано другое действие.');cancelWard(s,'Выбрано другое действие.');observeRejected(s,s.areas[h.area]);return;}
   rememberWeaponRole(s);
-  if(considerSurrender(s,enemy,context(s,'enemy-people')))return;
+  if(considerSurrender(s,enemy,context(s,'enemy-people'))){cancelWard(s,'Бой прекращён.');return;}
   h.action = 'БОЙ'; h.intent = `Сражаться: ${enemy.name}`; h.reason = 'Опасность уже рядом. Он оценивает раны после каждого удара.';
   let choice=woundCombatChoice(s,enemy,chooseCombatAction(s,enemy));rememberCombatChoice(s,enemy,choice,context(s,'combat'));
   const warned=enabled(s,'tactics')&&enemy.tactic==='charged'&&enemy.battle?.intent==='strike'&&Math.max(1,expectedStrike(s,enemy)-legacyArmorDefense(h)-itemBonus(h,'defense'))>h.hp*(.65+h.personality.courage*.4);
   if (choice?choice.action==='flee':h.hp < h.maxHp * (.18 + (1 - h.personality.courage) * .2) || h.energy < 9||warned) {
     const escaped=random(s)<.82;resolveCombatChoice(s,'flee-attempt',{retreatAttempted:true,retreated:escaped});
     if (escaped) {
-      cancelWeapon(s,'Отступление прерывает размах.');
+      cancelWeapon(s,'Отступление прерывает размах.');cancelWard(s,'Отступление прерывает подготовку.');
       pauseDelve(s,enemy,'escaped');
       h.combat = null; h.goal = null; h.memory.avoided[h.area] = s.tick + 40;
       const refuge = closest(s, a => !a.temporaryCamp && (a.type === 'camp' || isTown(a)));
@@ -646,13 +648,15 @@ function fight(s, enemy) {
     if(choice){choice=chooseCombatAction(s,enemy,{retreatBlocked:true});rememberCombatChoice(s,enemy,choice,context(s,'combat'));}
   }
   const legacy=!choice||choice.action==='legacy';
+  if(choice&&!legacy&&!(choice.action==='spell'&&choice.spell==='ward'))cancelWard(s,'Выбрано другое действие.');
   if(choice?.action==='brace'&&performBrace(s,enemy,context(s,'combat'))){cancelWeapon(s,'Вместо размаха выбран заслон.');resolveCombatChoice(s,'brace',{energySpent:BRACE_ENERGY});enemyResponse(s,enemy);return;}
   if (choice?.action==='potion'||legacy&&h.hp < h.maxHp * .45 && h.inventory.potions > 0) {
-    cancelWeapon(s,'Лечение прерывает размах.');
+    cancelWeapon(s,'Лечение прерывает размах.');cancelWard(s,'Лечение прерывает подготовку чар.');
     const before=h.hp;h.inventory.potions--; h.hp = Math.min(h.maxHp, h.hp + 19); h.lastAction = 'heal';resolveCombatChoice(s,'potion',{potionsSpent:1}); log(s, 'Герой сам использует зелье: без лечения следующий удар может стать последним.', 'heal',h.area,{meaning:eventMeaning(s,'heal',{item:{kind:'item',id:null,label:'Лечебное зелье',role:'зелье'},amount:h.hp-before})});enemyResponse(s,enemy);return;
   }
   const manaBefore=h.magic.mana;
-  if((legacy||choice?.action==='spell')&&castInCombat(s,enemy,context(s,'magic'),choice?.action==='spell'?choice.spell:null)){cancelWeapon(s,'Чары прерывают размах.');resolveCombatChoice(s,'spell',{manaSpent:manaBefore-h.magic.mana});if(enemy.alive&&!enemy.resolved){if(h.magic.responseSkipped)partyCombatPhase(s,enemy,true);else enemyResponse(s,enemy);}return;}
+  if((legacy||choice?.action==='spell')&&castInCombat(s,enemy,context(s,'magic'),choice?.action==='spell'?choice.spell:null,choice?.form||null)){cancelWeapon(s,'Чары прерывают размах.');resolveCombatChoice(s,'spell',{manaSpent:manaBefore-h.magic.mana});if(enemy.alive&&!enemy.resolved){if(h.magic.responseSkipped)partyCombatPhase(s,enemy,true);else enemyResponse(s,enemy);}return;}
+  cancelWard(s,'Чары не завершены; выбран другой способ.');
   const technique=['quick','release','windup'].includes(choice?.action)?{id:choice.action,reason:choice.reason}:legacy?chooseWeaponStyle(s,enemy):null;
   if(technique)h.reason=technique.reason;
   if(h.coverPosition)h.coverPosition=null;
@@ -785,7 +789,7 @@ function archiveNPCObservers(s){for(const h of detailedActors(s))if(h.actorMode=
  const p=s.people[h.lineage],ended=Number.isInteger(p?.died)&&p.died>=0&&p.died<=s.tick?p.died:h.life.endedAt??s.tick;
  if(s.lives.some(l=>l.lineage===h.lineage&&l.outcome==='dead'&&l.ended===ended))continue;
  const view=actorView(s,h),cause=p?.deathCause||'Гибель жителя мира',late=ended<s.tick||h.life.deathDateKnown===false;
- cancelWeapon(view,'Смерть прекращает подготовку.');
+ cancelWeapon(view,'Смерть прекращает подготовку.');cancelWard(view,'Смерть прекращает подготовку.');
  log(view,h.name+': '+cause+'.','death',p?.area??null,{tick:ended,recordedAt:late?s.tick:undefined});
  archiveLife(view,'dead',cause,{ended,recordedAt:late?s.tick:undefined,wealthBasis:late?'recorded-estate':undefined});
  openInheritance(view,h,null,context(view,'finances'));
@@ -801,7 +805,7 @@ export function advanceWorld(s) {
  worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
-  applyActorExternal(s,h);weaponTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
+  applyActorExternal(s,h);weaponTick(actorView(s,h));wardTick(actorView(s,h));pairCombatTick(actorView(s,h));if(!selfDrivenActor(s,h)||h.actorStep===s.tick)continue;
   if(!npcAction(s,s.people[h.lineage],'actor','decision'))continue;
   const view=actorView(s,h);observeLocalRoutes(view);observeCampSites(view);
   observeRouteMap(view,s.people[h.lineage]);
@@ -839,7 +843,7 @@ function actObserved(s) {
   musicTick(s,context(s,'camp-music'));
   petTrainingTick(s);
   if(h.petPassage?.lastActionTick===s.tick){h.lastAction='companion';return s;}
-  weaponTick(s);
+  weaponTick(s);wardTick(s);
   pairCombatTick(s);
   rememberPracticalRole(s,s.people[h.lineage],h);
   confirmTracking(s);

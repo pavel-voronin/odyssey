@@ -1,7 +1,7 @@
 import {enabled} from '../rules.js';
 import {braceAvailable,BRACE_ENERGY} from './brace.js';
 import {hasCondition} from './common.js';
-import {availableCombatSpells} from './magic.js';
+import {availableCombatSpells,preferMeasuredWard} from './magic.js';
 import {incomingReply,weaponDamageRange,spellDamageRange} from './combat-forecast.js';
 import {weaponAlternatives} from './weapon-decision.js';
 import {knownComposition} from './composite-threats.js';
@@ -19,13 +19,13 @@ export function combatOptions(s,e){
  if(h.inventory.potions>0){const hp=Math.min(h.maxHp,h.hp+19);options.push({id:'potion',action:'potion',hp,mana:0,potions:1,reply:incomingReply(s,e,{hp})});}
  for(const spell of availableCombatSpells(s)){
   if(['damage','time'].includes(spell.kind)){options.push(attackOption(s,e,spellDamageRange(s,e,spell),{action:'spell',spell}));continue;}
-  const option={id:spell.id,action:'spell',spell:spell.id,hp:h.hp,mana:spell.manaCost,charge:spell.waystoneCost||0,potions:0};
+  const option={id:spell.id,measured:spell.measured,action:'spell',spell:spell.id,hp:h.hp,mana:spell.manaCost,charge:spell.waystoneCost||0,potions:0};
   if(spell.kind==='heal'){option.hp=Math.min(h.maxHp,h.hp+spell.effectPower);if(option.hp<=h.hp)continue;option.reply=incomingReply(s,e,{hp:option.hp});}
   else if(spell.kind==='ward'&&!hasCondition(h,'blessing')){option.reply=incomingReply(s,e,{blessed:true});option.protection=true;}
   else if(spell.kind==='pacify'){
    option.reply=incomingReply(s,e);option.reply={...option.reply,min:0,survivalLow:.45+.55*option.reply.survivalLow,survivalHigh:.45+.55*option.reply.survivalHigh};option.pacify=true;
   }else continue;
-  options.push(option);
+  if(spell.manaCost<=h.magic.mana)options.push(option);
  }
  if(braceAvailable(s,e))options.push({id:'brace',action:'brace',hp:h.hp,mana:0,potions:0,energy:BRACE_ENERGY,protection:true,reply:incomingReply(s,e,{brace:true})});
  return options;
@@ -37,10 +37,12 @@ export function chooseCombatAction(s,e,{retreatBlocked=false}={}){
  if(!enabled(s,'combat-judgment'))return null;
  const h=s.hero,options=combatOptions(s,e),attack=options[0],courage=Math.max(0,Math.min(1,h.personality.courage)),low=h.hp<h.maxHp*(.18+(1-courage)*.2),tired=h.energy<9;
  const baseline=incomingReply(s,e),danger=attack.reply.lethalPossible,severe=attack.reply.max>h.hp*(.55+courage*.3),opening=baseline.max===0&&h.hp<h.maxHp*.5;
- const decision=(option,reason)=>({action:option.action,spell:option.spell,reason,retreatBlocked,attackReply:attack.reply,selectedReply:option.reply||null,options,selected:option.id});
+ const decision=(option,reason)=>({action:option.action,spell:option.spell,form:option.form,reason,retreatBlocked,attackReply:attack.reply,selectedReply:option.reply||null,options,selected:option.id});
  const legacy=reason=>decision({id:'legacy',action:'legacy'},reason);
  const weaponFinisher=options.some(o=>o.win&&['quick','release'].includes(o.action));
  const guard=options.find(o=>o.id==='brace');if(guard&&!attack.win&&!weaponFinisher&&!danger&&!low&&!tired&&courage<.65&&baseline.max>h.hp*(.2+courage*.3)&&guard.reply.max<baseline.max&&guard.reply.survivalLow===1)return decision(guard,'Замах уже замечен. Он бережёт здоровье и тратит силы на заслон вместо удара.');
+ if(preferMeasuredWard(s,e))return decision({id:'measured-ward',action:'spell',spell:'ward',form:'measured',reply:baseline},'В действиях угрозы есть пауза, а маны мало. Он готовит знакомую защиту: этот ход остаётся уязвимым.');
+ const prepared=options.find(o=>o.spell==='ward'&&o.measured&&o.reply.survivalLow===1);if(prepared)return decision(prepared,'Подготовка вложена в прошлый ход. Он завершает слово укрытия, оплачивая оставшуюся цену.');
  const composition=knownComposition(s,e);
  if(composition&&!danger&&!severe&&!low&&!tired&&!opening){
   const spells=options.filter(o=>o.action==='spell'&&o.damage&&o.reply.survivalLow===1&&!o.temporary);

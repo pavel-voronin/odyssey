@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {profession} from '../content.js';
 
 export const SKILL_METHODS={
+ magic:{name:'Практика знакомых чар',method:'measured-ward',label:'Размеренное слово укрытия',threshold:3},
  sailing:{name:'Судовое дело',method:'check-cargo-lashing',label:'Проверка крепления груза',threshold:2},
  tracking:{name:'Чтение следов',method:'read-trail-direction',label:'Направление настоящего следа',threshold:2},
  craft:{name:'Ремесло',method:'fit-working-part',label:'Подгонка рабочей детали',threshold:3},
@@ -42,7 +43,7 @@ function credit(s,actor,branch,event,extra={}){
  if(!skillBranchesEnabled(s)||!s.people[actor]?.alive||!event?.id||event.tick!==s.tick)return null;
  const state=ensure(s,actor,branch);if(state.lastTick>=s.tick||state.operations.some(e=>e.id===event.id))return null;
  const record={id:event.id,tick:s.tick,area:event.area,credits:[{branch,id:event.id}],...extra};state.operations.push(record);state.total++;state.lastTick=s.tick;if(state.operations.length>16)state.operations.shift();stamp(event,branch,event.id);
- if(branch!=='craft'&&!state.method&&state.total>=SKILL_METHODS[branch].threshold)state.method={id:SKILL_METHODS[branch].method,learnedAt:s.tick,origin:'practice',source:state.operations.slice(-SKILL_METHODS[branch].threshold).map(e=>e.id)};
+ if(!['craft','magic'].includes(branch)&&!state.method&&state.total>=SKILL_METHODS[branch].threshold)state.method={id:SKILL_METHODS[branch].method,learnedAt:s.tick,origin:'practice',source:state.operations.slice(-SKILL_METHODS[branch].threshold).map(e=>e.id)};
  return record;
 }
 export function recordPracticalAid(s,event){
@@ -91,4 +92,8 @@ export function recordPracticalSailing(s,event){
  if(!s.ferry?.cargo?.operations.includes(event)||event.status!=='departed'||event.voyage!==s.ferry.voyage||event.confirmedBy!==s.ferry.captain)return null;
  const old=practicalSkill(s,event.actor,'sailing');if(old?.method||old?.operations.some(e=>e.ship===event.ship&&e.voyage===event.voyage))return null;
  return credit(s,event.actor,'sailing',event,{ship:event.ship,voyage:event.voyage,batch:event.batch,rope:event.rope,securedAt:event.securedAt,confirmedBy:event.confirmedBy});
+}
+
+export function recordPracticalWard(s,event){
+ const h=s.hero;if(h.magic.wardLastImpact!==event||h.magic.wardActive?.cast!==event.cast||h.combat!==event.enemy||!(event.before>event.after))return null;const q=practicalSkill(s,h.lineage,'magic');if(q?.total>=3||q?.operations.some(e=>e.enemy===event.enemy))return null;return credit(s,h.lineage,'magic',event,{enemy:event.enemy,cast:event.cast,castAt:event.castAt,paid:event.paid,raw:event.raw,before:event.before,after:event.after,form:event.form});
 }

@@ -4,7 +4,7 @@
 
 ## Текущий этап
 
-Текущего этапа нет. SK-01.7 выполнена этапом239: фактическая судовая провизия, переданная настоящая верёвка, согласованная работа;2разных подтверждённых отправления либо урок открывают проверку крепления. Шторм сохраняет прежние HP/hull/паузу, меняет только потерю этого запаса. Код modules/ferry-cargo/ferry-cargo-schema/ferry-actions/skill-branches; test/seamanship.test.js, CONTRACTS/ferry-cargo.v1. PARTIAL7/7 exit0,1421мс, artifacts/checks/9fe5052ce3e1c5c9.log; https://odyssey.kolpaque.dev revision1d38343267913ea7/HTTPS. Широкий SK-01 не закрыт. Следующий этап ещё не взят.
+Текущего этапа нет. SK-01.8 выполнена этапом240: три разные действительные угрозы с подтверждённым вкладом ward и лично завершённый урок доступного архива открывают measured-ward. Два действия/тот же blessing18/базовая цена меньше на1, общий invoice/конечный stone charge; отмена без возврата и эффекта. Код modules/measured-ward/magic/spell-invoice/waystone-state/combat-judgment; test/measured-ward.test.js, CONTRACTS/measured-ward.v1. PARTIAL7/7 exit0,2089мс, artifacts/checks/c951e5be1d26ddfd.log; https://odyssey.kolpaque.dev revisione52b58f887fd90c2/HTTPS. Широкий SK-01 не закрыт. Следующий этап ещё не взят.
 
 ## Следующие этапы
 
@@ -1507,3 +1507,10 @@ SK-01.6 выполнена этапом238: настоящий ограниче�
 SK-01.7 выполнена этапом239: фактическая судовая провизия, переданная настоящая верёвка, согласованная работа;2разных подтверждённых отправления либо урок открывают проверку крепления. Шторм сохраняет прежние HP/hull/паузу, меняет только потерю этого запаса. Код modules/ferry-cargo/ferry-cargo-schema/ferry-actions/skill-branches; test/seamanship.test.js, CONTRACTS/ferry-cargo.v1. PARTIAL7/7 exit0,1421мс, artifacts/checks/9fe5052ce3e1c5c9.log; https://odyssey.kolpaque.dev revision1d38343267913ea7/HTTPS. Широкий SK-01 не закрыт. Следующий этап ещё не взят.
 
 6малых групп≤12действий либо≤16world ticks/группу: источник/прежний UID,2разных отправления/оплаченный конечный load, три выбранных крепления при одном шторме, отсутствие нужды/материала/разрешения/готовности, прежний обычный билет/часы/кошельки, current144/OFF/restore/наблюдатель/чистое дерево7. Границы шторма/прибытия — явные checkpoints, не естественная длинная жизнь. Native320 сцена/развитие/запись:0UI-тиков/неизменное сохранение. Pages238 Actions39234525073 success. Full/SOAK/жизни/полная комбинаторика не запускались.
+
+
+### SK-01.8 · подтверждение реализации240
+
+SK-01.8 выполнена этапом240: три разные действительные угрозы с подтверждённым вкладом ward и лично завершённый урок доступного архива открывают measured-ward. Два действия/тот же blessing18/базовая цена меньше на1, общий invoice/конечный stone charge; отмена без возврата и эффекта. Код modules/measured-ward/magic/spell-invoice/waystone-state/combat-judgment; test/measured-ward.test.js, CONTRACTS/measured-ward.v1. PARTIAL7/7 exit0,2089мс, artifacts/checks/c951e5be1d26ddfd.log; https://odyssey.kolpaque.dev revisione52b58f887fd90c2/HTTPS. Широкий SK-01 не закрыт. Следующий этап ещё не взят.
+
+6малых групп≤12действий либо≤16world ticks/группу: реальные3источника/повтор/урок, нормальная и подготовленная формы при одном уровне,2обычных боевых хода/видимый strike, отсутствие знания/источника/маны/пустота/отмена/реальная смерть от яда, общий local price/finite stone, current144/OFF/restore/наблюдение/дерево8. Cooldown/expiry/encounter/course eligibility и уже собранный relic — объявленные checkpoints, не естественные длинные жизни. Native320 развитие/сцена подготовки:0UI-тиков/точное сохранение. Pages239 Actions39240165692 success/HTML1d38343267913ea7. Full/SOAK/жизни/полная комбинаторика не запускались.
