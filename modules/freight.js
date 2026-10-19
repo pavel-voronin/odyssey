@@ -1,3 +1,4 @@
+import {recordCausewayDelivery} from './causeway-state.js';
 import {shortfallDepartureAllowed} from './harvest-shortfall.js';
 import {observeRupture} from './quake-knowledge.js';
 import {withdrawalCover} from './cover-retreat-state.js';
@@ -55,6 +56,7 @@ function finishFreight(s,c,ctx,outcome){
     if(c.tools)putGoods(s,a,'tools',c.tools,{reason:'freight-'+outcome,actor:p.id});
     if(a.civic.food>=40&&a.civic.crisis?.kind==='hunger')a.civic.crisis=null;
     if(outcome==='delivered'){s.logistics.deliveries++;c.wagePaid=Math.min(3,Math.max(0,a.civic.treasury||0));a.civic.treasury-=c.wagePaid;p.agenda.wealth+=c.wagePaid;p.agenda.work++;}
+    if(outcome==='delivered')recordCausewayDelivery(s,c,{food:acceptedFood,medicine:acceptedMedicine,tools:c.tools||0});
     releaseDriver(s,c);c.food=0;c.medicine=0;if(c.tools)c.tools=0;
     const text=outcome==='delivered'?`${p.name} привозит в ${a.name}: еда ${food}, инструменты ${c.demand?.kind==='tools'?c.demand.quantity:0}, медицина ${medicine}. Оплата из казны: ◈${c.wagePaid}.${c.demand?.shortfall?' После неурожая погружено '+c.demand.shortfall.loaded+' вместо '+c.demand.shortfall.requested+'; на полную партию не хватило припасов.':''}`:`${p.name} возвращает в ${a.name} оставшиеся припасы: еда ${food}, медицина ${medicine}. Путь оказался недоступен.`;
     const proof=freightEvent(s,c,a,text,ctx);freightHistory(s,c,outcome,proof);removeFreight(s,c);observeFreightActor(s,p);return;

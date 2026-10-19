@@ -1,3 +1,4 @@
+import {causewayReady,startCausewayPassage,finishCausewayPassage} from './causeway-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance,campLink,areaScale} from '../geometry.js';
 import {spatialPassage} from './spatial.js';
@@ -12,7 +13,7 @@ export function newFord(s,e){
  e.ford={version:1,id:'ford/'+fordKey(e.a,e.b),period:120,low:72,offset:hash%120,foot:3,cart:6,forecastBias:hash%7-3};
 }
 export function fordProfile(s,from,to){const e=s.edges?.[fordKey(from,to)],f=e?.ford;if(e?.mode!=='road'||!surface(s.areas[from])||!surface(s.areas[to])||!f||f.version!==1||!Number.isInteger(f.period)||f.period<12||f.period>960||!Number.isInteger(f.low)||f.low<4||f.low>=f.period||!Number.isInteger(f.offset)||![f.foot,f.cart].every(n=>Number.isInteger(n)&&n>=2&&n<=24)||!s.areas[from]?.links.includes(to)||!s.areas[to]?.links.includes(from))return null;return f;}
-export function fordWater(s,from,to,tick=s.tick){const f=fordProfile(s,from,to);if(!f)return null;const phase=((tick+f.offset)%f.period+f.period)%f.period,open=phase<f.low;return {id:f.id,phase,open,wait:open?0:f.period-phase,remaining:open?f.low-phase:0,level:open?'мелкая вода':'высокая вода',flow:phase<f.low?'река отступила':'река вернётся в берега',profile:f};}
+export function fordWater(s,from,to,tick=s.tick){const f=fordProfile(s,from,to);if(!f)return null;if(causewayReady(s,fordKey(from,to)))return {id:f.id,phase:0,open:true,wait:0,remaining:f.period,level:'устойчивый настил',flow:'по настилу можно пройти без ожидания воды',profile:f,causeway:true};const phase=((tick+f.offset)%f.period+f.period)%f.period,open=phase<f.low;return {id:f.id,phase,open,wait:open?0:f.period-phase,remaining:open?f.low-phase:0,level:open?'мелкая вода':'высокая вода',flow:phase<f.low?'река отступила':'река вернётся в берега',profile:f};}
 export function fordEnd(s,from,to){const p=spatialPassage(s,fordKey(from,to)),end=p.ends?.find(e=>e.area===from);return p.status==='known'&&p.kind==='road'&&Number.isFinite(end?.departureX)?end.departureX:null;}
 export function fordBlocked(s,b){return fordsOn(s)?(b.fordKnowledge||[]).filter(k=>k.deferredUntil>s.tick).map(k=>k.edge):[];}
 export function pathHasFord(s,path){return fordsOn(s)&&path.slice(1).some((id,i)=>Boolean(fordProfile(s,path[i],id)));}
@@ -24,13 +25,13 @@ export function fordPassage(s,b,to,arrivalX,{carrier=false}={}){
  if(active){
   if(active.version!==1)return {status:'unavailable'};
   if(active.from!==b.area||!fordProfile(s,active.from,active.to)){delete b.fordCrossing;return {status:'aborted',reason:'Подход изменился. Возвращается к своему берегу.'};}
-  active.remaining--;spend(b,.4);if(active.remaining>0)return {status:'crossing',crossing:active};delete b.fordCrossing;return {status:'arrived',crossing:active};
+  active.remaining--;spend(b,.4);if(active.remaining>0)return {status:'crossing',crossing:active};delete b.fordCrossing;finishCausewayPassage(s,b,active);return {status:'arrived',crossing:active};
  }
  const x=fordEnd(s,from,to);if(!f||x===null||physicalDistance(s.areas[from],b.x,x)>1)return {status:'unavailable'};
  const water=fordWater(s,from,to);b.fordKnowledge ||= [];let k=b.fordKnowledge.find(k=>k.edge===edge);if(!k){k={edge,from,to,firstSeen:s.tick};b.fordKnowledge.push(k);if(b.fordKnowledge.length>24)b.fordKnowledge.shift();}
  Object.assign(k,{seen:s.tick,open:water.open,level:water.level,expectedOpen:water.open?s.tick:Math.max(s.tick+1,s.tick+water.wait+(f.forecastBias||0))});
  if(!water.open)return {status:'closed',water,knowledge:k,edge};
- delete k.deferredUntil;delete k.waitSince;const duration=carrier?f.cart:f.foot;b.fordCrossing={version:1,edge,from,to,arrivalX,started:s.tick,remaining:duration-1,total:duration};spend(b,.4);return {status:'crossing',crossing:b.fordCrossing,started:true};
+ delete k.deferredUntil;delete k.waitSince;const bridge=water.causeway?startCausewayPassage(s,b,edge,{carrier}):null;if(water.causeway&&!bridge)return {status:'unavailable'};const duration=bridge?2:carrier?f.cart:f.foot;b.fordCrossing={version:1,edge,from,to,arrivalX,started:s.tick,remaining:duration-1,total:duration,...(bridge?{causeway:bridge}:{})};spend(b,.4);return {status:'crossing',crossing:b.fordCrossing,started:true};
 }
 // This search reads the traveller's recorded map, never remote water or stock.
 export function fordBypass(s,b,target,blocked,avoid=id=>(b.memory?.avoided?.[id]||0)>s.tick||Boolean(b.memory?.rejected?.[id])){

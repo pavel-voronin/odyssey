@@ -1,3 +1,4 @@
+import {causewayCargoLoad} from './causeway-state.js';
 import {remainsPassengerLoad} from './remains-mass.js';
 // Current bag arrays remain authoritative. A pack is a location, never a second owner.
 export const PACK_CAPACITY=24;
@@ -7,7 +8,7 @@ export function itemUnits(item){return item?.slot==='armor'?3:item?.slot==='weap
 export function packContents(s,id=s.hero.lineage){const h=s.hero?.lineage===id?s.hero:s.actorStates?.[id],p=s.people[id];return {h,p,items:h?.bag||p?.looseItems||[],inventory:h?.inventory||p?.actorLink?.inventory||{}};}
 export function packView(s,id=s.hero.lineage,{items,stacks={},passenger=true}={}){
  const {p,items:held,inventory:i}=packContents(s,id),n=k=>nonnegative(stacks[k]??({rations:i.rations,potions:i.potions,herbs:i.herbs,food:p?.roadSupplies?.food,medicine:p?.roadSupplies?.medicine,tools:p?.marketCargo?.tools,mushroom:p?.localFood?.stock?.mushroom,fish:p?.localFood?.stock?.fish})[k]);
- const itemLoad=(items||held).reduce((sum,item)=>sum+itemUnits(item),0),stackLoad=(packContents(s,id).h?.workMaterials?.cargo?.length||0)+Math.ceil(nonnegative(p?.fieldCraft?.kit.remaining)/4)+n('rations')+n('potions')+Math.ceil(n('herbs')/4)+Math.ceil(n('food')/4)+Math.ceil(n('medicine')/4)+n('tools')+Math.ceil(n('mushroom')/2)+n('fish'),ownLoad=itemLoad+stackLoad,h=packContents(s,id).h,q=passenger&&s.people[h?.injuredPassenger],carried=q?.alive&&q.partyInjury?.stage==='supported'&&q.partyInjury.leader===id?8+packView(s,q.id,{passenger:false}).used:0,deadLoad=passenger?remainsPassengerLoad(s,id):0,used=ownLoad+carried+deadLoad;
+ const itemLoad=(items||held).reduce((sum,item)=>sum+itemUnits(item),0),stackLoad=(packContents(s,id).h?.workMaterials?.cargo?.length||0)+Math.ceil(nonnegative(p?.fieldCraft?.kit.remaining)/4)+n('rations')+n('potions')+Math.ceil(n('herbs')/4)+Math.ceil(n('food')/4)+Math.ceil(n('medicine')/4)+n('tools')+Math.ceil(n('mushroom')/2)+n('fish')+causewayCargoLoad(s,id),ownLoad=itemLoad+stackLoad,h=packContents(s,id).h,q=passenger&&s.people[h?.injuredPassenger],carried=q?.alive&&q.partyInjury?.stage==='supported'&&q.partyInjury.leader===id?8+packView(s,q.id,{passenger:false}).used:0,deadLoad=passenger?remainsPassengerLoad(s,id):0,used=ownLoad+carried+deadLoad;
  return {id:'pack/'+id,owner:id,capacity:PACK_CAPACITY,used,itemLoad,stackLoad,...(carried?{passengerLoad:carried}:{}),...(deadLoad?{remainsLoad:deadLoad}:{}),free:Math.max(0,PACK_CAPACITY-used),excess:Math.max(0,used-PACK_CAPACITY)};
 }
 export function fitsPack(s,id,options){return !containersOn(s)||packView(s,id,options).used<=PACK_CAPACITY;}

@@ -1,6 +1,6 @@
 export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится'};
 export const NPC_TASKS={
- socketService:'Работает с настоящим компонентом и сокетом',
+ causewayWork:'Устойчивая переправа',socketService:'Работает с настоящим компонентом и сокетом',
  inheritanceClaim:'Идёт за наследственным имуществом или обсуждает претензию',
  feastJoin:'Идёт на местный праздник по приглашению',
  literacyStudy:'Учится отдельному навыку письма и языка',textAloud:'Слушает доступного читателя',literacySell:'Предлагает свой непрочитанный экземпляр',

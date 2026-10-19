@@ -1,3 +1,4 @@
+import {npcCausewayPlan,causewayAction} from './causeway-actions.js';
 import {materialNPCTurn} from './local-material-actions.js';
 import {npcSocketPlan,socketMasterTurn,socketAction} from './socket-service.js';
 import {socketsOn} from './socket-state.js';
@@ -138,6 +139,7 @@ function plan(s,p,ctx){
   if(planAidRequest(s,p,ctx))return;
   if(homeBuildingNPCTask(s,p))return;
   const credit=npcCreditTask(s,p);if(credit){m.task=credit;return;}
+  const causeway=npcCausewayPlan(s,p);if(causeway){m.task=causeway;return;}
   const socket=npcSocketPlan(s,p);if(socket){m.task=socket;return;}
   const estateClaim=npcEstateClaimPlan(s,p);if(estateClaim){m.task=estateClaim;return;}
   const moneyCache=npcMoneyCachePlan(s,p);if(moneyCache){m.task=moneyCache;return;}
@@ -223,6 +225,7 @@ function moveTask(s,p,ctx){
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
   if(t.kind==='refugeSurvey'){const found=finishRefugeSurvey(s,p);tell(s,p,found?`${p.name} обследует участок: здесь есть родник и известное место сбора пищи.`:`${p.name} обследует участок, но надёжной воды не находит.`,ctx);m.task=t.home?{kind:'return',target:t.home,x:42,remaining:1}:null;m.due=s.tick+8;return;}
+  if(t.kind==='causewayWork'){causewayAction(s,p,t,ctx,{inTurn:true});m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='socketService'){socketAction(s,p,t);m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='inheritanceClaim'){estateClaimAction(s,p,t,ctx);m.task=null;m.due=s.tick+48;return;}
   if(t.kind==='moneyCache'){const amount=takeBuriedMoney(s,p,t.cache,8);if(amount)tell(s,p,`${p.name} забирает из известного тайника ◈${amount}.`,ctx);m.task=null;m.due=s.tick+48;return;}
@@ -352,6 +355,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='refitBench'&&!npcRefitWait(s,p))continue;
     if(p.agenda.task?.kind==='itemRepairBench'&&!npcItemRepairWait(s,p))continue;
     if(p.agenda.task?.ruin&&!ruinRecoveryOn(s))continue;
+    if(p.agenda.task?.kind==='causewayWork'&&!enabled(s,'causeways'))continue;
     if(p.agenda.task?.kind==='socketService'&&!socketsOn(s))continue;
     if(p.agenda.task?.kind==='inheritanceClaim'&&!estateClaimsOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;

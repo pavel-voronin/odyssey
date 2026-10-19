@@ -1,3 +1,4 @@
+import {causewayCargoLoad} from './causeway-state.js';
 import {carriedRemains} from './remains-mass.js';import {remainsCarryLoad} from './remains-carry-state.js';
 import {peopleCarryLoad,carryingPerson} from './people-carry-state.js';
 // A route gap is separate from each scene's physical exit/entrance. No reader creates one.
@@ -12,7 +13,7 @@ export function routeLoad(s,body,{cargoFood=0}={}){
  const corpse=carriedRemains(s,body.lineage||body.id);if(corpse)return remainsCarryLoad(s,s.people[body.lineage||body.id],corpse);const passenger=carryingPerson(s,body);if(passenger)return peopleCarryLoad(s,body,passenger);
  const id=body.lineage||body.id,h=body.lineage?body:s.actorStates?.[id],p=s.people?.[id],inventory=h?.inventory||p?.actorLink?.inventory||{},items=h?.bag||p?.looseItems||[];
  const pets=body.lineage?body.companions||[]:p?.pets||[],scale=Math.max(.5,Math.min(6,(s.areas[body.area]?.length||100)/100)),petCargo=pets.reduce((n,c)=>{const b=c.packCargo?.body;return n+(c.hp>0&&b?.area===body.area&&Math.abs(b.x-body.x)*scale<=2?(c.packCargo.items?.length||0):0);},0);
- return Math.max(0,(inventory.rations||0)+(inventory.herbs||0)*.1+(inventory.relics||0)*2+items.length+petCargo+Math.max(0,cargoFood)/4);
+ return Math.max(0,causewayCargoLoad(s,id)+(inventory.rations||0)+(inventory.herbs||0)*.1+(inventory.relics||0)*2+items.length+petCargo+Math.max(0,cargoFood)/4);
 }
 export function metricRate(metric,weather={speed:1,energy:1},load=0,stride=1){
  const burden=1+Math.min(1,Math.max(0,load)/30),terrain=terrainPace(metric.terrain);

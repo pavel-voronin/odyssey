@@ -1,3 +1,5 @@
+import {causewayPlan,causewayAction} from './modules/causeway-actions.js';
+import {causewayWorldTick} from './modules/causeway-world.js';
 import {initializeWoodBarrier} from './modules/mechanisms.js';
 import {materialWorldTick} from './modules/local-material-world.js';
 import {recollectionTick} from './modules/recollection-state.js';
@@ -505,6 +507,7 @@ function plan(s) {
   if(!q&&offer('textPlan',()=>textPlan(s,context(s,'texts'))))return planningSpent;
   if(!q&&offer('homeBuildingPlan',()=>homeBuildingPlan(s,context(s,'home-building'))))return planningSpent;
   if(!q&&offer('homePlan',()=>homePlan(s,context(s,'homes'))))return planningSpent;
+  if(!q&&offer('causewayPlan',()=>causewayPlan(s,context(s,'causeways'))))return planningSpent;
   if(!q&&offer('socketPlan',()=>socketPlan(s,context(s,'sockets'))))return planningSpent;
   if(!q&&offer('forgePlan',()=>forgePlan(s,context(s,'forging'))))return planningSpent;
   if(!q&&offer('refitPlan',()=>refitPlan(s,context(s,'knife-refit'))))return planningSpent;
@@ -789,7 +792,7 @@ function worldTick(s) {
   workOrdersTick(s,context(s,'work-orders'));
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   feastTick(s,context(s,'local-feasts'));
-  hostileLifeTick(s,context(s,'hostile-life'));rivalryTick(s);peopleTick(s,context(s,'people'));
+  hostileLifeTick(s,context(s,'hostile-life'));rivalryTick(s);peopleTick(s,context(s,'people'));causewayWorldTick(s);
   const localRemains=remainsByArea(s);migrationContactTick(s);
   npcPetsTick(s,context(s,'pet-transfer'));
   petBoardingWorldTick(s,context(s,'pet-passage'));
@@ -1111,6 +1114,7 @@ function actObserved(s) {
   else if(g.kind==='productionReview')execute('reviewProduction',()=>reviewProduction(s,context(s,'production-finance')));
   else if(g.kind==='productionFund')execute('fundProduction',()=>fundProduction(s,context(s,'production-finance')));
   else if(g.kind==='productionPayout')execute('collectProduction',()=>collectProduction(s,context(s,'production-finance')));
+  else if(g.kind==='causewayWork')execute('causewayAction',()=>{const ok=causewayAction(s,s.people[h.lineage],g,context(s,'causeways'));h.goal=null;return ok;});
   else if(g.kind==='socketService')execute('socketAction',()=>{const ok=socketAction(s,s.people[h.lineage],g);h.goal=null;return ok;});
   else if(g.kind==='inheritanceClaim')execute('estateClaimAction',()=>{const ok=estateClaimAction(s,s.people[h.lineage],g,context(s,'estate-claims'));h.goal=null;return ok;});
   else if (g.kind === 'moneyCache') execute('moneyCacheAction',()=>moneyCacheAction(s,context(s,'finances')));
