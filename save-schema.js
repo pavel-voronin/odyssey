@@ -1,3 +1,4 @@
+import {validateRemainsCycle,validateBurialTool} from './modules/remains-cycle-schema.js';
 import {validateCampMusic,validateMusicInstrument} from './modules/camp-music-schema.js';
 import {validateActionSelection} from './modules/action-selection-schema.js';
 import {validateCampTopics} from './modules/camp-topic-schema.js';
@@ -171,7 +172,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateTexts(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);
+ validateTexts(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateBuildingRuins(s,fail);
@@ -205,7 +206,7 @@ export function validateSave(s){
    fields(b,['version','id','deathId','source','stage','carrier','position','facing','death','loot'],key);fields(b.source,['kind','id'],key+'.source');fields(b.death,['tick','source','name','family','race','species','shape','role','traveller','facing','fallSide','appearance','anatomy','position','cause'],key+'.death');
    const d=b.death;integer(d.tick,key+'.death.tick');if(d.tick>s.tick||!['person','enemy','companion'].includes(b.source.kind)||typeof b.source.id!=='string'||b.id!==key||key!==`corpse:${b.source.kind}:${b.source.id}:${d.tick}`||b.deathId!==`death:${b.source.kind}:${b.source.id}:${d.tick}`||JSON.stringify(d.source)!==JSON.stringify(b.source))fail(key+'.identity');
    if(b.material)validateBodyMaterial(s,b,key+'.material');
-   if(!['fresh','trace'].includes(b.stage)||![-1,1].includes(b.facing)||![null,-1,1].includes(d.facing)||![-1,1].includes(d.fallSide))fail(key+'.stage');
+   if(!['fresh','trace','bones','buried','consumed'].includes(b.stage)||![-1,1].includes(b.facing)||![null,-1,1].includes(d.facing)||![-1,1].includes(d.fallSide))fail(key+'.stage');
    fields(d.anatomy,['form','stature','recorded'],key+'.anatomy');if(!(d.anatomy.stature>0))fail(key+'.anatomy.stature');position(b.position,key+'.position');position(d.position,key+'.death.position');if(d.position.kind==='carrier')fail(key+'.death.position');array(b.loot,key+'.loot');
    if(b.carrier!==null)fields(b.carrier,['kind','id'],key+'.carrier');for(const k of ['gold','items','inventory','equipment'])if(own(b,k))fail(key+'.'+k);
   }
@@ -416,6 +417,7 @@ export function validateSave(s){
   if(v!==s&&own(v,'version')&&!revisionRecords.has(v)&&v.version!==1)fail(path+'.version');
   if(v.durability)validateItemCondition(s,v,path+'.durability');
   if(v.kind==='bioMaterial'){if(v.base!=='wolf-fang'||v.id!==v.bioMaterial?.body+'/fang'||v.slot!=='material')fail(path+'.bioMaterial');validateMaterialOrigin(s,v.bioMaterial,path+'.bioMaterial');}
+  if(v.burialTool&&typeof v.burialTool==='object')validateBurialTool(s,v,fail,path);
   if(v.instrument&&typeof v.instrument==='object')validateMusicInstrument(s,v,fail,path);
   if(v.toolKind==='knife'&&v.refit){const r=v.refit;fields(r,['version','order','recipe','mode','master','finished','actions','limit','fee','material','before'],path+'.refit');if(!['edge','precision'].includes(r.mode)||r.recipe!=='knife-'+r.mode||!s.people[r.master]||![2,3].includes(r.limit)||![3,4].includes(r.actions)||r.fee!==12||v.base!=='blade'||v.power>r.limit)fail(path+'.refit');integer(r.finished,path+'.refit.finished');fields(r.material,['id','owner','source','sourceOwner','acquiredAt','price','state'],path+'.refit.material');if(r.material.state!=='consumed')fail(path+'.refit.material.state');fields(r.before,['name','power'],path+'.refit.before');finite(r.before.power,path+'.refit.before.power');}
   for(const [k,value]of Object.entries(v))inspect(value,path+'.'+k);

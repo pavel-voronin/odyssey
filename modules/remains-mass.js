@@ -1,4 +1,4 @@
 import {race} from '../content.js';
-export function remainsMass(b){if(!b?.death)return 0;const d=b.death,r=race(d.race||d.anatomy.form),height=(r?.height||1)*(d.anatomy.stature||1);return 8*height*height*(d.race==='automaton'?2:1);}
+export function remainsMass(b){if(!b?.death)return 0;const d=b.death,r=race(d.race||d.anatomy.form),height=(r?.height||1)*(d.anatomy.stature||1);const mass=8*height*height*(d.race==='automaton'?2:1),q=b.substance;if(q?.kind==='trace')return 0;if(q?.flesh.initial>0)return mass*(.7*q.flesh.remaining/q.flesh.initial+.3*(q.structure.initial?q.structure.remaining/q.structure.initial:0));if(b.stage==='bones'&&q?.structure.initial)return mass*.3*q.structure.remaining/q.structure.initial;return mass;}
 export function carriedRemains(s,id){const p=s.people?.[id],q=p?.remainsCarry,b=s.remains?.byId[q?.body];return q?.stage==='carrying'&&b?.carrier?.kind==='person'&&b.carrier.id===id?b:null;}
 export const remainsPassengerLoad=(s,id)=>remainsMass(carriedRemains(s,id));

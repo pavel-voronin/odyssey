@@ -4,7 +4,7 @@ export const ACTION_STATUSES=['ready','progressing','waiting','blocked','done','
 export function stateKey(value){const text=typeof value==='string'?value:JSON.stringify(value);let a=2166136261,b=2246822519;for(let i=0;i<text.length;i++){a=Math.imul(a^text.charCodeAt(i),16777619);b=Math.imul(b^text.charCodeAt(i),3266489917);}return (a>>>0).toString(16).padStart(8,'0')+(b>>>0).toString(16).padStart(8,'0');}
 export const executable=o=>o?.available!==false&&!['waiting','blocked','done','invalid'].includes(o?.status||o?.readiness?.status);
 export function availableAffairs(options){return options.filter(executable);}
-export function actionKey(g){return [g.quest||g.commitment||g.service||g.story||'personal',g.kind,g.area,g.object||g.person||g.property||g.job||''].join('/');}
+export function actionKey(g){return [g.quest||g.commitment||g.service||g.story||g.funeral||'personal',g.kind,g.area,g.object||g.person||g.property||g.job||g.body||''].join('/');}
 export function deferMethod(h,g,result,signature,tick){
  const m=h.actionSelection ||= {version:1,deferred:[],attempts:[],last:null};
  const key=actionKey(g),old=m.deferred.find(e=>e.key===key);if(old?.signature===signature&&old.reason===result.reason)return old;

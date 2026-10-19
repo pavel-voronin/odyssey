@@ -240,7 +240,8 @@ export class Scene {
       const remains=remainsView(s,o),ownBody=remains?.body?.source.kind==='person'&&remains.body.source.id===h.lineage&&!h.alive;
       if(remains&&!ownBody&&(beastMotion||remains.body)){
         const d=remains,track=this.beastTracks.tracks.get(d.actor)||{dead:true};
-        if(['wolf','dog'].includes(d.shape))this.quadruped(screenX(d.x),ground,quadrupedPose(track,beastMotion?phase:1),d.shape);
+        if(d.body?.stage==='bones')paintRemainsAt(this,s,d.body,screenX(d.x),ground);
+        else if(['wolf','dog'].includes(d.shape))this.quadruped(screenX(d.x),ground,quadrupedPose(track,beastMotion?phase:1),d.shape);
         else if(MOTION_SHAPES.includes(d.shape))this.formedCreature(screenX(d.x),ground,d.shape,creatureActionPose(d.shape,track,beastMotion?phase:1));
         else if(petShape({id:d.shape}))this.pet(screenX(d.x),ground,d.shape,d.direction||1,false,false,{...petMotion(d.shape,{dead:true,direction:d.direction},1,{animate:false}),dead:true});
         else {
@@ -295,7 +296,8 @@ export class Scene {
       if(o.kind==='practicePart'){c.fillStyle='#8e704e';c.fillRect(x-7,ground-4,14,4);c.fillStyle=o.state==='demonstration'?'#bec4b9':'#b49a6e';c.fillRect(x-4,ground-7,8,3);c.fillStyle='#4f5c53';c.fillRect(x-1,ground-6,2,3);}
       paintGuardianNode(c,s,a,o,screenX,ground);paintStoneCover(c,s,o,screenX,ground);
       if (o.kind === 'relic' && !o.taken) { c.shadowBlur = 16; c.shadowColor = '#c0daaa'; c.fillStyle = '#d1dfb0'; c.beginPath(); c.moveTo(x, ground - 22); c.lineTo(x + 7, ground - 11); c.lineTo(x, ground - 4); c.lineTo(x - 7, ground - 11); c.fill(); c.shadowBlur = 0; }
-      if (o.kind === 'grave'&&!ownBody&&!(remains&&(beastMotion||remains.body))) { this.castShadow(x,ground,10,17);c.fillStyle = '#8b9985'; c.fillRect(x - 5, ground - 17, 10, 17); c.fillStyle = '#394d38'; c.fillRect(x - 1, ground - 13, 2, 8); c.fillRect(x - 3, ground - 11, 6, 2); }
+      if(o.kind==='burialPit'){c.fillStyle='#272323';c.beginPath();c.ellipse(x,ground-1,9,3,0,0,Math.PI*2);c.fill();c.strokeStyle='#797063';c.stroke();}
+      if (o.kind === 'grave'&&(o.burial||!ownBody&&!(remains&&(beastMotion||remains.body)))) { this.castShadow(x,ground,10,17);c.fillStyle = '#8b9985'; c.fillRect(x - 5, ground - 17, 10, 17); c.fillStyle = '#394d38'; c.fillRect(x - 1, ground - 13, 2, 8); c.fillRect(x - 3, ground - 11, 6, 2); }
       if(o.kind==='story'&&(!o.resolved||o.sealRecord&&!o.destroyed&&o.state!=='burned')){c.fillStyle='#9caaae';c.fillRect(x-9,ground-24,18,24);c.strokeStyle='#d7c391';c.strokeRect(x-7,ground-22,14,12);if(o.sealRecord){c.beginPath();c.moveTo(x,ground-22);c.lineTo(x,ground-11);c.stroke();}c.fillStyle='#d7c391';c.font='12px monospace';c.textAlign='center';c.fillText(o.resolved?'≡':'!',x,ground-34);c.textAlign='left';}
       if(o.kind==='gate'){
         if(o.mode==='portal'||o.mode==='time'){c.strokeStyle=o.mode==='time'?'#dfc68f':'#b6aad1';c.lineWidth=3;c.beginPath();c.ellipse(x,ground-23,13,23,0,Math.PI,Math.PI*2);c.stroke();c.fillStyle=o.mode==='time'?'#b4a177':'#7777a4';c.globalAlpha=.5;c.fillRect(x-11,ground-22,22,21);c.globalAlpha=1;}
@@ -346,7 +348,7 @@ export class Scene {
       c.fillStyle='#e3e5d1';c.font='10px Georgia';const nameWidth=Math.min(c.measureText(other.name).width,120,viewportWidth-12),label=actorLabelPoint(px,ground,54*(s.rules?.lineage===false?1:race(other.race).height),{left:this.camera.scroll,width:viewportWidth,labelWidth:nameWidth});c.textAlign='center';c.fillText(other.name,label.x,label.y,nameWidth);c.textAlign='left';
     }
     canvas.dataset.detailedActors=String(detailedDrawn);
-    for(const b of Object.values(s.remains?.byId||{}))if(b.transport&&!b.carrier&&b.position.kind==='area'&&b.position.area===a.id&&!(!h.alive&&b.source.kind==='person'&&b.source.id===h.lineage)&&!a.objects.some(o=>o.remainsId===b.id||o.deathView?.remainsId===b.id))paintRemainsAt(this,s,b,screenX(b.position.x),ground);
+    for(const b of Object.values(s.remains?.byId||{}))if((b.transport||b.stage==='bones')&&!b.carrier&&b.position.kind==='area'&&b.position.area===a.id&&!(!h.alive&&b.source.kind==='person'&&b.source.id===h.lineage)&&!a.objects.some(o=>o.remainsId===b.id||o.deathView?.remainsId===b.id))paintRemainsAt(this,s,b,screenX(b.position.x),ground);
     if (!h.transit&&s.merchant.area === a.id) { const look=looks({id:'merchant-sava',role:'merchant'});this.person(screenX(58), ground, look?.cloak||'#867cac', false, -1, 0,false,false,look); c.fillStyle = '#957c58'; c.fillRect(screenX(58) + 12, ground - 13, 18, 13); c.strokeStyle = '#c3a982'; c.strokeRect(screenX(58) + 12, ground - 13, 18, 13); }
     if(h.transit&&['portal','time'].includes(h.transit.mode)){c.strokeStyle=h.transit.mode==='time'?'#d2b779':'#ac93cb';c.lineWidth=4;c.beginPath();c.ellipse(hx,ground-24,24,38,0,0,7);c.stroke();}
     const mount=riddenHorse(s,h);let horseCount=0;for(const m of horses(s)){if(m===mount)continue;const at=horsePosition(s,m);if(!h.transit&&at?.area===a.id){this.horse(screenX(at.x),ground,m,{direction:1,phase});horseCount++;}}canvas.dataset.horses=String(horseCount+(mount?1:0));
@@ -379,7 +381,9 @@ export class Scene {
     }else{
       const body=s.rules?.remains===false?null:bodyRemains(s,h),p=body?.position;
       const look=withLimbLook(body?{race:body.death.race,anatomy:body.death.anatomy}:s.people[h.lineage],body?.death.appearance||(s.rules?.appearance===false?h.appearance:heroAppearance(s)));
-      if(body?.carrier&&s.observation.focus?.kind==='remains')paintRemainsCarrier(this,s,body,hx,ground,phase);
+      if(body&&['buried','consumed'].includes(body.stage)){}
+      else if(body?.stage==='bones'&&!body.carrier&&p.kind==='area'&&p.area===a.id)paintRemainsAt(this,s,body,screenX(p.x),ground);
+      else if(body?.carrier&&s.observation.focus?.kind==='remains')paintRemainsCarrier(this,s,body,hx,ground,phase);
       else if(body?.transport&&!body.carrier&&p.kind==='area'&&p.area===a.id)paintRemainsAt(this,s,body,screenX(p.x),ground);
       else if(!body||!body.carrier&&p.kind==='area'&&p.area===a.id){
         c.save();c.translate(body?screenX(p.x):hx,ground);c.rotate((body?body.death.fallSide||1:(h.deathSnapshot?.x??h.x)>80?-1:1)*Math.PI*.5*fall);this.person(0,0,look?.cloak||'#8b8d73',body?Boolean(body.death.traveller):true,body?.facing||h.facing,0,false,false,look,body?corpseSpecies(s,body):s.rules?.lineage===false?null:race(h.race),{kind:'death',progress:fall});c.restore();

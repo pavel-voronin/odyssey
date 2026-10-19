@@ -1,3 +1,4 @@
+import {burialTurn} from './burial-work.js';
 import {remainsCarryTurn} from './remains-carry.js';
 import {libraryGuardTurn} from './library-security.js';
 import {libraryNPCTask,libraryNPCAction} from './libraries.js';
@@ -277,6 +278,7 @@ export function peopleTick(s,ctx){
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
     if(remainsCarryTurn(s,p,ctx))continue;
+    if(burialTurn(s,p,ctx))continue;
     if(libraryGuardTurn(s,p,ctx))continue;
     if((p.bodyCarry?.stage==='stopped'||p.remainsCarry?.stage==='dropped')&&p.roadStop&&advanceNPCRoadCamp(s,p,ctx))continue;
     if((p.bodyCarry?.stage==='stopped'||p.remainsCarry?.stage==='dropped')&&p.roadTransit){moveTask(s,p,ctx);continue;}

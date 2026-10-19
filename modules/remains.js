@@ -1,3 +1,4 @@
+import {initializeRemainsSubstance} from './remains-cycle-state.js';
 import {enabled} from '../rules.js';
 import {rootWorld} from '../world-ref.js';
 import {heroAppearance,personAppearance} from '../appearance.js';
@@ -39,7 +40,7 @@ export function recordRemains(s,subject,{kind,id,area,x,transit=null,anchor=null
       appearance:copy(look===undefined?(form==='human'?{cloak:subject.pacified?'#b2ba8a':'#a38b78'}:subject.appearance):look),
       anatomy:{form,stature:subject.role==='ребёнок'?.65:1,recorded:copy(subject.anatomy)},position:copy(at),cause:copy(cause)},
     loot:copy(loot)};
-  if(fresh)initializeBodyMaterial(s,body,subject);
+  if(fresh){initializeBodyMaterial(s,body,subject);initializeRemainsSubstance(s,body);}
   subject.remainsId=body.id;
   if(subject.deathView)subject.deathView.remainsId=body.id;
   if(anchor){anchor.remainsId=body.id;if(anchor.deathView)anchor.deathView.remainsId=body.id;}

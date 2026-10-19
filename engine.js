@@ -1,3 +1,6 @@
+import {remainsByArea} from './modules/remains-cycle-state.js';
+import {predatorCarrionTurn} from './modules/predator-carrion.js';
+import {burialPlan,burialAction,settleBurialWork} from './modules/burial-work.js';
 import {musicCamp,musicTick} from './modules/camp-music.js';
 import {birthMusic} from './modules/camp-music-state.js';
 import {PLANNER_ORDER} from './modules/goal-handlers.js';
@@ -7,7 +10,7 @@ import {goalReadiness,methodRevision,actionProgress} from './modules/goal-readin
 import {routeOpportunityPlan,routeOpportunityAction} from './modules/route-opportunities.js';
 import {ferryRouteBlocked} from './modules/ferry-refusals.js';
 import {remainsLocation} from './remains-position.js';import {focusOwnRemains} from './remains-observation.js';
-import {putDownRemains,settleRemainsCarriers} from './modules/remains-carry.js';
+import {observeBurialPlaces,putDownRemains,settleRemainsCarriers} from './modules/remains-carry.js';
 import {librarySecurityPlan,librarySecurityAction} from './modules/library-security.js';
 import {libraryPlan,libraryAction} from './modules/libraries.js';
 import {peopleCarryTurn,endPeopleCarry} from './modules/people-carry.js';
@@ -435,6 +438,7 @@ function plan(s) {
   if(!q&&offer('mapCopyPlan',()=>mapCopyPlan(s,context(s,'route-maps'))))return planningSpent;
   if(!q&&offer('studyBestiaryPlan',()=>studyBestiaryPlan(s,context(s,'bestiary'))))return planningSpent;
   if(offer('biomaterialPlan',()=>biomaterialPlan(s,context(s,'animal-materials'))))return planningSpent;
+  if(!q&&offer('burialPlan',()=>burialPlan(s,context(s,'remains-cycle'))))return planningSpent;
   if(offer('heroFieldCraftPlan',()=>heroFieldCraftPlan(s,context(s,'field-craft'),{study:false,urgent:Boolean(q?.deadline&&q.deadline-s.tick<16)})))return planningSpent;
   if(offer('itemRepairPlan',()=>itemRepairPlan(s,context(s,'item-wear'))))return planningSpent;
   if(!q&&offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'))))return planningSpent;
@@ -723,7 +727,7 @@ function worldTick(s) {
   patientsTick(s,context(s,'injured-party'));
   waitingPackPetsTick(s);
   leverTeamTick(s,context(s,'mechanisms'));
-  biomaterialTick(s);
+  biomaterialTick(s);settleBurialWork(s);
   goodsTick(s);
   lodgingTick(s);
   hallActivitiesTick(s,context(s,'hall-activities'));
@@ -738,7 +742,7 @@ function worldTick(s) {
   workshopDisputesTick(s,context(s,'workshop-dispute'));
   feastTick(s,context(s,'local-feasts'));
   hostileLifeTick(s,context(s,'hostile-life'));rivalryTick(s);peopleTick(s,context(s,'people'));
-  migrationContactTick(s);
+  const localRemains=remainsByArea(s);migrationContactTick(s);
   npcPetsTick(s,context(s,'pet-transfer'));
   petBoardingWorldTick(s,context(s,'pet-passage'));
   propertyGiftsTick(s,context(s,'property-gifts'));
@@ -761,6 +765,7 @@ function worldTick(s) {
   // Distant regions retain their identities. Only a small scheduled change is simulated.
   const activeFights=new Set(Object.values(s.actorStates).filter(h=>selfDrivenActor(s,h)&&h.combat).map(h=>h.combat));
   for (const a of Object.values(s.areas)) for (const o of a.objects) {
+    if(o.kind==='enemy'&&o.alive&&!o.resolved&&predatorCarrionTurn(s,a,o,{fighting:activeFights,bodies:localRemains.get(a.id)||[],log})){continue;}
     if (o.kind === 'enemy' && o.alive && !o.resolved && !s.people[o.person]?.hostileLife && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
       const beforeX=o.x;o.x += areaOffset(a,o.patrol*1.4);creatureTrace(s,a,o,beforeX);
       if (o.x < 29 || o.x > 83) o.patrol *= -1;
@@ -799,7 +804,7 @@ export function advanceWorld(s) {
   try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{syncHorse(view,h);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
- settleRemainsCarriers(s,context(s,'remains-carry'));syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
+ settleRemainsCarriers(s,context(s,'remains-carry'));settleBurialWork(s);syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);return s;
 }
 export const step=advanceWorld;
 export function createNextStory(s,{allowLiving=false}={}){
@@ -868,7 +873,7 @@ function actObserved(s) {
   observeScentPlants(s);
   observeNavigationBlockers(s,context(s,'navigation-memory'));
   observeBestiaryTraces(s,s.people[h.lineage],context(s,'bestiary'));
-  observeMaterials(s);
+  observeMaterials(s);observeBurialPlaces(s,s.people[h.lineage]);
   if(!enabled(s,'work-materials')&&h.goal?.kind==='serviceSupply')h.goal=null;
   if (h.goal?.kind === 'trade' && s.tick - (h.goal.started ?? s.tick) > 180) {
     h.memory.shopAfter = s.tick + 240; h.goal = null;
@@ -1007,6 +1012,7 @@ function actObserved(s) {
   else if(['refitMeet','refitMaterial','refitWork'].includes(g.kind))execute('refitAction',()=>refitAction(s,context(s,'knife-refit')));
   else if(['itemRepairMeet','itemRepairMaterial','itemRepairWork','itemGearSwap'].includes(g.kind))execute('itemRepairAction',()=>itemRepairAction(s,context(s,'item-wear')));
   else if(['bodyMaterial','bodyMaterialSale'].includes(g.kind))execute('biomaterialAction',()=>biomaterialAction(s,context(s,'animal-materials')));
+  else if(g.kind==='burialWork')execute('burialAction',()=>burialAction(s,context(s,'remains-cycle')));
   else if(g.kind==='materialWait')execute('materialClientAction',()=>materialClientAction(s));
   else if(['materialCollect','materialReturn'].includes(g.kind))execute('workMaterialDelivery',()=>workMaterialDelivery(s,s.people[h.lineage],context(s,'material-delivery')));
   else if(['toolInspect','toolLearn','toolFit','toolSupply','toolInstall'].includes(g.kind))execute('toolAction',()=>toolAction(s,context(s,'workshop-tools')));

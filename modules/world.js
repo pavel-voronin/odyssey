@@ -1,3 +1,4 @@
+import {initializePredator} from './predator-carrion.js';
 import { PROFESSIONS, DESTINIES, HABITS, CONDITIONS, ENEMY_SPECIES, ENEMY_POWERS, ITEM_BASES, ITEM_ORIGINS, ITEM_EPITHETS, ENCOUNTERS, PETS, FACTIONS, profession, destiny } from '../content.js';
 import { enabled } from '../rules.js';
 import { choose, clamp, hasHabit, hasCondition, profile, activePower, moral, repute } from './common.js';
@@ -31,5 +32,5 @@ export function composeEnemy(s,a,enemy,rng,fresh=false){
     enemy.maxHp = Math.ceil((species.hp + Math.min(60, a.depth * 2))*(enemy.boss?1.8:1)); enemy.hp = enemy.alive ? Math.max(1, Math.ceil(enemy.maxHp * ratio)) : 0;
     enemy.attack = Math.ceil((species.attack + Math.floor(Math.min(24, a.depth) / 3))*(enemy.boss?1.5:1));
     const danger=dangerMultiplier(s,a);enemy.maxHp=Math.ceil(enemy.maxHp*danger);enemy.hp=enemy.alive?Math.max(1,Math.ceil(enemy.maxHp*ratio)):0;enemy.attack=Math.ceil(enemy.attack*danger);
-    initializeEnemyTraits(s,a,enemy,fresh);
+    initializeEnemyTraits(s,a,enemy,fresh);if(fresh)initializePredator(s,a,enemy);
 }

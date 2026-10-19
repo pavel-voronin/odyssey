@@ -1,3 +1,4 @@
+import {substanceEvent} from './remains-cycle-state.js';
 import {physicalDistance} from '../geometry.js';
 import {rootWorld} from '../world-ref.js';
 import {setActorMoney} from '../actor-projection.js';
@@ -26,6 +27,7 @@ export function extractBodyMaterial(s,p,b,ctx){
  // never a second copy of the extracted material.
  const provenance={version:1,body:b.id,deathId:b.deathId,animal:b.source.id,animalName:b.death.name,species:'wolf',extractor:p.id,extractorName:p.name,extractedAt:s.tick};
  const item={id:m.id,kind:'bioMaterial',base:m.kind,name:BIO_MATERIAL.name,slot:'material',stat:'material',power:0,rarity:1,modifier:'plain',value:BIO_MATERIAL.price,found:s.tick,foundArea:at(s,p).area,creator:null,physical:{version:1,holder:{kind:'person',id:p.id},movedAt:s.tick},bioMaterial:provenance,history:[{tick:s.tick,text:`Извлечено: ${p.name}, из останков «${b.death.name}». Тот же клык; ${w.steps} рабочих действий.`}]};
+ if(b.substance&&!substanceEvent(s,b,'structure','extracted',1,{kind:'person',id:p.id}))return false;
  m.remaining=0;m.state='extracted';m.extracted={item:item.id,person:p.id,tick:s.tick,actions:w.steps};m.work=null;p.bioMaterialKnowledge ||= {};p.bioMaterialKnowledge[m.kind] ||= {source:body(s,p)?'profession/'+h.profession:'occupation/'+p.agenda.job,recordedAt:s.tick};
  if(h)ctx.receiveItem(s,ctx,null,item);else{npcLooseItems(s,p).push(item);actorItemLocation(s,item,p.id);}
  wearOwnedItem(s,t,p.id,'gather',b.id,ctx);ctx.log(s,`${p.name} извлекает один пригодный клык из ${b.death.name}. Другому сборщику он уже не достанется.`,'craft');return true;

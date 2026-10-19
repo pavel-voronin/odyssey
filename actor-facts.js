@@ -26,7 +26,7 @@ export function remainsView(s,o){
   const body=s.rules?.remains!==false&&bodyRemains(s,o);
   if(body){
     const p=body.position;
-    if(body.carrier||p.kind!=='area'||p.area!==s.hero.area||!['fresh','trace'].includes(body.stage))return null;
+    if(body.carrier||p.kind!=='area'||p.area!==s.hero.area||!['fresh','bones','trace'].includes(body.stage))return null;
     return {actor:o.deathView?.actor||(body.source.kind==='companion'?'party:'+body.source.id:body.source.id),
       shape:body.death.shape,x:p.x,direction:body.facing||1,body};
   }
