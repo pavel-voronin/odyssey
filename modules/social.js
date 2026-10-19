@@ -1,3 +1,4 @@
+import {remindPromises} from './recollection-contact.js';
 import {shareEstateKnowledge} from './estate-claim-state.js';
 import {supportedPatient} from './patient-state.js';
 import {custodyTrace} from './pet-custody-state.js';
@@ -28,6 +29,7 @@ export function initializeSocial(s,h){
   h.memory.npcNotes ||= {};
 }
 export function meetPerson(s,id,ctx,trust=1){
+  remindPromises(s,id,ctx);
   if(s.people[id]){shareEstateKnowledge(s,s.people[id],s.people[s.hero.lineage]);shareEstateKnowledge(s,s.people[s.hero.lineage],s.people[id]);}
   shareMoneyCacheAddresses(s,id,s.hero.lineage);shareMoneyCacheAddresses(s,s.hero.lineage,id);
   shareRouteMapReports(s,id,s.hero.lineage);shareRouteMapReports(s,s.hero.lineage,id);

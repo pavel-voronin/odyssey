@@ -1,3 +1,4 @@
+import {recollectionTick} from './modules/recollection-state.js';
 import {socketPlan,socketAction} from './modules/socket-service.js';
 import {estateClaimPlan,estateClaimAction} from './modules/estate-claims.js';
 import {harvestFailureTick} from './modules/harvest-failure.js';
@@ -884,6 +885,7 @@ function actObserved(s) {
   observeOwnCollection(s,context(s,'collections'));
   weatherTick(s,context(s,'weather'));
   propertyMemoryTick(s,context(s,'property-memory'));
+  recollectionTick(s,context(s,'recollection'));
   storyTick(s,context(s,'stories'));
   factionPathTick(s,context(s,'faction-paths'));
   questTick(s,context(s,'quests'));

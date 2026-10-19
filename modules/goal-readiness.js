@@ -1,3 +1,4 @@
+import {promiseRemembered} from './recollection-state.js';
 import {socketRevision} from './socket-service.js';
 import {estateRevision} from './estate-claims.js';
 import {ruinRevision} from './ruin-return.js';
@@ -31,7 +32,7 @@ export function goalReadiness(s,g,ctx,{memory=true}={}){
  if(!registeredGoal(g))return {status:'invalid',reason:'У шага нет зарегистрированного обработчика.'};
  if(h.transit||h.carriedBy||h.combat)return {status:'progressing',reason:'Начатое физическое действие сохраняет контроллер.'};
  if(!s.areas[g.area]||!Number.isFinite(g.x))return {status:'invalid',reason:'У шага нет действительного места.'};
- if(g.quest&&!h.quests.some(q=>q.id===g.quest&&q.status==='active'))return {status:'done',reason:'Дело уже завершено.'};
+ if(g.quest&&!h.quests.some(q=>q.id===g.quest&&q.status==='active'&&promiseRemembered(h,q)))return {status:'done',reason:'Дело уже завершено.'};
  if(g.area!==h.area&&!ctx.knownRoute(s,h.area,g.area).length)return blocked('Известного доступного пути к этому шагу пока нет.','personal-route');
  if(g.area!==h.area){const path=ctx.knownRoute(s,h.area,g.area),q=path[1]&&ferryRefusal(s,h.area,path[1]);if(q?.waitUntil>s.tick&&sameFerryRefusal(s,q))return {status:'waiting',until:q.waitUntil,retryOn:'local-boat'};}
  if((g.area!==h.area||physicalDistance(s.areas[h.area],h.x,g.x)>1)&&h.energy<=0)return blocked('Нет сил дойти до шага; нужна достижимая еда или восстановление на месте.','body-energy');

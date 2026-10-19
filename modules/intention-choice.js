@@ -1,3 +1,4 @@
+import {promiseRemembered} from './recollection-state.js';
 import {enabled} from '../rules.js';
 import {valueRevisionBias} from './value-revision.js';
 import {profile} from './common.js';
@@ -5,6 +6,7 @@ import {questServiceBlocked} from './service-access.js';
 import {reentryReason} from './delve-attempts.js';
 import {AFFAIR_POLICY,stableAffairChoice} from './affair-choice.js';
 export function questChoiceAvailable(s,q){
+ if(!promiseRemembered(s.hero,q))return false;
  if(questServiceBlocked(s,q))return false;
  if(q.dungeonRescue?.version!==1||q.dungeonRescue.stage!=='captive')return true;
  const r=s.hero.delveMemory?.places[q.target];

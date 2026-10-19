@@ -1,3 +1,4 @@
+import {restoreCacheKnowledge} from './recollection-state.js';
 import {enabled} from '../rules.js';
 import {knownArea} from '../actor-atlas.js';
 import {physicalDistance} from '../geometry.js';
@@ -13,14 +14,14 @@ function remember(s,p,cache,area,source,from){
  const m=memory(p);let note=m.places.find(n=>n.id===cache.id);
  if(!note){note={id:cache.id};m.places.push(note);}
  Object.assign(note,{area:area.id,x:cache.x,owner:cache.moneyCache.owner,seen:s.tick,source,from});
- if(m.places.length>16)m.places.shift();return note;
+ if(m.places.length>16)m.places.shift();restoreCacheKnowledge(s,p,cache.id,from);return note;
 }
 function ready(s,p){const b=p&&body(s,p);return on(s)&&p?.alive&&b&&!p.needs?.sleeping&&!partyBodySpent(s,p)?b:null;}
 function localCache(s,p,id){const b=ready(s,p),note=p?.moneyCaches?.places.find(n=>n.id===id);if(!b||!note||b.area!==note.area||physicalDistance(s.areas[b.area],b.x,note.x)>9)return null;return s.areas[b.area].objects.find(o=>o.id===id&&o.kind==='buriedMoney'&&o.x===note.x)||null;}
 export function shareMoneyCacheAddresses(s,from,to){
  if(!on(s)||from===to)return 0;const p=s.people[from],q=s.people[to],a=p&&body(s,p),b=q&&body(s,q);
  if(!p?.alive||!q?.alive||p.needs?.sleeping||q.needs?.sleeping||!a||!b||a.area!==b.area||physicalDistance(s.areas[a.area],a.x,b.x)>12)return 0;
- let count=0;for(const n of p.moneyCaches?.places||[]){if(n.owner===from&&(p.agenda?.bonds?.[to]??s.actorStates[from]?.relations?.[to]?.trust??0)<9||q.moneyCaches?.places.some(k=>k.id===n.id))continue;const m=memory(q);m.places.push({...n,seen:s.tick,source:'contact',from});if(m.places.length>16)m.places.shift();count++;}return count;
+ let count=0;for(const n of p.moneyCaches?.places||[]){if(n.owner===from&&(p.agenda?.bonds?.[to]??s.actorStates[from]?.relations?.[to]?.trust??0)<9||q.moneyCaches?.places.some(k=>k.id===n.id))continue;const m=memory(q);m.places.push({...n,seen:s.tick,source:'contact',from});if(m.places.length>16)m.places.shift();restoreCacheKnowledge(s,q,n.id,from);count++;}return count;
 }
 export function buryMoney(s,p,amount){
  const b=ready(s,p);if(!b||!Number.isSafeInteger(amount)||amount<=0||amount>funds(s,p))return null;

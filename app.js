@@ -1,3 +1,5 @@
+import {recollectionHTML} from './recollection-sheet.js';
+import {promiseRemembered} from './modules/recollection-state.js';
 import {estateClaimHTML} from './estate-claim-sheet.js';
 import {ruinReturnHTML} from './ruin-return-sheet.js';
 import {harvestFailureHTML} from './harvest-failure-sheet.js';
@@ -209,6 +211,7 @@ function detail() {
     $('detail-panel').innerHTML = `<p class="empty">Переключатели меняют правила мира без тика. Накопленные данные сохраняются. Основные контракты времени, состояния и геометрии действуют всегда.</p>${MODULES.map(m=>`<section class="module-row"><div><b>${escape(m.name)}</b><button data-module="${m.id}" aria-pressed="${enabled(state,m.id)}">${enabled(state,m.id) ? 'Вкл.' : 'Выкл.'}</button></div><p>${escape(m.description)}</p><details><summary>${escape(m.contract)}</summary><p>Точки взаимодействия: ${m.hooks.map(escape).join(', ')}.</p><p>Владеет: ${m.owns.map(escape).join(', ')}.</p><p>Читает: ${m.reads.map(escape).join(', ')}.</p></details></section>`).join('')}<p class="detail-label">БАЗОВЫЕ КОНТРАКТЫ</p>${Object.entries(BASE_CONTRACTS).map(([id,text])=>`<div class="habit"><b>${escape(id)}</b><p>${escape(text)}</p></div>`).join('')}`;
   } else if (tab === 'quests') {
     $('detail-panel').innerHTML = h.quests.length ? h.quests.map(q => {
+      if(!promiseRemembered(h,q))return '<div class="quest"><b>Оборванное воспоминание</b><p>Он помнит, что кому-то что-то обещал, но подробности ускользают. Встреча с тем, кто слышал обещание, может напомнить их.</p></div>';
       const done = q.status === 'done';
       const progress=questProgress(state,q);
       return `<div class="quest ${done?'done':''}"><b>${escape(q.title||QUEST_NAMES[q.kind]||'Обещание')}</b><p>${escape(state.areas[q.source]?.name||'Неизвестно')} → ${escape(state.areas[q.target]?.name||'Неизвестно')}</p><p>${escape(q.cause||'Помочь жителям.')}</p><span>${done?'✓ Выполнено':['failed','abandoned'].includes(q.status)?escape(q.failure||'История оборвалась'):`Прогресс ${progress} / ${q.required||1}`} · ${q.reward} зол.${q.deadline&&q.status==='active'?' · осталось '+elapsedLabel(Math.max(0,q.deadline-state.tick)):''}</span></div>`;
@@ -246,7 +249,7 @@ function enrichSheet(){
   if(tab==='quests'&&state.hero.actorMode!=='npc')$('detail-panel').insertAdjacentHTML('afterbegin',materialDeliveriesHTML(state,state.people[state.hero.lineage],escape));
   if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape)+petPassageHTML(state,escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',petPassageHTML(state,escape)+packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
-  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',estateClaimHTML(state,escape)+ruinReturnHTML(state,escape)+harvestFailureHTML(state)+neighborHousingHTML(state,escape)+dwellingHTML(state,escape));
+  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',recollectionHTML(state)+estateClaimHTML(state,escape)+ruinReturnHTML(state,escape)+harvestFailureHTML(state)+neighborHousingHTML(state,escape)+dwellingHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));

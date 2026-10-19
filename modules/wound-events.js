@@ -1,3 +1,4 @@
+import {memoryDamage} from './recollection-state.js';
 import {recordFracture,fractureImpairment} from './fracture-state.js';
 import {recordLimbLoss} from './limb-events.js';
 import {enabled} from '../rules.js';
@@ -5,7 +6,7 @@ import {armorCoverage} from './armor.js';
 import {woundActor,woundParts} from './wound-state.js';
 const hash=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;return n;};
 // Receipts follow the one canonical HP debit. This function never deals damage.
-export function recordLocalWound(s,p,enemy,{before,after,maximum,area,controller='combat',scarPart=null,tick=s.tick,physical=true}){
+export function recordLocalWound(s,p,enemy,{before,after,maximum,area,controller='combat',scarPart=null,tick=s.tick,physical=true},ctx){
  if(!enabled(s,'local-wounds')||tick!==s.tick||!physical||!p?.alive||s.people[p.id]!==p||!s.areas[area]?.objects.includes(enemy)||!enemy?.alive||!enemy?.id||![before,after,maximum].every(Number.isFinite)||maximum<=0||before>maximum||after<0||after>=before)return null;
  const h=woundActor(s,p),party=s.hero.companions.some(c=>c.person===p.id);if((h?h.hp:p.health)!==after||(h?h.area:party?s.hero.area:p.area)!==area)return null;
  const channel=enemy.positionAttack?['shard','melee'].includes(enemy.positionAttack.last?.kind):!['ghost','spirit'].includes(enemy.species);
@@ -25,5 +26,5 @@ export function recordLocalWound(s,p,enemy,{before,after,maximum,area,controller
  if(w){w.effectBefore=w.lastHit===s.tick?w.effectBefore:Math.max(w.severity/3*(1-w.function/100),fractureImpairment(s,w));w.severity=Math.min(3,w.severity+severity);w.closure=cut?0:100;w.function=Math.min(w.function,25);w.lastHit=s.tick;w.lastCause=cause;w.bleed=cut?8:0;if(w.dressing)w.dressing.remaining=0;}
  else {w={id:++state.serial,part,label,role,kind,severity,closure:cut?0:100,function:0,bleed:cut?8:0,lastHit:s.tick,effectBefore:0,firstCause:cause,lastCause:cause};state.active.push(w);}
  (s.woundClock ||= {version:1,active:[]}).active.includes(p.id)||s.woundClock.active.push(p.id);
- recordLimbLoss(s,p,w,cause);recordFracture(s,p,w,cause,enemy);return w;
+ recordLimbLoss(s,p,w,cause);recordFracture(s,p,w,cause,enemy);memoryDamage(s,p,w,ctx);return w;
 }

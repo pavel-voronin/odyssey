@@ -1,3 +1,4 @@
+import {promiseRemembered,forgetOldPromise} from './recollection-state.js';
 import {knownArea} from '../actor-atlas.js';
 import {scentPlantKnown} from './pet-scent-policy.js';
 import {recordValueOutcome,promiseBreachChance} from './value-revision.js';
@@ -16,7 +17,7 @@ import {planDungeonRescue,finishDungeonRescue} from './rescue-plan.js';
 export const QUEST_NAMES={wolves:'Устранить опасность',herbs:'Травы для лекаря',relic:'Реликвия из старого мира',delivery:'Доставить письмо',supply:'Привезти припасы',medicine:'Помочь заболевшему',scout:'Проверить неизвестный путь',rescue:'Вернуть пропавшего'};
 export function currentQuest(h,s){
   if(h.ruleFlags?.quests===false)return null;
-  const active=h.quests.filter(q=>q.status==='active'&&(!s||questChoiceAvailable(s,q)));
+  const active=h.quests.filter(q=>q.status==='active'&&promiseRemembered(h,q)&&(!s||questChoiceAvailable(s,q)));
   if(!s)return active.find(q=>q.id===h.goal?.quest)||active[0];
   if(enabled(s,'intention-balance'))return chooseQuest(s,active,q=>questReady(s,q))?.q||null;
   const priority=q=>score(s,q,h.career.path==='peaceful')+(questReady(s,q)?12:0)+(h.area===(questReady(s,q)?q.source:q.target)?10:0)+(q.deadline?Math.max(0,8-(q.deadline-s.tick)/40):0)-(s.tick-q.accepted)/350;
@@ -99,7 +100,7 @@ export function civilianQuestPlan(s,ctx){
   h.social.lastCivilQuestWork=work;ctx.goal(s,'talk',town.id,42,'Выслушать нужды знакомых','После обычной работы герой хочет помочь семье или соседям.',{peaceful:true});return true;
 }
 export function planQuest(s,q,ctx){
-  if(questServiceBlocked(s,q))return;
+  if(!promiseRemembered(s.hero,q)||questServiceBlocked(s,q))return;
   if(enabled(s,'intention-balance')){const original=ctx;ctx={...original,goal:(...args)=>{original.goal(...args);adoptQuestPlan(s,q);}};}
   const h=s.hero,target=s.areas[q.target];if(!target){failQuest(s,q,ctx,'Путь к цели утрачен.');return;}
   if(questReady(s,q)){ctx.goal(s,'turnin',q.source,42,'Вернуться с выполненным обещанием',q.cause||'Дело сделано. Теперь нужно вернуться.',{quest:q.id});return;}
@@ -119,7 +120,7 @@ export function planQuest(s,q,ctx){
 export function failQuest(s,q,ctx,reason){
   if(q.status!=='active')return;
   q.status='failed';q.failed=s.tick;q.failure=reason;
-  hCleanup(s,q);if(!enabled(s,'intention-balance')||s.hero.goal?.quest===q.id)s.hero.goal=null;ctx.log(s,`Дело «${q.title||QUEST_NAMES[q.kind]||'Обещание'}» не удалось: ${reason}`,'quest-failed');
+  if(promiseRemembered(s.hero,q))hCleanup(s,q);if(!enabled(s,'intention-balance')||s.hero.goal?.quest===q.id)s.hero.goal=null;ctx.log(s,`Дело «${q.title||QUEST_NAMES[q.kind]||'Обещание'}» не удалось: ${reason}`,'quest-failed');
 }
 function hCleanup(s,q){
  if(s.hero.questCargo)delete s.hero.questCargo[q.id];
@@ -140,8 +141,8 @@ export function abandonQuest(s,q,ctx,reason=OLD_ABANDON_REASON,{retainCargo=fals
 export function questTick(s,ctx){
   if(!enabled(s,'quests'))return;
   for(const q of s.hero.quests.filter(q=>q.status==='active')){
-    if(s.tick-q.accepted>1800&&!questReady(s,q)){
-      abandonQuest(s,q,ctx);continue;
+    if(s.tick-(q.recalledAt??q.accepted)>1800&&!questReady(s,q)&&promiseRemembered(s.hero,q)){
+      if(enabled(s,'recollection'))forgetOldPromise(s,q,ctx);else{abandonQuest(s,q,ctx);continue;}
     }
     if(q.kind==='medicine'&&s.people[q.person]?.alive&&!s.people[q.person].ailment&&s.people[q.person].health>=(s.people[q.person].maxHealth||100)*.85){failQuest(s,q,ctx,'Житель уже выздоровел. Прежняя нужда исчезла.');continue;}
     if(q.deadline&&s.tick>q.deadline)failQuest(s,q,ctx,'Срок истёк. Мир успел измениться.');
@@ -150,7 +151,7 @@ export function questTick(s,ctx){
   }
 }
 export function questAction(s,q,ctx){
-  if(!q||q.status!=='active'){s.hero.goal=null;return;}
+  if(!q||q.status!=='active'||!promiseRemembered(s.hero,q)){s.hero.goal=null;return;}
   if(isDungeonRescue(q)){s.hero.goal=null;return;}
   const h=s.hero,a=s.areas[h.area];h.lastAction='talk';
   if(q.kind==='delivery'){
@@ -177,7 +178,7 @@ export function questAction(s,q,ctx){
   h.goal=null;
 }
 export function finishQuest(s,q,ctx){
-  const h=s.hero;if(!q||q.status!=='active'||!questReady(s,q)){h.goal=null;return;}
+  const h=s.hero;if(!q||q.status!=='active'||!promiseRemembered(h,q)||!questReady(s,q)){h.goal=null;return;}
   if(isDungeonRescue(q)){finishDungeonRescue(s,q,ctx);return;}
   if(q.kind==='medicine'){
     const patient=s.people[q.person];

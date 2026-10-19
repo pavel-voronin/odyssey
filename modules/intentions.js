@@ -1,3 +1,4 @@
+import {promiseRemembered} from './recollection-state.js';
 import {shipRecoveryAvailable} from './ship-recovery-state.js';
 import {navigationAvailable} from './navigation-memory.js';
 import {enabled} from '../rules.js';
@@ -19,7 +20,7 @@ function localPerson(s,p){return p?.area===s.hero.area&&Number.isFinite(p.x)&&di
 // Ephemeral references to canonical affairs, never another quest/inventory registry.
 export function knownAffairs(s){
  const h=s.hero,affairs=[];
- if(enabled(s,'quests'))for(const q of h.quests)if(q.status==='active')affairs.push({domain:'quest',id:q.id,title:q.title||q.kind,urgency:q.deadline?Math.max(0,80-(q.deadline-s.tick)):0});
+ if(enabled(s,'quests'))for(const q of h.quests)if(q.status==='active'&&promiseRemembered(h,q))affairs.push({domain:'quest',id:q.id,title:q.title||q.kind,urgency:q.deadline?Math.max(0,80-(q.deadline-s.tick)):0});
  if(enabled(s,'commitments')&&h.commitments?.personal?.status==='active')affairs.push({domain:'commitment',id:h.commitments.personal.cause,title:'Подготовиться после прежнего опыта',urgency:0});
  if(h.hp<h.maxHp*Math.max(.55,.35+(1-h.personality.courage)*.28))affairs.push({domain:'need',id:'health',title:'Позаботиться о ранах',urgency:100});
  if(h.energy<30)affairs.push({domain:'need',id:'rest',title:'Восстановить силы',urgency:100});
@@ -80,7 +81,7 @@ export function relevantSuspension(s,saved,ctx){
  const h=s.hero,g=saved.action,a=s.areas[g.area];if(!a||!knownArea(s,a))return 'Прежний путь больше не известен.';
  if(g.intention&&h.intentions?.current?.id!==g.intention)return 'Прежнее срочное вмешательство уже завершилось или было отложено. Нужен новый выбор по нынешним обстоятельствам.';
  if((h.memory.avoided[g.area]||0)>s.tick)return 'После опасности он пока избегает прежнего места.';
- if(g.quest){const q=h.quests.find(q=>q.id===g.quest);if(!enabled(s,'quests')||q?.status!=='active')return 'Прежнее обещание больше не действует.';if(questReady(s,q))return 'Для прежнего обещания уже достаточно собранного; нужен новый план.';}
+ if(g.quest){const q=h.quests.find(q=>q.id===g.quest);if(!enabled(s,'quests')||q?.status!=='active'||!promiseRemembered(h,q))return 'Прежнее обещание больше не действует.';if(questReady(s,q))return 'Для прежнего обещания уже достаточно собранного; нужен новый план.';}
  if(g.kind==='forage'){
   if(!enabled(s,'supply'))return 'Сбор сейчас отключён.';
   if(h.hunger<30&&h.inventory.rations>=3)return 'Еда уже есть в сумке. Прежний сбор больше не нужен.';

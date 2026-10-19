@@ -1,3 +1,4 @@
+import {promiseRemembered} from './recollection-state.js';
 import {enabled} from '../rules.js';
 import {currentQuest,questReady,abandonQuest} from './quests.js';
 import {choiceState,chooseQuest,parkQuestPlan,parkPersonalPlan,CHOICE_POLICY} from './intention-choice.js';
@@ -8,7 +9,7 @@ import {questServiceReason} from './service-access.js';
 function signals(s,active){const h=s.hero;return JSON.stringify([h.area,s.graphRevision,h.atlas?.known.length,h.atlas?.roads.length,Object.entries(h.memory.avoided).filter(([,until])=>until>s.tick),Object.keys(h.memory.rejected||{}).map(id=>[id,areaAvoided(s,id)]),active.map(q=>[q.id,q.source,q.target,questReady(s,q)])]);}
 export function balanceIntentions(s,ctx){
  if(!enabled(s,'intention-balance')||!enabled(s,'quests'))return;
- const h=s.hero,active=h.quests.filter(q=>q.status==='active');if(!active.length&&!h.intentions?.balance)return;
+ const h=s.hero,active=h.quests.filter(q=>q.status==='active'&&promiseRemembered(h,q));if(!active.length&&!h.intentions?.balance)return;
  if(h.combat||h.transit||h.goal?.intention||h.goal?.poisonCare||h.hp<h.maxHp*(.35+(1-h.personality.courage)*.28)||h.energy<23||enabled(s,'body')&&h.hunger>75||partyDemand(s))return;
  const state=choiceState(h),ids=new Set(active.map(q=>q.id));
  const refused=h.personality.generosity<.35&&active.find(q=>(h.relations[q.giver]?.trust||0)<=-40&&!['rescue','medicine'].includes(q.kind)&&!questReady(s,q));
