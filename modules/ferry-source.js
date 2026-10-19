@@ -1,3 +1,4 @@
+import {loadFerryCargo} from './ferry-cargo.js';
 import {ferryOn,FERRY_SEATS,FERRY_CAPACITY} from './ferry-state.js';
 import {takeGoods} from './goods.js';
 // One finite, pre-existing port business in a new world's initial population.
@@ -10,6 +11,8 @@ export function createPortFerry(s,ctx){
  const docks={};for(const port of [a,b]){const dock={id:'dock/'+id+'/'+port.id,kind:'ferryDock',ship:id,name:'Причал парома',x:50,hp:12,maxHp:12};port.objects.push(dock);docks[port.id]=dock.id;}
  const geometry={version:1,layer:a.spatial.layer,from:{...west.berth},to:{...east.berth}};
  s.ferry={version:1,id,name:'Два берега',owner:captain.id,captain:captain.id,deck,ports:[a.id,b.id],docks,phase:'docked',port:a.id,from:a.id,to:b.id,departure:s.tick+3,voyage:0,distance:Math.round(Math.hypot(east.berth.x-west.berth.x,east.berth.y-west.berth.y)),travelled:0,speed:13,lastTick:s.tick,hull:80,maxHull:80,food:8,seats:FERRY_SEATS,capacity:FERRY_CAPACITY,rigging:1,pause:0,eventDone:false,geometry,passengers:{},history:[],source:{kind:'port-constructor',person:captain.id,area:a.id,at:s.tick,foodBefore,foodAfter:a.civic.food,toolsBefore,toolsAfter:a.civic.tools}};
+ loadFerryCargo(s,8,{kind:'constructor',area:a.id,before:foodBefore,after:a.civic.food});
+ if(s.ferry.cargo){(captain.skillPractice ||= {}).sailing={operations:[],total:0,method:{id:'check-cargo-lashing',origin:'role',learnedAt:s.tick,source:['port-captain/'+id]}};}
  captain.ferryDuty={version:1,ship:id,at:s.tick};captain.area=deck;captain.x=74;captain.agenda.task=null;
  ctx.connect(s,a.id,b.id,{mode:'sea',duration:10,cost:6,ferry:id});return true;
 }

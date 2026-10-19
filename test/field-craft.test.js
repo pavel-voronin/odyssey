@@ -10,7 +10,7 @@ import {peopleTick} from '../modules/people.js';import {collectionItems} from '.
 function learn(f){for(let i=0;i<3;i++){f.s.tick++;assert.equal(studyFieldCraft(f.s,f.p,'field-maintenance',ctx),true);}}
 function serve(f,item=f.knife){for(let i=0;i<(f.p.fieldCraft.efficient?2:3);i++){f.s.tick++;assert.equal(serviceFieldKnife(f.s,f.p,item,ctx),true);}}
 test('finite acyclic tree needs both existing methods and own confirmed actions, query is pure and each missing half blocks',()=>{
- const f=fieldFixture(),{s,p}=f;assert.equal(acyclicSkillTree(),true);assert.equal(SKILL_TREE.length,6);assert.equal(acyclicSkillTree([{id:'a',requires:['b']},{id:'b',requires:['a']}]),false);const before=serialize(s);assert.equal(fieldCraftNodes(s,p.id).find(n=>n.id==='field-maintenance').available,true);assert.equal(serialize(s),before);
+ const f=fieldFixture(),{s,p}=f;assert.equal(acyclicSkillTree(),true);assert.equal(SKILL_TREE.length,7);assert.equal(acyclicSkillTree([{id:'a',requires:['b']},{id:'b',requires:['a']}]),false);const before=serialize(s);assert.equal(fieldCraftNodes(s,p.id).find(n=>n.id==='field-maintenance').available,true);assert.equal(serialize(s),before);
  for(const branch of ['aid','craft']){const state=p.skillPractice[branch],method=state.method;delete state.method;assert.equal(fieldCraftNodes(s,p.id).find(n=>n.id==='field-maintenance').available,false);state.method=method;}const ops=p.skillPractice.aid.operations;p.skillPractice.aid.operations=[];assert.equal(fieldCraftNodes(s,p.id).find(n=>n.id==='field-maintenance').available,false);p.skillPractice.aid.operations=ops;
 });
 test('three actual lessons spend one herb and one owned tool, then a finite field part restores only the same manufactured knife',()=>{

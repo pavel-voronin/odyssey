@@ -1,3 +1,4 @@
+import {validateFerryCargo} from './modules/ferry-cargo-schema.js';
 import {validateTracking} from './modules/tracking-schema.js';
 import {validateRemainsCycle,validateBurialTool} from './modules/remains-cycle-schema.js';
 import {validateCampMusic,validateMusicInstrument} from './modules/camp-music-schema.js';
@@ -119,7 +120,7 @@ function validateClothingItem(s,i){if(!own(i,'clothing'))return;const c=i.clothi
 function validateClothingCare(s,h){if(!own(h,'clothingCare'))return;const q=h.clothingCare,key=(h.lineage||'actor')+'.clothingCare';fields(q,['version','serial','checked','lastActionTick','history'],key);integer(q.serial,key+'.serial');integer(q.lastActionTick,key+'.lastActionTick',-1);array(q.history,key+'.history');if(q.version!==1||q.lastActionTick>s.tick||q.checked!==null&&typeof q.checked!=='string'||q.history.length>8)fail(key);for(const e of q.history){fields(e,['tick','kind','item','area','amount','reason'],key+'.event');integer(e.tick,key+'.event.tick');integer(e.amount,key+'.event.amount');if(e.tick>s.tick||!['bought','sold','declined'].includes(e.kind)||e.item!==null&&typeof e.item!=='string'||!s.areas[e.area]||typeof e.reason!=='string')fail(key+'.event');}}
 function validateNavigationItem(s,i,holder){
  if(!own(i,'rope'))return;const r=i.rope,key='navigation.rope.'+i.id;fields(r,['version','length','instructions','source','uses'],key);array(r.uses,key);const c=r.source;fields(c,['kind','area','at','before','after'],key+'.source');for(const k of ['at','before','after'])integer(c[k],key+'.source.'+k);if(i.kind!=='fieldTool'||i.base!=='rope'||i.slot!=='tool'||r.version!==1||r.length!==24||typeof r.instructions!=='string'||c.kind!=='merchant-stock'||!s.areas[c.area]||c.at>s.tick||c.before-c.after!==1||c.before<1||r.uses.length>8)fail(key);
- let last=-1;for(const u of r.uses){fields(u,['tick','kind','area','actor'],key+'.use');integer(u.tick,key+'.use.tick');if(u.tick<last||u.tick>s.tick||!['anchor','descent','pull'].includes(u.kind)||!s.areas[u.area]||!s.people[u.actor]||u.kind==='pull'&&!s.people[u.person])fail(key+'.use');last=u.tick;}
+ let last=-1;for(const u of r.uses){fields(u,['tick','kind','area','actor'],key+'.use');integer(u.tick,key+'.use.tick');if(u.tick<last||u.tick>s.tick||!['anchor','descent','pull','cargo'].includes(u.kind)||!s.areas[u.area]||!s.people[u.actor]||u.kind==='pull'&&!s.people[u.person]||u.kind==='cargo'&&u.cargo!==s.ferry?.cargo?.id)fail(key+'.use');last=u.tick;}
  if(own(r,'attached')){const b=r.attached;fields(b,['anchor','owner','at','progress'],key+'.attached');integer(b.at,key+'.at');const o=s.areas[holder.area]?.objects.find(o=>o.id===b.anchor);if(holder.kind!=='cache'||holder.object!==b.anchor||!o||o.kind!=='descent'||o.owner!==b.owner||!s.people[b.owner]||b.at>s.tick||![1,2].includes(b.progress))fail(key+'.attached');}
 }
 function validateNavigationPeople(s){
@@ -179,7 +180,7 @@ export function validateSave(s){
  validateTracking(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateFerry(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);

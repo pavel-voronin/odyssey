@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {profession} from '../content.js';
 
 export const SKILL_METHODS={
+ sailing:{name:'Судовое дело',method:'check-cargo-lashing',label:'Проверка крепления груза',threshold:2},
  tracking:{name:'Чтение следов',method:'read-trail-direction',label:'Направление настоящего следа',threshold:2},
  craft:{name:'Ремесло',method:'fit-working-part',label:'Подгонка рабочей детали',threshold:3},
  aid:{name:'Полевая помощь',method:'field-dressing',label:'Полевая повязка',threshold:3},
@@ -84,4 +85,10 @@ export function recordPracticalTracking(s,p,note){
  if(!p?.tracking?.notes.includes(note)||note.confirmedAt!==s.tick||note.studiedAt>=s.tick||note.quality!=='fresh')return null;
  const state=practicalSkill(s,p.id,'tracking');if(state?.method||state?.operations.some(e=>e.source===note.source.id))return null;
  note.tick=s.tick;return credit(s,p.id,'tracking',note,{source:note.source.id,trace:note.trace,studiedAt:note.studiedAt});
+}
+
+export function recordPracticalSailing(s,event){
+ if(!s.ferry?.cargo?.operations.includes(event)||event.status!=='departed'||event.voyage!==s.ferry.voyage||event.confirmedBy!==s.ferry.captain)return null;
+ const old=practicalSkill(s,event.actor,'sailing');if(old?.method||old?.operations.some(e=>e.ship===event.ship&&e.voyage===event.voyage))return null;
+ return credit(s,event.actor,'sailing',event,{ship:event.ship,voyage:event.voyage,batch:event.batch,rope:event.rope,securedAt:event.securedAt,confirmedBy:event.confirmedBy});
 }
