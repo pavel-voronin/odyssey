@@ -1,4 +1,6 @@
+import {validateFerryRefusals} from './ferry-refusals.js';
 export function validateFerry(s,fail){
+ validateFerryRefusals(s,fail);
  const f=s.ferry;if(!f){for(const p of Object.values(s.people))if(p.ferryDuty||p.ferryTicket)fail('ferry.missing');return;}
  const time=n=>Number.isInteger(n)&&n>=0&&n<=s.tick,number=n=>Number.isFinite(n)&&n>=0,point=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
  if(f.version!==1||typeof f.id!=='string'||!s.people[f.owner]||!s.people[f.captain]||!Array.isArray(f.ports)||f.ports.length!==2||f.ports[0]===f.ports[1]||f.ports.some(id=>s.areas[id]?.type!=='port')||s.areas[f.deck]?.boatDeck?.ship!==f.id||s.areas[f.deck].civic||f.seats!==2||f.capacity!==30||!['docked','sailing','disabled','sunk'].includes(f.phase)||!f.ports.includes(f.from)||!f.ports.includes(f.to)||f.from===f.to||f.phase==='docked'&&!f.ports.includes(f.port)||f.phase==='sailing'&&f.port!==null)fail('ferry');

@@ -1,3 +1,4 @@
+import {ferryRouteBlocked} from './modules/ferry-refusals.js';
 import {remainsLocation} from './remains-position.js';import {focusOwnRemains} from './remains-observation.js';
 import {putDownRemains,settleRemainsCarriers} from './modules/remains-carry.js';
 import {librarySecurityPlan,librarySecurityAction} from './modules/library-security.js';
@@ -352,7 +353,7 @@ export function knownRoute(s,from,to){
   const search=avoidLaw=>{
     const queue=[from],parents={[from]:null},prices={[from]:0},weighted=pricedNavigation(s),done=new Set();
     while(queue.length){if(weighted)queue.sort((a,b)=>prices[a]-prices[b]||a.localeCompare(b));const here=queue.shift();if(done.has(here))continue;done.add(here);for(const id of s.areas[here]?.links||[]){
-      if(done.has(id)||!weighted&&id in parents||avoidLaw&&id!==to&&knownLawBurden(s,id)||knownShortcutBlocked(s,s.people[s.hero.lineage],here,id)||knownLiftBlocked(s,s.people[s.hero.lineage],here,id)||knownGrateBlocked(s,s.people[s.hero.lineage],here,id)||blockedFords.has(fordKey(here,id))||!campLink(s,here,id)||s.areas[here]?.temporaryCamp&&here!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(here,id):knownRoad(s,here,id))||areaAvoided(s,id))continue;
+      if(done.has(id)||ferryRouteBlocked(s,here,id)||!weighted&&id in parents||avoidLaw&&id!==to&&knownLawBurden(s,id)||knownShortcutBlocked(s,s.people[s.hero.lineage],here,id)||knownLiftBlocked(s,s.people[s.hero.lineage],here,id)||knownGrateBlocked(s,s.people[s.hero.lineage],here,id)||blockedFords.has(fordKey(here,id))||!campLink(s,here,id)||s.areas[here]?.temporaryCamp&&here!==from||!(membership?membership.area(id):knownArea(s,id))||!(membership?membership.road(here,id):knownRoad(s,here,id))||areaAvoided(s,id))continue;
       const price=prices[here]+(weighted?knownRoadWeight(s,here,id,to):1);if(!Number.isFinite(price)||id in prices&&prices[id]<=price)continue;prices[id]=price;parents[id]=here;queue.push(id);
     }}
     if(!(to in parents))return [];const path=[];for(let id=to;id!==null;id=parents[id])path.push(id);return path.reverse();
@@ -878,7 +879,7 @@ function actObserved(s) {
   if (!h.goal || groupNeed==='food'&&!['provision','eat','forage','brothEat','campPitch'].includes(h.goal.kind) || urgent && !['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || enabled(s, 'body') && h.hunger > 75 && !h.goal.collectionEmergency&&!['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || h.goal.quest && activeQuest(h) && questReady(s, activeQuest(h)) && !['rest', 'turnin', 'provision','eat','forage','brothEat'].includes(h.goal.kind)) plan(s);
   if(h.goal&&h.goal.area!==h.area&&(h.goal.kind!=='rest'||h.atlas)&&!knownRoute(s,h.area,h.goal.area).length){
     const former=h.goal;explorePlan(s,true);
-    log(s,`Путь к «${s.areas[former.area]?.name||'прежнему делу'}» проходит через место недавнего отступления. ${h.intent}.`,'plan');
+    log(s,`Известного доступного пути к «${s.areas[former.area]?.name||'прежнему делу'}» сейчас нет. ${h.intent}.`,'plan');
   }
   if(!navigationReturnTarget(s,context(s,'navigation-memory')))return s;
   if(navigationHoldKnownBlocker(s,context(s,'navigation-memory')))return s;
