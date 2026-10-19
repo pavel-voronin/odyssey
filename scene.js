@@ -297,6 +297,7 @@ export class Scene {
         c.strokeStyle = '#9db57e'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, ground); c.lineTo(x, ground - 14); c.stroke();
         c.fillStyle = '#c2d6a0'; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(x + (i % 2 ? 5 : -4), ground - 5 - i * 4, 5, 2.5, i % 2 ? -.6 : .6, 0, 7); c.fill(); }
       }
+      if(o.kind==='borderPost'){c.fillStyle='#a89164';c.fillRect(x-20,ground-31,4,31);c.fillStyle='#d9bd75';c.fillRect(x-33,ground-30,12,9);c.strokeStyle='#a89164';c.beginPath();c.moveTo(x-13,ground-13);c.lineTo(x+8,ground-13);c.stroke();}
       if(o.kind==='noiseTrap'&&!o.taken){c.fillStyle=o.items[0]?.decoy.state==='armed'?'#d3b579':'#7a817e';c.fillRect(x-4,ground-5,8,5);c.strokeStyle='#919a99';c.beginPath();c.moveTo(x-6,ground-2);c.lineTo(x+6,ground-2);c.stroke();}
       if(o.kind==='copyDesk'&&!o.taken){c.fillStyle='#8d765c';c.fillRect(x-7,ground-12,14,3);c.fillRect(x-5,ground-9,2,9);c.fillRect(x+3,ground-9,2,9);c.fillStyle='#e6dbc0';c.fillRect(x-4,ground-15,8,3);}
       if (['loot','heirloom','estateFunds'].includes(o.kind) && !o.taken&&!o.spent) { c.fillStyle = '#b7a071'; c.beginPath(); c.ellipse(x, ground - 5, 6, 5, 0, 0, 7); c.fill(); }

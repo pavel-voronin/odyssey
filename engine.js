@@ -1,3 +1,4 @@
+import {initializeAuthorities} from './modules/authority-foundation.js';
 import {decoyPlan,decoyAction,placeDecoy} from './modules/decoys.js';
 import {decoyWalkQuote} from './modules/decoy-state.js';
 import {decoyWorldTick} from './modules/decoy-world.js';
@@ -353,6 +354,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
   createStableHorse(s);createWagon(s);createPortFerry(s,{addArea,connect});
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
+  initializeAuthorities(s);
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);
   log(s, `${s.hero.name} начинает путь: ${s.areas[s.hero.area].name}, ${s.continents.c0.name}.`, 'birth');

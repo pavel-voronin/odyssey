@@ -1,3 +1,4 @@
+import {finishBorderCrossing} from './authority-state.js';
 import {interiorPassage} from './interiors.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -6,6 +7,7 @@ export const trackingOn=s=>enabled(s,'skill-branches')&&enabled(s,'identity');
 const key=(a,b)=>[a,b].sort().join('|');
 export function recordCrossingTrace(s,source,from,to){
  const e=s.edges?.[key(from,to)],a=s.areas[from],b=s.areas[to];
+ if(source?.kind==='person'&&e&&a&&b)finishBorderCrossing(s,source.id,from,to);
  if(!trackingOn(s)||from===to||!a||!b||!e||!['road','door','stairs',undefined].includes(e.mode)||!source?.id||!['person','pet'].includes(source.kind)||source.kind==='person'&&!s.people[source.id]?.alive)return null;
  const body=source.kind==='person'?(s.hero?.lineage===source.id?s.hero:s.actorStates?.[source.id]||s.people[source.id]):null;
  if(body&&(body.area!==from||body.carriedBy))return null;

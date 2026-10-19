@@ -1,3 +1,5 @@
+import {establishAuthority,establishBorder,borderCandidate} from './authority-foundation.js';
+import {authorityAt,authoritiesOn} from './authority-state.js';
 import {routeDistance} from '../geometry.js';
 import {recordPersonRemains} from './remains.js';
 import {pathHasFord} from './fords.js';
@@ -77,7 +79,7 @@ function applyEvent(s,a,ctx){
   }else if(draw<.68&&enabled(s,'politics')){
     if(c.tax>=10||a.prosperity<35){
       a.faction=a.faction==='crown'?'lantern':'crown';c.tax=4;c.safety=Math.max(20,c.safety-10);
-      record(s,a,`${a.name}: жители меняют власть. Новая печать принадлежит другой фракции.`,ctx,'politics');
+      record(s,a,authorityAt(s,a.id)?`${a.name}: другая фракция получает местное влияние; правитель и пограничный закон сохраняются.`:`${a.name}: жители меняют власть. Новая печать принадлежит другой фракции.`,ctx,'politics');
     }else{c.tax+=2;record(s,a,`${a.name}: канцелярия поднимает подать до ${c.tax}%. Недовольство растёт.`,ctx,'politics');}
   }else if(draw<.79){
     const family=enabled(s,'background-towns')?p.family||p.name.split(' ').slice(1).join(' '):p.name.split(' ').slice(1).join(' ')||s.hero.family;
@@ -133,6 +135,7 @@ export function civicWork(s,job,ctx,workplace=s.areas[s.hero.area]){
 export {shopPrice} from './prices.js';
 export function politicalPlan(s,ctx){
   const h=s.hero,a=s.areas[h.area];if(!enabled(s,'politics')||!isTown(a)||!a.civic||h.civic.lastDecision>s.tick)return false;
+  const receiver=Object.values(s.authorities?.byId||{})[1],guard=receiver?.capital===a.id&&receiver.ruler===h.lineage&&borderCandidate(s);if(guard){ctx.goal(s,'govern',a.id,42,'Утвердить действительную пограничную службу','Существующий свободный страж получит оплату из казны и пойдёт на пост своим телом.',{remaining:1,borderRatification:true,person:guard.id});return true;}
   const reputation=h.reputation[a.faction]||0;
   const council=opportunity(s,'council');
   if(!a.civic.ruler&&(reputation>=20&&h.social.fame>=3||reputation>=12&&council.allowed&&council.source===a.faction)&&h.gold>=40){ctx.goal(s,'govern',a.id,42,'Принять место в совете','Жители доверяют поступкам или рекомендации службы. Теперь решения затронут целое поселение.',{remaining:3});return true;}
@@ -141,12 +144,14 @@ export function politicalPlan(s,ctx){
 }
 export function governTick(s,ctx){
   const h=s.hero,a=s.areas[h.area],g=h.goal;if(!enabled(s,'politics')){h.goal=null;return;}
+  if(authorityAt(s,a.id)&&a.civic.ruler&&a.civic.ruler!==h.lineage){h.goal=null;h.lastAction='talk';return false;}
   g.remaining--;h.lastAction='talk';if(g.remaining>0)return;
+  if(g.borderRatification){const made=establishBorder(s);if(made)ctx.log(s,'Совет оплачивает настоящего стража: он идёт к пограничному посту, без переноса тела или второй казны.','politics');h.civic.lastDecision=s.tick+8;h.goal=null;return Boolean(made);}
   if(!a.civic.ruler){
-    h.gold-=40;a.civic.ruler=h.lineage;h.civic.holdings.push(a.id);h.civic.authority++;h.titles.push('Советник: '+a.name);
+    h.gold-=40;a.civic.ruler=h.lineage;if(authoritiesOn(s)){a.civic.treasury+=40;establishAuthority(s,a.id,h.lineage);establishBorder(s);}h.civic.holdings.push(a.id);h.civic.authority++;h.titles.push('Советник: '+a.name);
     ctx.log(s,`Жители ${a.name} выбирают героя в совет. Одно приключение стало чьей-то властью.`,'politics');
   }else if(h.alignment<-20||h.personality.generosity<.4){
-    const tax=Math.min(18,Math.floor(a.prosperity/5));h.gold+=tax;a.prosperity=Math.max(0,a.prosperity-8);a.civic.tax=Math.min(25,a.civic.tax+3);h.alignment=Math.max(-100,h.alignment-4);
+    const tax=Math.min(18,Math.floor(a.prosperity/5),authorityAt(s,a.id)?a.civic.treasury:Infinity);if(authorityAt(s,a.id))a.civic.treasury-=tax;h.gold+=tax;a.prosperity=Math.max(0,a.prosperity-8);a.civic.tax=Math.min(25,a.civic.tax+3);h.alignment=Math.max(-100,h.alignment-4);
     ctx.log(s,`Герой извлекает ◈${tax} из поселения. Подати и недовольство растут.`,'politics');
   }else{
     h.gold-=12;if(goodsEnabled(s)){a.civic.treasury+=12;requestHarvest(s,a,'council-funded');}else a.civic.food=Math.min(100,a.civic.food+25);a.civic.medicine=Math.min(100,a.civic.medicine+20);a.prosperity=Math.min(100,a.prosperity+8);h.alignment=Math.min(100,h.alignment+4);

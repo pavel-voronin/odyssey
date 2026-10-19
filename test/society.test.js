@@ -53,7 +53,7 @@ test('failing a quest clears quest cargo but preserves ordinary inventory',()=>{
   assert.deepEqual(s.hero.questCargo,{});assert.equal(s.hero.inventory.herbs,2);assert.equal(q.status,'failed');
 });
 test('government requires trust and actions change the settlement',()=>{
-  const s=createWorld(2);s.hero.area='a1';s.hero.gold=100;s.hero.social.fame=4;s.hero.reputation[s.areas.a1.faction]=25;
+  const s=createWorld(2,{rules:{'territorial-authorities':false}});s.hero.area='a1';s.hero.gold=100;s.hero.social.fame=4;s.hero.reputation[s.areas.a1.faction]=25;
   assert.ok(politicalPlan(s,ctx));for(let i=0;i<3;i++)governTick(s,ctx);
   assert.equal(s.areas.a1.civic.ruler,s.hero.lineage);assert.equal(s.hero.gold,60);assert.ok(s.hero.civic.holdings.includes('a1'));
   setModule(s,'politics',false);assert.equal(politicalPlan(s,ctx),false);
