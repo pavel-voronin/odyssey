@@ -1,3 +1,4 @@
+import {councilsOn} from './council-state.js';
 import {establishAuthority,establishBorder,borderCandidate} from './authority-foundation.js';
 import {authorityAt,authoritiesOn} from './authority-state.js';
 import {routeDistance} from '../geometry.js';
@@ -139,12 +140,13 @@ export function politicalPlan(s,ctx){
   const reputation=h.reputation[a.faction]||0;
   const council=opportunity(s,'council');
   if(!a.civic.ruler&&(reputation>=20&&h.social.fame>=3||reputation>=12&&council.allowed&&council.source===a.faction)&&h.gold>=40){ctx.goal(s,'govern',a.id,42,'Принять место в совете','Жители доверяют поступкам или рекомендации службы. Теперь решения затронут целое поселение.',{remaining:3});return true;}
-  if(a.civic.ruler===h.lineage&&a.civic.crisis&&h.gold>=12){ctx.goal(s,'govern',a.id,42,'Разобраться с нуждами поселения','Власть означает ответственность за еду, лечение и безопасность.',{remaining:2});return true;}
+  if(a.civic.ruler===h.lineage&&a.civic.crisis&&h.gold>=12&&!(councilsOn(s)&&authorityAt(s,a.id)&&a.civic.crisis.kind==='hunger')){ctx.goal(s,'govern',a.id,42,'Разобраться с нуждами поселения','Власть означает ответственность за еду, лечение и безопасность.',{remaining:2});return true;}
   return false;
 }
 export function governTick(s,ctx){
   const h=s.hero,a=s.areas[h.area],g=h.goal;if(!enabled(s,'politics')){h.goal=null;return;}
   if(authorityAt(s,a.id)&&a.civic.ruler&&a.civic.ruler!==h.lineage){h.goal=null;h.lastAction='talk';return false;}
+  if(councilsOn(s)&&authorityAt(s,a.id)&&a.civic.ruler===h.lineage&&a.civic.crisis?.kind==='hunger'&&!g.borderRatification){h.goal=null;ctx.log(s,'Провиант требует настоящего доклада, доступного источника и решения о поставке. Само обсуждение не наполняет кладовую.','politics');return false;}
   g.remaining--;h.lastAction='talk';if(g.remaining>0)return;
   if(g.borderRatification){const made=establishBorder(s);if(made)ctx.log(s,'Совет оплачивает настоящего стража: он идёт к пограничному посту, без переноса тела или второй казны.','politics');h.civic.lastDecision=s.tick+8;h.goal=null;return Boolean(made);}
   if(!a.civic.ruler){

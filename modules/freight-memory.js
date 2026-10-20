@@ -18,9 +18,9 @@ export function observeFreightActor(s,p,area=p?.area,sharedObservation=false){
   if(demandFreightEnabled(s))Object.assign(record,{tools:a.civic.tools||0,demand:{...localDemand(s,a),seen:s.tick,foodStock:a.civic.food,toolStock:a.civic.tools||0,medicineStock:a.civic.medicine,treasury:a.civic.treasury||0}});
   if(p.navigation.markets.length>MARKET_LIMIT)p.navigation.markets.sort((a,b)=>a.seen-b.seen).splice(0,p.navigation.markets.length-MARKET_LIMIT);
 }
-export function availableFreightDriver(s,p,source){
+export function availableFreightDriver(s,p,source,{inTurn=false}={}){
   const rested=!enabled(s,'npc-needs')||!p?.needs?.sleeping&&(p?.needs?.energy??100)>=35&&(p?.needs?.hunger??0)<60;
-  return Boolean(p?.alive&&canStartNPCActivity(s,p)&&p.area===source.id&&p.status==='resident'&&p.role!=='ребёнок'&&p.agenda&&!p.agenda.task&&p.health>=(p.maxHealth||100)*.4&&
+  return Boolean(p?.alive&&canStartNPCActivity(s,p,{inTurn})&&p.area===source.id&&p.status==='resident'&&p.role!=='ребёнок'&&p.agenda&&!p.agenda.task&&p.health>=(p.maxHealth||100)*.4&&
     (p.agenda.job==='merchant'||p.agenda.duty>=.6)&&rested&&p.personalJourney?.status!=='active'&&
     !(p.migration&&s.migrations?.[p.migration]?.status==='active')&&!s.hero.companions.some(c=>c.person===p.id)&&
     !s.society.orders.some(o=>o.person===p.id)&&!s.society.journeys.some(j=>j.person===p.id)&&!s.logistics.convoys.some(c=>c.person===p.id)&&
@@ -43,9 +43,9 @@ export function freightDispatch(s){
   }
   return null;
 }
-export function freightRequest(s,source,destination,driverId=null){
+export function freightRequest(s,source,destination,driverId=null,{inTurn=false}={}){
   if(!enabled(s,'npc-logistics')||!source?.civic||!destination||source.id===destination.id||!demandFreightEnabled(s)&&source.civic.food<12)return null;
-  const drivers=(source.population||[]).map(id=>s.people[id]).filter(p=>availableFreightDriver(s,p,source)&&(!driverId||p.id===driverId));
+  const drivers=(source.population||[]).map(id=>s.people[id]).filter(p=>availableFreightDriver(s,p,source,{inTurn})&&(!driverId||p.id===driverId));
   if(demandFreightEnabled(s)){for(const p of drivers){const offer=demandOffer(s,p,source,destination.id);if(offer)return {driver:p,author:p.id,...offer};}return null;}
   if(driverId){const p=drivers[0],memory=p&&rememberedMarket(s,p,source,destination.id);return memory&&(memory.market.treasury>=3||p.agenda.duty>.65)?{driver:p,author:p.id,...memory}:null;}
   const authors=detailedActors(s).filter(h=>selfDrivenActor(s,h)&&!h.transit&&h.area===source.id);

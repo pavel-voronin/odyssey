@@ -1,3 +1,5 @@
+import {councilsOn} from './council-state.js';
+import {councilNPCTurn,councilNPCAction} from './council-actions.js';
 import {biologicalNeed,ordinaryRecovery} from './biology.js';
 import {recordClinicalOrdinary} from './clinical-world.js';import {clinicalTeacherTurn,clinicalStudyNPCTurn} from './clinical-study.js';
 import {clinicalPatientTurn,clinicalNPCTurn,recordClinicalReturn} from './clinical-actions.js';
@@ -353,7 +355,7 @@ export function peopleTick(s,ctx){
     if(personNeeds(s,p,ctx))continue;
     const hungry=biologicalNeed(s,p).food;
     if(hungry&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit){const a=s.areas[p.area],source=localFoodChoice(s,p,null,a);if(!['farm','gather','return'].includes(p.agenda.task?.kind)){if(p.agenda.task)p.needPaused ||= p.agenda.task;if(source)begin(p,'gather',a.id,source.x,source.remaining,{foodSource:source.id,home:a.id});else if(goodsEnabled(s)&&productionSources(s,a)?.field.stock>0)begin(p,'farm',a.id,42,3);else {p.needObstacle='Нет доступной местной еды или известного способа её добыть.';continue;}}}
-    if(!hungry){if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
+    if(!hungry){if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
     if(clinicalPatientTurn(s,p))continue;
     if(clinicalNPCTurn(s,p,ctx))continue;
     if(clinicalStudyNPCTurn(s,p))continue;
@@ -422,6 +424,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.ruin&&!ruinRecoveryOn(s))continue;
     if(p.agenda.task?.kind==='causewayWork'&&!enabled(s,'causeways'))continue;
     if(p.agenda.task?.kind==='socketService'&&!socketsOn(s))continue;
+    if(p.agenda.task?.kind?.startsWith('council')&&!councilsOn(s))continue;
     if(p.agenda.task?.kind==='inheritanceClaim'&&!estateClaimsOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;
     if(p.agenda.task?.kind?.startsWith('fx')&&s.rules['finite-exchange']===false)continue;
@@ -448,6 +451,7 @@ export function peopleTick(s,ctx){
     adaptNPCWork(s,p);bindNPCDeedTask(s,p);
     if(!hungry&&controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
+    if(p.agenda.task.kind.startsWith('council')){if(!councilNPCAction(s,p,ctx))p.agenda.task=null;continue;}
     if(neighborHousingAction(s,p,ctx)||foundationAction(s,p,ctx))continue;
     if(p.agenda.task.kind==='refugeSurvey'){if(p.ailment||p.needs.energy<2||p.health<(p.maxHealth||100)*.75){p.agenda.task=null;p.agenda.due=s.tick+48;continue;}p.agenda.task.turns++;p.needs.energy-=2;}
     if(p.agenda.task.kind==='patronSale'){patronSale(s,p,p.agenda.task,ctx);continue;}

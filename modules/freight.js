@@ -1,3 +1,4 @@
+import {recordCouncilShortfall,finishCouncilFreight} from './council-reports.js';
 import {recordCausewayDelivery} from './causeway-state.js';
 import {shortfallDepartureAllowed} from './harvest-shortfall.js';
 import {observeRupture} from './quake-knowledge.js';
@@ -21,8 +22,9 @@ import {roadStillPresent,forgetNPCRoad,rememberNPCHazard} from './npc-knowledge.
 import {freightRequest,freightEvent,observeFreightActor,observeConvoy} from './freight-memory.js';
 import {npcAction,markNPCDeparture} from './npc-control.js';
 import {roadNeeds} from './road-needs.js';
-export function freightHistory(s,c,outcome,proof){
+export function freightHistory(s,c,outcome,proof,delivery=null){
   s.logistics.history.push({id:c.id,source:c.source,to:c.to,person:c.person,tick:s.tick,outcome,area:proof.area,eventId:proof.id,knownBy:[...proof.knownBy],wage:c.wagePaid||0,...(c.demand?.shortfall?{shortfall:structuredClone(c.demand.shortfall)}:{}),...(c.disruption?{disruption:structuredClone(c.disruption)}:{}),...(c.handoff?.load?{keeper:c.handoff.keeper,load:c.handoff.load,fee:c.custodyFee||0}:{}),...(c.trade?{trade:{cost:c.trade.cost,foodCost:c.trade.foodCost,revenue:c.tradeOutcome?.revenue||0,net:(c.tradeOutcome?.revenue||0)-c.trade.cost-c.trade.foodCost-(c.custodyFee||0)}}:{})});
+  if(delivery&&outcome==='delivered')recordCouncilShortfall(s,c,proof,delivery.food);finishCouncilFreight(s,c,outcome,proof);
   if(s.logistics.history.length>80)s.logistics.history.shift();
 }
 function removeFreight(s,c){s.logistics.convoys=s.logistics.convoys.filter(other=>other!==c);}
@@ -55,11 +57,11 @@ function finishFreight(s,c,ctx,outcome){
     cacheCargo(s,c,a,food-acceptedFood,medicine-acceptedMedicine,'Припасы, не поместившиеся в кладовой',0);
     if(c.tools)putGoods(s,a,'tools',c.tools,{reason:'freight-'+outcome,actor:p.id});
     if(a.civic.food>=40&&a.civic.crisis?.kind==='hunger')a.civic.crisis=null;
-    if(outcome==='delivered'){s.logistics.deliveries++;c.wagePaid=Math.min(3,Math.max(0,a.civic.treasury||0));a.civic.treasury-=c.wagePaid;p.agenda.wealth+=c.wagePaid;p.agenda.work++;}
+    if(outcome==='delivered'){s.logistics.deliveries++;c.wagePaid=c.council?.prepaid?0:Math.min(3,Math.max(0,a.civic.treasury||0));a.civic.treasury-=c.wagePaid;p.agenda.wealth+=c.wagePaid;p.agenda.work++;}
     if(outcome==='delivered')recordCausewayDelivery(s,c,{food:acceptedFood,medicine:acceptedMedicine,tools:c.tools||0});
     releaseDriver(s,c);c.food=0;c.medicine=0;if(c.tools)c.tools=0;
     const text=outcome==='delivered'?`${p.name} привозит в ${a.name}: еда ${food}, инструменты ${c.demand?.kind==='tools'?c.demand.quantity:0}, медицина ${medicine}. Оплата из казны: ◈${c.wagePaid}.${c.demand?.shortfall?' После неурожая погружено '+c.demand.shortfall.loaded+' вместо '+c.demand.shortfall.requested+'; на полную партию не хватило припасов.':''}`:`${p.name} возвращает в ${a.name} оставшиеся припасы: еда ${food}, медицина ${medicine}. Путь оказался недоступен.`;
-    const proof=freightEvent(s,c,a,text,ctx);freightHistory(s,c,outcome,proof);removeFreight(s,c);observeFreightActor(s,p);return;
+    const proof=freightEvent(s,c,a,text,ctx);freightHistory(s,c,outcome,proof,{food:acceptedFood});removeFreight(s,c);observeFreightActor(s,p);return;
   }
   cacheCargo(s,c,a,food,medicine);c.food=0;c.medicine=0;if(c.tools)c.tools=0;s.logistics.losses++;
   releaseDriver(s,c);const proof=freightEvent(s,c,a,p.alive?`${p.name} оставляет груз в месте «${a.name}»: дальше пройти не удалось. Припасы остаются здесь.`:`${p.name} погибает в месте «${a.name}». Его припасы остаются на дороге.`,ctx);
@@ -84,8 +86,8 @@ function captureFreight(s,c,p,a,ctx,enemy){
   cacheCargo(s,c,a,c.food,c.medicine);c.food=0;c.medicine=0;if(c.tools)c.tools=0;s.logistics.losses++;
   const proof=freightEvent(s,c,a,`${p.name} перехвачен в месте «${a.name}». Его груз остался на дороге.`,ctx);freightHistory(s,c,'captured',proof);removeFreight(s,c);
 }
-export function createFreight(s,source,destination,ctx,driverId=null){
-  const request=freightRequest(s,source,destination,driverId);if(!request)return null;
+export function createFreight(s,source,destination,ctx,driverId=null,options={}){
+  const request=freightRequest(s,source,destination,driverId,options);if(!request)return null;
   return departFreight(s,source,destination,request,ctx);
 }
 export function departFreight(s,source,destination,request,ctx,paid=null){
