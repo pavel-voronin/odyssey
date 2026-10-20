@@ -1,3 +1,4 @@
+import {WARM_TICKS,PREPARATION_CHUNK,beginPreparationState,assertPreparationStep,finishPreparationStep} from './modules/preparation-state.js';
 import {populationState,populationSnapshot,recordPopulationStep,populationEvent,serializePopulation,restorePopulation} from './modules/population-state.js';
 export {serializePopulation,restorePopulation};
 import {observeNPCPlace} from './modules/npc-knowledge.js';
@@ -408,9 +409,12 @@ export function createPopulation(seed,{rules={},stocks='seed'}={}){
  for(const p of Object.values(s.people))if(p.alive&&p.area){observeNPCPlace(s,p);observeNPCContacts(s,p);observeFreightActor(s,p);}
  for(const id of [first,second]){const a=s.areas[id];populationEvent(s,{kind:'origin',area:id,actors:[...a.population],stocks:{...a.civic},people:a.population.map(person=>({person,job:s.people[person].agenda.job,tools:s.people[person].agenda.tools}))});}s.merchant={name:'Сава',area:first,destination:null,arrival:0,nextMove:75,stock:3,serviceStock:{version:1,gear:2,medicine:1}};initializeSpatial(s);return s;
 }
+export function createWarmPopulation(seed,{duration=WARM_TICKS,...options}={}){const s=createPopulation(seed,options);beginPreparationState(s,duration,populationSnapshot(s));return s;}
+export function beginPopulationPreparation(s,{duration=WARM_TICKS}={}){if(!populationState(s))throw Error('Preparation requires an unobserved population');beginPreparationState(s,duration,populationSnapshot(s));return s;}
+export function advancePreparation(s,steps=1){if(!populationState(s)||!s.population.preparation)throw Error('No population preparation');if(!Number.isSafeInteger(steps)||steps<0||steps>PREPARATION_CHUNK)throw Error('Preparation chunk exceeds '+PREPARATION_CHUNK);for(let i=0;i<steps&&s.population.preparation.status!=='ready';i++)advancePopulation(s);return s;}
 export function advancePopulation(s){
- if(!populationState(s)||s.hero!==null||Object.keys(s.actorStates).length||s.observation!==null)throw Error('Only an unobserved population can use the world-only clock');const before=populationSnapshot(s);s.tick++;s.actorFacts={tick:s.tick,events:[]};initializeInteriors(s);initializeLodging(s);ageWorldTick(s);
- nativeBodyTick(s);worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);invalidateNPCControl(s);noticeAuthorityDeaths(s);clinicalWorldTick(s);familyWorldTick(s);recordPopulationStep(s,before);return s;
+ if(!populationState(s)||s.hero!==null||Object.keys(s.actorStates).length||s.observation!==null)throw Error('Only an unobserved population can use the world-only clock');assertPreparationStep(s);const before=populationSnapshot(s);s.tick++;s.actorFacts={tick:s.tick,events:[]};initializeInteriors(s);initializeLodging(s);ageWorldTick(s);
+ nativeBodyTick(s);worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);invalidateNPCControl(s);noticeAuthorityDeaths(s);clinicalWorldTick(s);familyWorldTick(s);recordPopulationStep(s,before);finishPreparationStep(s,populationSnapshot(s));return s;
 }
 function enter(s, id) {
   leaveStealthArea(s,s.hero.lineage);
