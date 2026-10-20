@@ -1,3 +1,4 @@
+import {leaveCargoOriginal} from './cargo-inquiries.js';
 import {assetRaidTurn} from './asset-raids.js';
 import {strikeRaidGuard} from './raid-guard.js';
 import {personLocation} from '../person-location.js';
@@ -66,6 +67,7 @@ function raid(s,p,e,g,ctx,contacts){
 function act(s,p,e,ctx,contacts){
  const q=p.hostileLife,n=p.needs,a=s.areas[p.area];observe(s,p,e,contacts);if(n.sleeping&&n.hunger>=65)n.sleeping=false;
  if(n.hunger>=65&&carriedFood(p,p.actorLink?.inventory)>=1){if(!claimHostileAction(s,p,'eat'))return;consumeCarriedSupplies(p,null,'food',1);n.hunger=Math.max(0,n.hunger-48);n.meals++;q.supplies.eaten++;record(s,p,'meal');ownMessage(s,p,ctx,p.name+' съедает порцию из собственной поклажи. Запас уменьшается.');q.goal=null;return;}
+ const burden=(p.looseItems||[]).find(i=>i.cargoOrigin&&i.cargoOrigin.owner!==p.id);if(n.energy<30&&burden&&leaveCargoOriginal(s,p,burden.id)){record(s,p,'cargo-left',{item:burden.id});q.goal=null;return;}
  if(assetRaidTurn(s,p,e,ctx,contacts))return;
  if(!q.goal||q.goal.kind==='camp'&&n.hunger>=65&&!carriedFood(p,p.actorLink?.inventory)||q.goal.kind==='forage'&&(!q.known.forage?.available||q.known.forage.stock===0))q.goal=choose(s,p,e);
  const g=q.goal;

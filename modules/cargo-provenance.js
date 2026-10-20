@@ -1,0 +1,3 @@
+const holder=h=>h&&Object.fromEntries(['kind','id','area','object','reason'].filter(k=>h[k]!==undefined).map(k=>[k,h[k]]));
+export function cargoMoved(s,item,next){if(!item?.cargoOrigin)return;const from=holder(item.physical?.holder),to=holder(next);if(JSON.stringify(from)===JSON.stringify(to))return;const m=item.cargoTrail ||= {version:1,serial:0,entries:[]};m.entries.push({n:++m.serial,at:s.tick,from,to});if(m.entries.length>16)m.entries.splice(1,1);}
+export function cargoPrivateHold(s,item,actor){const o=item?.cargoOrigin,h=item?.physical?.holder;return Boolean(o&&h?.kind==='cache'&&h.object===o.cargo&&o.owner!==actor&&s.people[o.owner]?.alive&&item.inheritance?.owner!==actor);}

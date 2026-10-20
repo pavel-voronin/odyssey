@@ -1,3 +1,4 @@
+import {cargoInquiryNPCTurn,cargoInquiryAction} from './cargo-inquiries.js';
 import {hobbyNPCTurn,hobbyAction,observeHobbyMarket} from './hobby-supply.js';
 import {farmingNPCTurn,farmingAction} from './farming.js';
 import {titleNPCTurn,titleVisitAction} from './title-enforcement.js';
@@ -241,6 +242,7 @@ function moveTask(s,p,ctx){
 }
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
+  if(t.kind.startsWith('cargo')){const ok=cargoInquiryAction(s,p,t,{inTurn:true,ctx}),c=s.cargoCases?.byId[t.case];if(t.kind==='cargoTestify'&&!ok&&c?.status==='pending'&&s.tick<c.until){t.remaining=1;m.due=s.tick+8;return;}m.task=null;m.due=s.tick+8;return;}
   if(t.kind.startsWith('hobby')){hobbyAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
   if(t.kind.startsWith('farm')){farmingAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='titleVisit'){titleVisitAction(s,p,t);m.task=null;m.due=s.tick+8;return;}
@@ -334,6 +336,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(cargoInquiryNPCTurn(s,p,ctx))continue;
     if(farmingNPCTurn(s,p,ctx))continue;
     if(hobbyNPCTurn(s,p))continue;
     if(titleNPCTurn(s,p))continue;
@@ -395,6 +398,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='socketService'&&!socketsOn(s))continue;
     if(p.agenda.task?.kind==='inheritanceClaim'&&!estateClaimsOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;
+    if(p.agenda.task?.kind?.startsWith('cargo')&&s.rules['cargo-cases']===false)continue;
     if(p.agenda.task?.kind?.startsWith('hobby')&&s.rules['hobby-supply']===false)continue;
     if(p.agenda.task?.kind?.startsWith('farm')&&s.rules.farming===false)continue;
     if(p.agenda.task?.kind==='titleVisit'&&s.rules['title-enforcement']===false)continue;

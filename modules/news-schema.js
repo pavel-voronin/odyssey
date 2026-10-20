@@ -1,9 +1,11 @@
+import {validateCargoNews} from './cargo-news.js';
 import {validateDiplomacyNews} from './diplomacy-news-schema.js';
 export function validateNews(s,fail){
  const tick=n=>Number.isSafeInteger(n)&&n>=0&&n<=s.tick,registry=s.newsEvents;
  if(registry!==undefined){
   if(registry?.version!==1||!registry.events||typeof registry.events!=='object'||Array.isArray(registry.events))fail('newsEvents');
   for(const [id,e]of Object.entries(registry.events)){
+   if(e?.kind==='cargo'){validateCargoNews(s,fail,id,e);continue;}
    if(e?.kind==='diplomacy'){validateDiplomacyNews(s,fail,id,e);continue;}
    const housing=e?.kind==='housing';
    if(e?.version!==1||e.id!==id||id!==(housing?'news/housing/':'news/aid/')+e.source||!['aid','housing'].includes(e.kind)||!e.versions||!Object.keys(e.versions).length||Object.keys(e.versions).some(k=>!(housing?['1']:['1','2']).includes(k)))fail('newsEvents.event');
@@ -24,7 +26,7 @@ export function validateNews(s,fail){
    if(r.mode==='witness'&&(r.via.length||r.origin.person!==p.id||r.heardAt!==f.occurred)||r.mode==='reported'&&(!r.via.length||r.via.at(-1).to!==p.id||r.heardAt!==r.via.at(-1).tick))fail(key+'.origin');
    for(const [i,hop]of r.via.entries())if(!s.people[hop.from]||!s.people[hop.to]||hop.from===hop.to||!s.areas[hop.area]||!tick(hop.tick)||hop.tick<(r.via[i-1]?.tick??f.occurred)||hop.from!==(r.via[i-1]?.to??r.origin.person))fail(key+'.path');
    if(JSON.stringify(f.diplomacy)!==JSON.stringify(r.diplomacy))fail(key+'.diplomacy');
-   if(JSON.stringify(f.housing)!==JSON.stringify(r.housing))fail(key+'.housing');
+   if(JSON.stringify(f.housing)!==JSON.stringify(r.housing))fail(key+'.housing');if(JSON.stringify(f.cargo)!==JSON.stringify(r.cargo))fail(key+'.cargo');
    if(m.effects[id]?.revision!==r.revision)fail(key+'.receipt');
   }
   for(const [id,e]of Object.entries(m.effects)){

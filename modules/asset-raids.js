@@ -1,3 +1,4 @@
+import {takeCargoOriginal} from './cargo-events.js';
 import {enabled} from '../rules.js';
 import {physicalDistance,areaStep} from '../geometry.js';
 import {assetStore,assetOwner} from './asset-risk-state.js';
@@ -38,6 +39,6 @@ export function assetRaidTurn(s,p,e,ctx,contacts){
  if(!claimHostileAction(s,p,'raid'))return true;
  if(guard){strikeRaidGuard(s,p,e,guard,ctx);if(!e.hp){record(s,p,'died',{object:o.id,guard:guard.id});m.plan=null;killEnemyPerson(s,e,guard.id);return true;}}
  if(o.stockade?.current>0){const before=o.stockade.current;o.stockade.current--;n.energy=Math.max(0,n.energy-2);record(s,p,'barrier',{object:o.id,before,after:o.stockade.current});return true;}
- const amount=Math.min(o.food||0,Math.max(0,4-own),stackRoom(s,p.id,'food',4));if(amount>0){const before=o.food;o.food-=amount;p.roadSupplies.food+=amount;p.hostileLife.supplies.raided+=amount;const id=p.id+'/asset/'+(++m.serial);const receipt={id,at:s.tick,actor:p.id,owner:assetOwner(o),before,after:o.food,amount,witnesses:contacts.filter(c=>c.p.id!==p.id&&physicalDistance(a,c.at.x,o.x)<=12).slice(0,16).map(c=>c.p.id)};(o.raidLosses ||= []).push(receipt);if(o.raidLosses.length>12)o.raidLosses.shift();record(s,p,'taken',{object:o.id,id});o.taken=!['food','medicine','tools'].some(key=>o[key]>0);warn(s,p,o,contacts,ctx,receipt);}
+ const amount=Math.min(o.food||0,Math.max(0,4-own),stackRoom(s,p.id,'food',4));if(amount>0){const before=o.food;o.food-=amount;p.roadSupplies.food+=amount;p.hostileLife.supplies.raided+=amount;const id=p.id+'/asset/'+(++m.serial);const receipt={id,at:s.tick,actor:p.id,owner:assetOwner(o),before,after:o.food,amount,witnesses:contacts.filter(c=>c.p.id!==p.id&&physicalDistance(a,c.at.x,o.x)<=12).slice(0,16).map(c=>c.p.id)};(o.raidLosses ||= []).push(receipt);if(o.raidLosses.length>12)o.raidLosses.shift();takeCargoOriginal(s,p,e,o,receipt,contacts);record(s,p,'taken',{object:o.id,id});o.taken=!['food','medicine','tools'].some(key=>o[key]>0)&&!(o.items?.length);warn(s,p,o,contacts,ctx,receipt);}
  else record(s,p,'empty',{object:o.id});m.plan=null;if(k)k.after=s.tick+64;return true;
 }
