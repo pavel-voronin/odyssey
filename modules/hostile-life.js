@@ -20,7 +20,7 @@ import {canHoldWeapon} from './limb-state.js';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function record(s,p,kind,detail={}){const q=p.hostileLife;q.history.push({tick:s.tick,kind,...detail});if(q.history.length>8)q.history.shift();}
-function ownMessage(s,p,ctx,text){p.agenda.knowledge.push({tick:s.tick,text});if(p.agenda.knowledge.length>8)p.agenda.knowledge.shift();const h=s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];if(h)ctx.log(actorView(s,h),text,'npc');}
+function ownMessage(s,p,ctx,text){p.agenda.knowledge.push({tick:s.tick,text});if(p.agenda.knowledge.length>8)p.agenda.knowledge.shift();const h=s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id];if(h)ctx.log(actorView(s,h),text,'npc');}
 function observe(s,p,e,contacts){
  const q=p.hostileLife,a=s.areas[p.area],f=a.forage;
  if(f&&physicalDistance(a,p.x,f.x)<=18)q.known.forage={area:a.id,x:f.x,seen:s.tick,stock:f.stock,available:!localFoodEnabled(s)||Boolean(localFoodChoice(s,p,null,a))};
@@ -50,7 +50,7 @@ function choose(s,p,e){
 function witnesses(s,p,victim,at,receipt,ctx,contacts){
  const seen=contacts.filter(({p:other,at:b})=>other.id!==p.id&&other.alive&&!other.needs?.sleeping&&physicalDistance(s.areas[p.area],b.x,at)<=12).map(b=>b.p).sort((a,b)=>Number(b.id===victim.id)-Number(a.id===victim.id)||a.id.localeCompare(b.id)).slice(0,16);
  receipt.witnesses=seen.map(other=>other.id);
- for(const other of seen){other.raidWitnesses ||= [];other.raidWitnesses.push({id:receipt.id,tick:s.tick,area:p.area,x:at,actor:p.id,victim:victim.id,amount:receipt.amount,mode:'witness'});if(other.raidWitnesses.length>8)other.raidWitnesses.shift();const text=`${p.name} пытается отнять дорожную еду у ${victim.name}. ${receipt.amount?'Одна порция действительно перешла к нападавшему.':'Припасов он не получил.'}`;other.agenda.knowledge.push({tick:s.tick,text});if(other.agenda.knowledge.length>8)other.agenda.knowledge.shift();const h=s.hero.lineage===other.id?s.hero:s.actorStates?.[other.id];if(h)ctx.log(actorView(s,h),text,'npc');}
+ for(const other of seen){other.raidWitnesses ||= [];other.raidWitnesses.push({id:receipt.id,tick:s.tick,area:p.area,x:at,actor:p.id,victim:victim.id,amount:receipt.amount,mode:'witness'});if(other.raidWitnesses.length>8)other.raidWitnesses.shift();const text=`${p.name} пытается отнять дорожную еду у ${victim.name}. ${receipt.amount?'Одна порция действительно перешла к нападавшему.':'Припасов он не получил.'}`;other.agenda.knowledge.push({tick:s.tick,text});if(other.agenda.knowledge.length>8)other.agenda.knowledge.shift();const h=s.hero?.lineage===other.id?s.hero:s.actorStates?.[other.id];if(h)ctx.log(actorView(s,h),text,'npc');}
 }
 function raid(s,p,e,g,ctx,contacts){
  const q=p.hostileLife,known=q.known.people.find(k=>k.person===g.person),victim=s.people[g.person],at=victim&&localContact(s,victim.id,p.area);

@@ -382,8 +382,7 @@ function createWorldBase(seed,rules){
   initializeGeography(s);
   return s;
 }
-export function createWorld(seed = Date.now(), {rules={}}={}) {
-  const s=createWorldBase(seed,rules);
+function createOriginTopology(s){
   const origin=originTemplate(s.seed);s.continents.c0.name=origin[6];
   const road = addArea(s, 'road', origin[0]);
   const town = addArea(s, origin[5], origin[1]);
@@ -393,6 +392,11 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   connect(s, road, town); connect(s, town, forest); connect(s, forest, ruins); connect(s, forest, camp);
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
   createStableHorse(s);createWagon(s);createPortFerry(s,{addArea,connect});
+  return {road,town,forest,ruins,camp};
+}
+export function createWorld(seed = Date.now(), {rules={}}={}) {
+  const s=createWorldBase(seed,rules);
+  const {town}=createOriginTopology(s);
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
   initializeAuthorities(s);initializeRoyalHouse(s);initializeCurrencyOffice(s);initializeClinicalPractitioner(s);initializeClinicalApprentice(s);
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
@@ -404,18 +408,19 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
 export function createPopulation(seed,{rules={},stocks='seed'}={}){
  if(!['seed','balanced','uneven'].includes(stocks))throw Error('Unknown initial population stocks');
  const s=createWorldBase(seed,rules);Object.assign(s,{generation:0,lives:[],population:{version:1,phase:'unobserved',seed:s.seed,options:{stocks},settlements:[],serial:0,events:[]}});initializeSociety(s,null);initializeSupply(s,null);initializeMigrations(s);initializePropertyContracts(s,null);initializeDiplomacy(s);
- const first=addArea(s,'village','Первый двор'),second=addArea(s,'port','Речной двор'),wood=addArea(s,'forest','Общий лес',1);connect(s,first,second);connect(s,first,wood);s.population.settlements=[first,second];const kin=[createPerson(s,{race:'human',role:'предок',alive:false}),createPerson(s,{race:'human',role:'предок',alive:false})],carriers=[];
- for(const id of [first,second]){const a=s.areas[id],adults=[];a.civic.food=id===second&&(stocks==='uneven'||stocks==='seed'&&s.seed%3===1)?28:65;for(const job of ['farmer','artisan','merchant']){const p=s.people[createPerson(s,{area:id,parents:job==='merchant'?kin:[],alive:true,role:'житель',culture:a.culture},{initialJob:job})];p.agenda.due=8;p.agenda.duty=job==='merchant'?.8:.65;p.needs.hunger=job==='farmer'?45:job==='artisan'?25:15;p.needs.energy=job==='merchant'?80:job==='farmer'?70:95;if(job==='merchant')carriers.push(p);adults.push(p);a.population.push(p.id);if(job==='artisan'&&a.civic.tools>0){a.civic.tools--;p.agenda.tools=1;}}
+ let first,second;if(enabled(s,'geography-frame')){const base=createOriginTopology(s);first=base.town;second=s.geographyFrame.sites['port-west'].area;}else{first=addArea(s,'village','Первый двор');second=addArea(s,'port','Речной двор');const wood=addArea(s,'forest','Общий лес',1);connect(s,first,second);connect(s,first,wood);}s.population.settlements=[first,second];const kin=[createPerson(s,{race:'human',role:'предок',alive:false}),createPerson(s,{race:'human',role:'предок',alive:false})],carriers=[];
+ for(const id of [first,second]){const a=s.areas[id],adults=[];const initialFood=id===second&&(stocks==='uneven'||stocks==='seed'&&s.seed%3===1)?28:65;if(a.goods)a.goods.ledger.food.initial+=initialFood-a.civic.food;a.civic.food=initialFood;for(const job of ['farmer','artisan','merchant']){const p=s.people[createPerson(s,{area:id,parents:job==='merchant'?kin:[],alive:true,role:'житель',culture:a.culture},{initialJob:job})];p.agenda.due=8;p.agenda.duty=job==='merchant'?.8:.65;p.needs.hunger=job==='farmer'?45:job==='artisan'?25:15;p.needs.energy=job==='merchant'?80:job==='farmer'?70:95;if(job==='merchant')carriers.push(p);adults.push(p);a.population.push(p.id);if(job==='artisan'&&a.civic.tools>0){p.agenda.tools=takeGoods(s,a,'tools',1,{flow:'exported',reason:'origin-artisan-tools',actor:p.id});}}
   const child=createPerson(s,{area:id,parents:adults.slice(0,2).map(p=>p.id),alive:true,role:'ребёнок',culture:a.culture});a.population.push(child);
  }
  const carrier=carriers[0],at=s.areas[second];s.areas[first].population=s.areas[first].population.filter(id=>id!==carrier.id);at.population.push(carrier.id);carrier.area=second;carrier.status='wandering';carrier.agenda.task={kind:'return',target:first,x:42,remaining:1,home:first,knownNavigation:true};const portions=takeGoods(s,at,'food',2,{flow:'exported',reason:'origin-carrier-provisions',actor:carrier.id});carrier.roadSupplies={food:portions,medicine:0};s.population.carrier=carrier.id;s.population.originTrip={person:carrier.id,home:first,area:second,kind:'return',provisions:{source:second,food:portions}};
+ initializeAuthorities(s);initializeRoyalHouse(s);initializeCurrencyOffice(s);initializeClinicalPractitioner(s);initializeClinicalApprentice(s);
  for(const p of Object.values(s.people))if(p.alive&&p.area){observeNPCPlace(s,p);observeNPCContacts(s,p);observeFreightActor(s,p);}
  for(const id of [first,second]){const a=s.areas[id];populationEvent(s,{kind:'origin',area:id,actors:[...a.population],stocks:{...a.civic},people:a.population.map(person=>({person,job:s.people[person].agenda.job,tools:s.people[person].agenda.tools}))});}s.merchant={name:'Сава',area:first,destination:null,arrival:0,nextMove:75,stock:3,serviceStock:{version:1,gear:2,medicine:1}};initializeSpatial(s);return s;
 }
 export function createWarmPopulation(seed,{duration=WARM_TICKS,...options}={}){const s=createPopulation(seed,options);beginPreparationState(s,duration,populationSnapshot(s));return s;}
 export function beginPopulationPreparation(s,{duration=WARM_TICKS}={}){if(!populationState(s))throw Error('Preparation requires an unobserved population');beginPreparationState(s,duration,populationSnapshot(s));return s;}
 export function observePreparedPopulation(s,{person=null}={}){
- if(!populationState(s)||s.population.preparation?.status!=='ready'||s.hero!==null)return {ok:false,reason:'Мир ещё не готов к первому наблюдению.'};validatePopulation(s);const id=person||firstObservationCandidates(s)[0],p=s.people[id],reason=observationCandidateReason(s,p);if(reason)return {ok:false,reason};
+ if(!populationState(s)||s.population.preparation?.status!=='ready'||s.hero!==null)return {ok:false,reason:'Мир ещё не готов к первому наблюдению.'};validatePopulation(s);const id=person||firstObservationCandidates(s)[0],p=s.people[id],reason=!id?'Нет свободного подходящего взрослого. Подготовленный мир сохранён.':observationCandidateReason(s,p);if(reason)return {ok:false,reason};
  const h=npcActorProfile(s,p,createHero,1);Object.assign(h,{actorMode:'resident',actorGeneration:1,born:s.tick,originTick:s.tick,startAge:personAgeAt(p,s.tick),ageOrigin:{...p.ageOrigin},actorStep:s.tick,timeline:[],timelineDropped:0,biography:[],actorJournal:[],origin:'Житель подготовленного мира',intent:'Продолжить собственную жизнь',reason:'Собственное тело, знания, имущество и прожитое время сохранены.',action:'ЖИЗНЬ'});h.npcProfile.controllerTransferredAt=s.tick;h.residentExperience={recordedAt:s.tick,area:p.area,job:p.agenda.job,work:p.agenda.work};h.career.lastChange=s.tick;
  h.stories={active:null,nextOffer:s.tick+500,completed:[]};s.hero=h;s.generation=1;s.nextGeneration=2;s.originTick=s.tick;s.observation={version:1,person:id,sequence:1,started:s.tick};s.population.phase='observed';s.population.observation={person:id,area:p.area,tick:s.tick};initializeWorkOrders(s);initializeStories(s,h);initializeObservation(s);bindObservedJournal(s);log(s,h.name+' становится наблюдаемым жителем. Его жизнь в мире уже шла.','birth',h.area);syncActiveActor(s);return {ok:true,person:id};
 }

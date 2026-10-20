@@ -10,7 +10,7 @@ import {npcController} from './npc-control.js';
 import {enabled} from '../rules.js';
 const pending=e=>e&&['preparing','postponed','active'].includes(e.status);
 const current=s=>s.localFeast?.edition;
-function tell(s,e,text,ctx){if(s.hero.alive&&feastNear(s,s.people[s.hero.lineage],e.area))ctx?.log?.(s,text,'npc');}
+function tell(s,e,text,ctx){if(s.hero?.alive&&feastNear(s,s.people[s.hero.lineage],e.area))ctx?.log?.(s,text,'npc');}
 function close(s,e,status,reason,ctx){e.status=status;e.ended=s.tick;e.reason=reason;if(e.food){const n=putGoods(s,s.areas[e.area],'food',e.food,{reason:'feast-leftovers',actor:e.organizer,legacyCap:Infinity});e.returned+=n;e.food-=n;}tell(s,e,reason,ctx);}
 export function feastTick(s,ctx){
  if(!feastsOn(s))return;const e=current(s);if(!pending(e))return;

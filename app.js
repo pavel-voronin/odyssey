@@ -1,3 +1,4 @@
+import {startBrowserWorld,requestGeneration,generateInBrowser} from './generation-client.js';
 import {observationOriginHTML} from './observation-origin-sheet.js';
 import {clinicalHTML} from './clinical-sheet.js';
 import {currencyHTML} from './currency-sheet.js';
@@ -137,10 +138,9 @@ import {sceneCamera,cameraPoint} from './scene-camera.js';
 const $ = id => document.getElementById(id);
 function eventDate(e,full=false){const a=state.areas[e.area]||{type:'road',continent:'c0',era:0};return full?dateLabel(state,e.tick,a):dateStamp(state,e.tick,a);}
 let roadView='map';try{if(localStorage.getItem(SAVE_KEY+'-road-view')==='scene')roadView='scene';}catch{}
+const startup=await startBrowserWorld().catch(e=>{ $('game-shell').hidden=true;$('preparation-panel').hidden=false;$('preparation-label').textContent='Не удалось открыть мир. Исходное сохранение оставлено без изменений. '+e.message;for(const id of ['preparation-pause','preparation-resume','preparation-plain','preparation-progress'])$(id).hidden=true;throw e;});
+let state=startup.state, tab='hero',saveProblem='',audioContext,soundEnabled=false,firstVisit=startup.fresh,generating=false;
 const scene = new Scene($('scene'),{onCameraFrame:renderEffects,roadView});
-let state, tab = 'hero', saveProblem = '', audioContext, soundEnabled = false, firstVisit=false;
-try { const saved = localStorage.getItem(SAVE_KEY);firstVisit=!saved; state = saved ? restore(saved) : createWorld(); }
-catch { state = createWorld();firstVisit=true;saveProblem = 'Сохранение повреждено или имеет другой формат. Открыт новый мир.'; }
 let savedClock;
 try { if(!firstVisit)savedClock=currentClock(JSON.parse(localStorage.getItem(SAVE_KEY+'-clock')),state); } catch {}
 const clock = createClock(savedClock?.anchor,savedClock?.idleUntil,savedClock?.stopped,savedClock?.yearRun);
@@ -424,6 +424,7 @@ function render(automatic=false,batching=false) {
   document.querySelector('.tap-hint').textContent=fastRun?(fastRun.untilDeath?'До смерти · клик — стоп':`Год: ${fastRun.committed} / 19 200 · клик — стоп`):fastNotice||(lifeFinished(state)?'Мир живёт · клик — миг':'Клик · зажать ×3 · авто 1/с');
 }
 function persist() {
+  if(generating)return;
   if(fastRun)updateYearClock(clock,fastRun,Date.now());
   try { localStorage.setItem(SAVE_KEY, serialize(state)); localStorage.setItem(SAVE_KEY+'-clock',JSON.stringify(clockRecord(state,clock))); saveProblem = ''; }
   catch { saveProblem = 'Не удалось сохранить в браузере. Скачай полное сохранение через меню перед закрытием.'; }
@@ -439,7 +440,7 @@ function chime() {
     oscillator.connect(gain).connect(audioContext.destination); oscillator.start(t); oscillator.stop(t + .16);
   } catch { soundEnabled = false; $('sound').classList.remove('enabled'); }
 }
-function advance() { if(pendingNextStory)return;if ($('sheet').open || $('settings-dialog').open || $('reset-dialog').open||$('life-summary').open||$('observer-dialog').open) return;if(fastRun){stopFast();return;}fastNotice='';teach();pendingInputs.push(Date.now());drainTime(); }
+function advance() { if(generating)return;if(pendingNextStory)return;if ($('sheet').open || $('settings-dialog').open || $('reset-dialog').open||$('life-summary').open||$('observer-dialog').open) return;if(fastRun){stopFast();return;}fastNotice='';teach();pendingInputs.push(Date.now());drainTime(); }
 function releaseHold(){clearInterval(holding);clearTimeout(holdStart);holding=null;gesture=null;}
 const frameResize=new ResizeObserver(()=>{releaseHold();cancelSuccession();fitGold();fitCaptions();renderEffects();});frameResize.observe($('game-shell'));
 window.visualViewport?.addEventListener('resize',()=>{releaseHold();cancelSuccession();});
@@ -577,7 +578,11 @@ $('run-until-death').addEventListener('click',()=>startFast(true));
 $('sound').addEventListener('click', () => { soundEnabled = !soundEnabled; $('sound').classList.toggle('enabled', soundEnabled); $('sound').textContent = soundEnabled ? 'Звук: вкл.' : 'Звук: выкл.'; $('sound').setAttribute('aria-label', soundEnabled ? 'Выключить звук' : 'Включить звук'); $('sound').setAttribute('aria-pressed', String(soundEnabled)); chime(); });
 $('reset').addEventListener('click', () => { $('settings-dialog').close(); $('reset-dialog').showModal(); });
 $('cancel-reset').addEventListener('click', () => $('reset-dialog').close());
-$('confirm-reset').addEventListener('click', () => { releaseFast();fastNotice='';lifeReview=false;state = createWorld(); clearSpeech(speechMemory); resetClock(); persist(); render(); $('reset-dialog').close(); });
+$('confirm-reset').addEventListener('click',async()=>{
+ if(generating)return;releaseFast();persist();generating=true;$('reset-dialog').close();
+ try{const job=requestGeneration(localStorage,Date.now(),{warm:$('reset-prehistory').checked});const result=await generateInBrowser(job);state=result.state;fastNotice='';lifeReview=false;clearSpeech(speechMemory);resetClock();render();}
+ catch(e){saveProblem=e.message;resetClock();render();}finally{generating=false;}
+});
 $('export').addEventListener('click', () => {
   const lines = ['CLICK ODYSSEY', `${lifeName()} · тик жизни ${lifeTick(state)} · мир ${state.seed}, тик мира ${state.tick}`, '', ...(state.hero.timeline||state.journal.slice().reverse()).map(e => `[${lifeTick(state,e.tick)}] ${e.text}`), '', 'ПОСЛЕДСТВИЯ', ...state.changes.filter(e=>knownWorldEvent(state,e)).map(c => `[${c.tick}] ${c.text}`)];
   const url = URL.createObjectURL(new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/plain;charset=utf-8' }));
@@ -601,6 +606,7 @@ function drainTime(){
  return ticks;
 }
 function pumpTime() {
+  if(generating){setTimeout(pumpTime,200);return;}
   if(fastRun){updateYearClock(clock,fastRun,Date.now());setTimeout(pumpTime,200);return;}
   const ticks=drainTime(),stage=tutorialState.stage;tutorialTick(tutorialState,Date.now(),ticks>0&&!pendingInputs.length&&!clock.idleUntil);if(stage!==tutorialState.stage)saveTutorial();showTutorial();
   if(!ticks&&speechMemory.loot.notice?.batch&&performance.now()>=speechMemory.loot.notice.untilMs)render(true);
