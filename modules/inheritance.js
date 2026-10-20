@@ -1,3 +1,5 @@
+import {applyItemWill,attachWillPaper} from './will-resolution.js';
+import {refundUnfinishedWill} from './wills.js';
 import {createEstateCustody} from './estate-claim-state.js';
 import {passEstateClaims} from './estate-claims.js';
 import {inheritDwellings} from './dwelling-rights.js';
@@ -15,16 +17,19 @@ export function openInheritance(s,h,cache=null,ctx={}){
  const p=s.people[h.lineage];
  if(!enabled(s,'finances')||!enabled(s,'lifecycle')||!p||p.alive||h.alive||p.died!==s.tick||p.estate)return null;
  const deathArea=h.actorMode==='npc'?(p.area??h.area):h.area,deathX=h.actorMode==='npc'?(p.x??h.x):h.x;
+ const ownedAtDeath=new Set((cache?.items||[]).filter(i=>!i.inheritance||i.inheritance.owner===p.id).map(i=>i.id));
  const heirs=Object.values(s.people).filter(q=>q.id!==p.id&&q.alive&&q.role!=='ребёнок'&&relatedPeople(p,q)).sort((a,b)=>Number(b.area===deathArea)-Number(a.area===deathArea)||Number(b.parents.includes(p.id))-Number(a.parents.includes(p.id))||a.id.localeCompare(b.id));
  const heir=heirs[0]||null,wallet=h.actorMode==='npc'?p.agenda.wealth:h.gold;
- const total=Math.max(0,wallet-(cache?.gold||0));
+ refundUnfinishedWill(s,p,h);const currentWallet=h.actorMode==='npc'?p.agenda.wealth:h.gold;
+ const total=Math.max(0,currentWallet-(cache?.gold||0));
  const estate=p.estate={version:1,id:`estate/${p.id}/${s.tick}`,opened:s.tick,heir:heir?.id??null,total,cash:total,paid:0,status:'pending',assets:[]};
+ applyItemWill(s,p,h,estate,cache);attachWillPaper(s,p,estate);
  passEstateClaims(s,p,heir,estate);inheritProductionRights(s,p,heir,estate);inheritDwellings(s,p,heir,estate);
  inheritMapCopies(s,p,heir,deathArea,deathX,estate,p.deathJourney||h.transit);
  inheritLibraryBooks(s,p,heir,estate,cache);
  if(heir&&p.routeMaps?.documents.length){const next=routeMapMemory(heir);for(const d of p.routeMaps.documents){d.owner=heir.id;next.documents.push(d);estate.assets.push({kind:'route-map',area:deathArea,id:d.id});}p.routeMaps.documents=[];}
  if(cache){cache.estate=estate.id;cache.inheritor=heir?.id??null;estate.assets.push({kind:'death-cache',area:h.area,id:cache.id});
-  for(const item of cache.items||[]){if((item.libraryLoan?.returned===null||item.libraryTheft?.returned===null)&&item.textCopy?.owner!==p.id)continue;item.inheritance={estate:estate.id,owner:heir?.id??null};estate.assets.push({kind:'item',area:h.area,id:item.id,cache:cache.id});}
+  for(const item of cache.items||[]){if(item.inheritance?.estate===estate.id||item.inheritance?.estate&&!ownedAtDeath.has(item.id))continue;if((item.libraryLoan?.returned===null||item.libraryTheft?.returned===null)&&item.textCopy?.owner!==p.id)continue;item.inheritance={estate:estate.id,owner:estate.testament?.outcome==='effective'&&estate.testament.item===item.id?estate.testament.recipient:heir?.id??null};estate.assets.push({kind:'item',area:h.area,id:item.id,cache:cache.id});}
  }
  for(const a of Object.values(s.areas))for(const o of a.objects){
   if(o.kind==='workshop'&&o.owner===p.id){

@@ -1,3 +1,4 @@
+import {willHold} from './will-records.js';
 import {estateClaimsOn,observeEstateClaims,estateById,estateSource} from './estate-claim-state.js';
 import {recordEstatePickup} from './estate-pickup.js';
 import {practicalClothingOn,clothingKind} from './clothing-state.js';
@@ -79,8 +80,8 @@ export function recoverHeirloom(s,object,ctx){
   s.hero.gold+=object.gold||0;object.gold=0;
   if(enabled(s,'equipment')){
     const physical=originalsOn(s)||object.itemOriginals===1;
-    if(containersOn(s)){for(const item of [...object.items]){if(!fitsPack(s,s.hero.lineage,{items:[...s.hero.bag,item]}))continue;object.items.splice(object.items.indexOf(item),1);receiveItem(s,ctx,null,item);}}
-    else {const items=object.items.splice(0,physical?Math.max(0,ITEM_CAPACITY-s.hero.bag.length):object.items.length);for(const item of items)receiveItem(s,ctx,null,item);}
+    if(containersOn(s)){for(const item of [...object.items]){if(willHold(s,item.id,s.hero.lineage))continue;if(!fitsPack(s,s.hero.lineage,{items:[...s.hero.bag,item]}))continue;object.items.splice(object.items.indexOf(item),1);receiveItem(s,ctx,null,item);}}
+    else {const items=object.items.filter(i=>!willHold(s,i.id,s.hero.lineage)).slice(0,physical?Math.max(0,ITEM_CAPACITY-s.hero.bag.length):object.items.length);for(const item of items){object.items.splice(object.items.indexOf(item),1);receiveItem(s,ctx,null,item);}}
   }
   object.taken=object.items.length===0;
   if(estateBefore.length)recordEstatePickup(s,s.people[s.hero.lineage],object,estateBefore.filter(i=>!object.items.includes(i)));

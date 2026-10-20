@@ -1,3 +1,4 @@
+import {willAssetOwner} from './will-records.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {selfDrivenActor} from '../actor-projection.js';
@@ -27,9 +28,10 @@ export function createEstateCustody(s,p,h,cache){
 }
 export function observeEstateClaims(s,p){
  if(!estateClaimsOn(s)||!estateReady(s,p))return;const b=estateBody(s,p),a=s.areas[b.area];if(!a)return;
- for(const dead of Object.values(s.people)){const e=dead.estate,source=e&&estateSource(s,dead);if(!e||source?.transit)continue;const localCash=source?.area===a.id&&physicalDistance(a,b.x,source.x)<=12,cache=a.objects.find(o=>o.estate===e.id&&physicalDistance(a,b.x,o.x)<=12),at=localCash?source:cache?{area:a.id,x:cache.x}:null;if(!at)continue;
-  const memory=p.estateNotes ||= {},old=memory[e.id],items=cache?(cache.items||[]).filter(i=>i.inheritance?.estate===e.id).map(i=>i.id).slice(0,12):[];
-  memory[e.id]={version:1,estate:e.id,decedent:dead.id,area:a.id,x:at.x,observed:s.tick,witness:p.id,from:p.id,received:s.tick,heir:e.heir,cash:localCash?e.cash:0,items:[...new Set([...(old?.items||[]),...items])].slice(0,12),holders:old?.holders||{},via:[]};
+ for(const dead of Object.values(s.people)){const e=dead.estate,source=e&&estateSource(s,dead);if(!e||source?.transit)continue;const localCash=source?.area===a.id&&physicalDistance(a,b.x,source.x)<=12,caches=a.objects.filter(o=>(o.estate===e.id||o.items?.some(i=>i.inheritance?.estate===e.id))&&physicalDistance(a,b.x,o.x)<=12).sort((a,b)=>Number(Boolean(b.items?.length))-Number(Boolean(a.items?.length))),cache=caches[0],at=localCash?source:cache?{area:a.id,x:cache.x}:null;if(!at)continue;
+  const memory=p.estateNotes ||= {},old=memory[e.id],items=caches.flatMap(o=>(o.items||[]).filter(i=>i.inheritance?.estate===e.id)).map(i=>i.id).slice(0,12);
+  memory[e.id]={version:1,estate:e.id,decedent:dead.id,area:a.id,x:at.x,observed:s.tick,witness:p.id,from:p.id,received:s.tick,heir:e.heir,cash:localCash?e.cash:0,itemHeirs:Object.fromEntries(caches.flatMap(o=>(o.items||[]).filter(i=>i.inheritance?.estate===e.id)).map(i=>[i.id,willAssetOwner(e,i.id)]).slice(0,12)),items:[...new Set([...(old?.items||[]),...items])].slice(0,12),holders:old?.holders||{},via:[]};
+  for(const id of items)delete memory[e.id].holders[id];
   const ids=Object.keys(memory);if(ids.length>12){ids.sort((a,b)=>memory[a].received-memory[b].received);delete memory[ids[0]];}
  }
 }
@@ -38,6 +40,7 @@ export function shareEstateKnowledge(s,from,to){
  for(const n of Object.values(from.estateNotes||{})){
   const old=to.estateNotes?.[n.estate],fresh=!old||n.observed>old.observed,holders=Object.entries(n.holders).filter(([id,h])=>(h.relays?.length||0)<4&&(!old?.holders[id]||h.seen>old.holders[id].seen));if((!fresh||n.via.length>=4)&&!holders.length)continue;
   const copy=fresh&&n.via.length<4?{...structuredClone(n),from:from.id,received:s.tick,via:[...n.via,{from:from.id,to:to.id,area:a.area,at:s.tick}]}:structuredClone(old);if(!copy)continue;
+  if(n.itemHeirs||old?.itemHeirs)copy.itemHeirs={...(old?.itemHeirs||{}),...(n.itemHeirs||{})};
   copy.items=[...new Set([...(old?.items||[]),...copy.items,...holders.map(([id])=>id)])].slice(0,12);
   for(const [id,h]of Object.entries(old?.holders||{}))if(copy.items.includes(id)&&(!copy.holders[id]||h.seen>copy.holders[id].seen))copy.holders[id]=structuredClone(h);
   for(const [id,h]of holders)if(copy.items.includes(id))copy.holders[id]={...structuredClone(h),relays:[...(h.relays||[]),{from:from.id,to:to.id,area:a.area,at:s.tick}]};

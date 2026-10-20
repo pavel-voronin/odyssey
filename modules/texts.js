@@ -60,6 +60,7 @@ export function readText(s,p,id){
  return rememberTextReading(s,p,item);
 }
 export function rememberTextInformation(s,p,work,info=work.content,source=work.author,reported=false){
+ if(work.content.kind==='testament')return;
  if(work.content.kind==='fragment'){const c=work.content.clue;if(c?.kind==='mechanism-sequence'&&!reported)learnSequence(s,p,c,{kind:'surviving-pages',person:source,tick:s.tick,id:work.id});info={area:work.content.area,name:work.content.name,observed:work.content.observed};}
  if(work.content.kind==='mechanism-sequence'){
   if(!Array.isArray(info.order)||!info.order.length)return;

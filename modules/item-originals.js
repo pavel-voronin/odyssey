@@ -1,3 +1,4 @@
+import {willHold} from './will-records.js';
 import {socketRoots} from './socket-items.js';
 import {recordEstatePickup} from './estate-pickup.js';
 import {observeEstateClaims,estateClaimsOn,estateById,estateSource} from './estate-claim-state.js';
@@ -43,19 +44,19 @@ export function cacheItems(s,items,{area=s.hero.area,x=s.hero.x,leftBy=s.hero.li
 export function cacheCollectible(s,o){
  if(!containersOn(s)&&!originalsOn(s)&&o.itemOriginals!==1)return !o.taken&&(enabled(s,'equipment')||o.gold>0);
  if(o.taken)return false;if(o.gold>0)return true;if(!enabled(s,'equipment'))return false;
- return Boolean(o.items?.some(item=>containersOn(s)?fitsPack(s,s.hero.lineage,{items:[...s.hero.bag,item]}):s.hero.bag.length<ITEM_CAPACITY));
+ return Boolean(o.items?.some(item=>!willHold(s,item.id,s.hero.lineage)&&(containersOn(s)?fitsPack(s,s.hero.lineage,{items:[...s.hero.bag,item]}):s.hero.bag.length<ITEM_CAPACITY)));
 }
 export function npcLooseItems(s,p){const h=s.actorStates?.[p.id];return h?.bag||(p.looseItems ||= []);}
 export function npcCachePlan(s,p){
  if(!originalsOn(s)||p.role==='ребёнок'||p.ailment||p.health<(p.maxHealth||100)*.85||p.needs?.sleeping||p.needs?.energy<35||p.needs?.hunger>55)return null;
  if(p.agenda.job!=='merchant'&&!(p.agenda.wealth<10&&p.agenda.duty<.5))return null;
  const bag=s.actorStates?.[p.id]?.bag||p.looseItems||[];if(containersOn(s)?packView(s,p.id).free<=0:bag.length>=ITEM_CAPACITY)return null;
- const a=s.areas[p.area],cache=a?.objects.find(o=>o.itemOriginals===1&&!o.taken&&o.items?.some(i=>i.value>0&&(!containersOn(s)||fitsPack(s,p.id,{items:[...bag,i]})))&&physicalDistance(a,p.x,o.x)<=18);
+ const a=s.areas[p.area],cache=a?.objects.find(o=>o.itemOriginals===1&&!o.taken&&o.items?.some(i=>!willHold(s,i.id,p.id)&&i.value>0&&(!containersOn(s)||fitsPack(s,p.id,{items:[...bag,i]})))&&physicalDistance(a,p.x,o.x)<=18);
  return cache?{kind:'itemSalvage',target:a.id,x:cache.x,object:cache.id,remaining:1}:null;
 }
 export function npcTakeCache(s,p,t){
  if(!originalsOn(s))return 0;const a=s.areas[p.area],o=a?.objects.find(o=>o.id===t.object);if(!o||o.itemOriginals!==1||o.taken||p.area!==t.target||physicalDistance(a,p.x,o.x)>1)return 0;
- if(o.estate&&estateClaimsOn(s)&&estateSource(s,estateById(s,o.estate))?.transit)return 0;if(o.estate)observeEstateClaims(s,p);const bag=npcLooseItems(s,p),picked=[];for(const item of o.items){if(containersOn(s)?fitsPack(s,p.id,{items:[...bag,...picked,item]}):bag.length+picked.length<ITEM_CAPACITY)picked.push(item);}const count=picked.length;if(!count)return 0;
+ if(o.estate&&estateClaimsOn(s)&&estateSource(s,estateById(s,o.estate))?.transit)return 0;if(o.estate)observeEstateClaims(s,p);const bag=npcLooseItems(s,p),picked=[];for(const item of o.items){if(willHold(s,item.id,p.id))continue;if(containersOn(s)?fitsPack(s,p.id,{items:[...bag,...picked,item]}):bag.length+picked.length<ITEM_CAPACITY)picked.push(item);}const count=picked.length;if(!count)return 0;
  for(const item of picked){o.items.splice(o.items.indexOf(item),1);}
  for(const item of picked){bag.push(item);actorItemLocation(s,item,p.id);item.history ||= [];item.history.push({tick:s.tick,text:`Подобрано: ${p.name}.`});}
  o.taken=o.items.length===0&&!(o.gold>0);if(o.estate)recordEstatePickup(s,p,o,picked);return count;
@@ -63,5 +64,5 @@ export function npcTakeCache(s,p,t){
 export function releaseLooseItems(s,p){
  if(p.alive)return;const h=s.actorStates?.[p.id],items=h?.actorMode==='npc'?[...h.bag,...Object.values(h.equipment).filter(Boolean)].filter(i=>i.physical?.version===1):p.looseItems;
  if(p.alive||!items?.length||!s.areas[p.area])return;
- const cache=cacheItems(s,items,{area:p.area,x:p.x??42,leftBy:p.id,name:`Вещи ${p.name}`});if(cache){p.looseItems=[];if(h?.actorMode==='npc'){h.bag=h.bag.filter(i=>!items.includes(i));for(const key of Object.keys(h.equipment))if(items.includes(h.equipment[key]))h.equipment[key]=null;}}
+ const cache=cacheItems(s,items,{area:p.area,x:p.x??42,leftBy:p.id,name:`Вещи ${p.name}`});if(cache){if(p.estate&&items.some(i=>i.inheritance?.estate===p.estate.id)){cache.estate=p.estate.id;cache.inheritor=p.estate.heir;}p.looseItems=[];if(h?.actorMode==='npc'){h.bag=h.bag.filter(i=>!items.includes(i));for(const key of Object.keys(h.equipment))if(items.includes(h.equipment[key]))h.equipment[key]=null;}}
 }

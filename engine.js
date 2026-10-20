@@ -1,4 +1,6 @@
 import {diplomacyWorldTick} from './modules/diplomacy-world.js';
+import {probateHeroPlan,probateHeroAction} from './modules/will-probate.js';
+import {willHeroPlan,willHeroAction} from './modules/wills.js';
 import {publicRepairHeroPlan,publicRepairHeroAction} from './modules/public-repairs.js';
 import {diplomacyHeroPlan,diplomacyHeroAction} from './modules/authority-diplomacy.js';
 import {initializeAuthorities} from './modules/authority-foundation.js';
@@ -453,6 +455,8 @@ function plan(s) {
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
   if(offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'),{lesson:false})))return planningSpent;
+  if(offer('probateHeroPlan',()=>probateHeroPlan(s,context(s,'testaments'))))return planningSpent;
+  if(offer('willHeroPlan',()=>willHeroPlan(s,context(s,'testaments'))))return planningSpent;
   if(offer('publicRepairHeroPlan',()=>publicRepairHeroPlan(s,context(s,'public-repairs'))))return planningSpent;
   if(offer('diplomacyHeroPlan',()=>diplomacyHeroPlan(s,context(s,'authority-diplomacy'))))return planningSpent;
   if(offer('decoyPlan',()=>decoyPlan(s,context(s,'noise-decoys'))))return planningSpent;
@@ -1119,6 +1123,8 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(g.kind==='willProbate')execute('probateHeroAction',()=>probateHeroAction(s,g));
+  else if(['willPaper','willLaw','willBegin','willWrite','willAttest','willCollect','willInvite','willRevoke'].includes(g.kind))execute('willHeroAction',()=>willHeroAction(s,g));
   else if(['publicRepairEnact','publicRepairOffice','publicRepairFile','publicRepairTalk','publicRepairBuy'].includes(g.kind))execute('publicRepairHeroAction',()=>publicRepairHeroAction(s,g));
   else if(['diplomacyAnswer','diplomacySupport'].includes(g.kind))execute('diplomacyHeroAction',()=>diplomacyHeroAction(s,g));
   else if(['decoySupply','decoyWork','decoyRetrieve','decoyGift'].includes(g.kind))execute('decoyAction',()=>decoyAction(s,s.people[h.lineage],g,{...context(s,'noise-decoys'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}));
