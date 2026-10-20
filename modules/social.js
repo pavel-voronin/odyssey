@@ -1,3 +1,4 @@
+import {ordinaryRecovery} from './biology.js';
 import {remindPromises} from './recollection-contact.js';
 import {shareEstateKnowledge} from './estate-claim-state.js';
 import {supportedPatient} from './patient-state.js';
@@ -127,7 +128,7 @@ export function partyRest(s){
   for(const c of s.hero.companions){
     if(petPack(c)&&!petNear(s,c,12))continue;
     const person=s.people[c.person];if(enabled(s,'npc-party-needs')&&person&&!person.alive)continue;
-    c.hp=Math.min(c.maxHp,c.hp+5);if(!person){if(enabled(s,'pet-training')&&c.petTraining)c.petTraining.energy=Math.min(100,c.petTraining.energy+8);continue;}
+    c.hp=Math.min(c.maxHp,c.hp+(person?ordinaryRecovery(s,person,5):5));if(!person){if(enabled(s,'pet-training')&&c.petTraining)c.petTraining.energy=Math.min(100,c.petTraining.energy+8);continue;}
     person.health=Math.ceil((person.maxHealth||100)*c.hp/c.maxHp);
     if((enabled(s,'camp-life')||enabled(s,'npc-party-needs'))&&enabled(s,'npc-needs')&&person.needs){
       const n=person.needs;n.energy=Math.min(100,n.energy+12);

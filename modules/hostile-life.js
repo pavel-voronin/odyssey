@@ -88,7 +88,7 @@ export function hostileLifeTick(s,ctx){
  for(const other of Object.values(s.people)){if(!other.alive||other.needs?.sleeping)continue;const area=personLocation(s,other.id)?.area;if(!areas.has(area))continue;const at=localContact(s,other.id,area);if(at)contacts.get(area).push({p:other,at});}
  const fights=new Set(detailedActors(s).filter(h=>selfDrivenActor(s,h)&&h.combat&&!h.transit).map(h=>JSON.stringify([h.area,h.combat])));
  for(const p of Object.values(s.people)){const q=p.hostileLife,e=personEnemy(s,p);if(q?.stage!=='active'||p.enemyBody?.stage!=='hostile'||!e?.alive||!p.alive||q.lastTick===s.tick)continue;
-  q.lastTick=s.tick;p.area=p.enemyBody.origin;p.x=e.x;p.health=e.hp;const n=p.needs;n.hunger=clamp(n.hunger+3,0,100);n.energy=Math.max(0,n.energy-1);
+  q.lastTick=s.tick;p.area=p.enemyBody.origin;p.x=e.x;p.health=e.hp;const n=p.needs;n.energy=Math.max(0,n.energy-1);
   if(n.hunger>=95&&!carriedFood(p,p.actorLink?.inventory)){const before=e.hp;e.hp=Math.max(0,e.hp-1);p.health=e.hp;record(s,p,'hunger',{before,after:e.hp});if(!e.hp){ownMessage(s,p,ctx,p.name+' не пережил голод на дороге.');killEnemyPerson(s,e,null,'Голод на дороге');continue;}}
   if(fights.has(JSON.stringify([p.area,e.id]))||q.lastActionTick===s.tick)continue;act(s,p,e,ctx,contacts.get(p.area)||[]);
  }

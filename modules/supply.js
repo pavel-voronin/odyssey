@@ -1,3 +1,4 @@
+import {forageContract} from './food-contract.js';
 import {harvestFactor} from './harvest-failure-state.js';
 import {physicalDistance} from '../geometry.js';
 import {containersOn,stackRoom} from './container-state.js';
@@ -68,7 +69,7 @@ export function foodPlan(s,ctx,{reserve=false}={}){
   if(town){ctx.goal(s,'provision',town.id,42,'Найти еду в поселении',marketKnowledgeEnabled(s)?'Последних цен отсюда нет. Герой узнает условия на месте; наличие еды не гарантировано.':'В кладовой есть реальные запасы; часть можно взять в дорогу.');return true;}
   const forage=ctx.closest(s,a=>knownArea(s,a)&&a.forage?.stock>0&&(!localFoodEnabled(s)||!a.forage.localFood||localFoodChoice(s,s.people[h.lineage],h,a))&&serviceReachable(s,a,a.forage.x,ctx));
   if(forage){const source=localFoodChoice(s,s.people[h.lineage],h,forage);ctx.goal(s,'forage',forage.id,forage.forage.x,source?.kind==='fish'?'Поймать рыбу':'Добыть еду на дороге','Кладовые пусты или дорога перекрыта. Здесь известен доступный источник пищи.',{remaining:source?.remaining||3,...(source?{foodSource:source.id}:{})});return true;}
-  ctx.goal(s,'forage',h.area,h.x,'Искать съедобное поблизости','Известного безопасного источника нет. Он проверяет окрестности.',{remaining:3,search:true});return true;
+  return false;
 }
 export function eat(s,ctx){
   const h=s.hero;if(!enabled(s,'supply')){h.goal=null;return;}
@@ -101,6 +102,7 @@ export function buyFood(s,ctx){
 export function forageTick(s,ctx){
   const h=s.hero,g=h.goal,a=s.areas[h.area];
   if(!enabled(s,'supply')){h.goal=null;return;}
+  const admission=forageContract(s,g);if(admission.status==='blocked'){h.goal=null;h.reason=admission.reason;ctx.log(s,admission.reason,'plan');return false;}if(admission.source&&!g.foodSource)g.foodSource=admission.source.id;
   if(localFoodEnabled(s)&&g.foodSource){const result=localFoodWork(s,s.people[h.lineage],a,g,h,ctx);h.lastAction='collect';if(result.finished){h.goal=null;if(result.receipt){h.counters.forage++;ctx.log(s,`${LOCAL_FOODS[result.receipt.kind].name}: получено ${result.receipt.quantity}. Добыча убрана в сумку.`,'food');}else {h.memory.foodAfter=s.tick+24;ctx.log(s,result.reason||'Источник истощён. Нужен другой способ добыть еду.','food');}}return;}
   if(localFoodEnabled(s)&&a.forage?.localFood){h.goal=null;h.memory.foodAfter=s.tick+24;ctx.log(s,'Здесь нужен известный способ добычи и своё средство. Герой ищет другую еду.','food');return;}
   if(!localFoodEnabled(s)&&g.foodSource){delete g.foodSource;delete g.foodWork;g.remaining=3;}
@@ -108,7 +110,6 @@ export function forageTick(s,ctx){
   if(g.remaining>0)return;
   const available=a.forage?.stock||0;
   if(available>0){const found=takeForage(a,stackRoom(s,h.lineage,'rations',3));h.inventory.rations+=found;h.counters.forage++;ctx.log(s,`${a.forage.kind}: получено пайков — ${found}. Растениям нужно время, чтобы восстановиться.`,'food');}
-  else if(g.search&&stackRoom(s,h.lineage,'rations',1)&&moduleRandom(s,'supply')<.35){h.inventory.rations++;h.counters.forage++;ctx.log(s,'В расщелине найдены съедобные коренья. Один паёк — результат поисков, не бесконечная кладовая.','food');}
   else {h.memory.foodAfter=s.tick+24;ctx.log(s,'Поиски еды ничего не дали. Герой запоминает нехватку и проверит другое место.','food');}
   h.goal=null;
 }

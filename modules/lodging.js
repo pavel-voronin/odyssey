@@ -1,3 +1,4 @@
+import {ordinaryRecovery} from './biology.js';
 import {partyRoomConsent} from './lodging-consent.js';
 export {partyRoomConsent};
 import {noteRoomDemand,homeBuildingOn} from './home-building.js';
@@ -72,7 +73,7 @@ export function lodgingRest(s,ctx,continueRest=false){
  const h=s.hero,a=s.areas[h.area];if(!a.lodging)return false;
  if(!roomAdmission(s,a,h.lineage)||h.hunger>75){h.goal=null;return true;}
  const booking=activeBooking(s,a,h.lineage);h.reason=a.residence?'Отдых по праву на свой дом. Вместимость '+a.residence.occupants.length+'/'+a.residence.capacity:`Бронь: ещё ${elapsedLabel(booking.until-s.tick)} · места ${booking.occupants.length}/${a.lodging.capacity}`;
- h.lastAction='rest';h.energy=Math.min(100,h.energy+10);if(h.hunger<70)h.hp=Math.min(h.maxHp,h.hp+1);ctx.recoverRoomParty?.(s);
+ h.lastAction='rest';h.energy=Math.min(100,h.energy+10);h.hp=Math.min(h.maxHp,h.hp+ordinaryRecovery(s,h,1));ctx.recoverRoomParty?.(s);
  if(!continueRest&&h.energy>=95&&h.hp>=h.maxHp*.85){h.goal=null;h.lodgingAfter=s.tick+120;ctx.log(s,'Ночлег окончен. Можно вернуться к делам.','rest');}
  return true;
 }

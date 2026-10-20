@@ -1,3 +1,9 @@
+import {bodyTick} from './modules/body.js';
+import {actorPartyLeader} from './actor-projection.js';
+import {personEnemy} from './modules/enemy-person-state.js';
+import {personNeeds} from './modules/needs.js';
+import {biologicalNeed} from './modules/biology.js';
+import {planBiologicalNeed,needBasis} from './modules/need-planning.js';
 import {clinicalStudyHeroPlan,clinicalStudyAction} from './modules/clinical-study.js';import {clinicalWorldTick} from './modules/clinical-world.js';
 import {initializeClinicalPractitioner,initializeClinicalApprentice} from './modules/clinical-create.js';import {clinicalHeroPlan,clinicalHeroAction} from './modules/clinical-actions.js';
 import {noticeAuthorityDeaths,administrationHeroPlan,administrationHeroAction} from './modules/administration-actions.js';
@@ -463,7 +469,7 @@ function reconsiderKnownQuest(s){
  if(['rest','campPitch','patientClinic'].includes(g.kind))return false;const before=actionProgress(s,g);parkMethod(h,g);h.goal=null;planQuest(s,selected.q,context(s,'quests'));return before!==actionProgress(s,g);
 }
 function plan(s) {
-  const h = s.hero, a = s.areas[h.area], candidate=currentQuest(h,s), q=candidate&&availableQuestStep(s,candidate)?candidate:chooseQuest(s,h.quests.filter(q=>q.status==='active'),q=>questReady(s,q),{available:q=>availableQuestStep(s,q)})?.q||null;
+  const h = s.hero;if(h.hunger<65&&h.needEpisode)delete h.needEpisode;if(biologicalNeed(s,h).critical){planBiologicalNeed(s,{...context(s,'supply'),knownRoute,assess:(world,g)=>goalReadiness(world,g,{knownRoute})});return false;}const a = s.areas[h.area], candidate=currentQuest(h,s), q=candidate&&availableQuestStep(s,candidate)?candidate:chooseQuest(s,h.quests.filter(q=>q.status==='active'),q=>questReady(s,q),{available:q=>availableQuestStep(s,q)})?.q||null;
   if(h.goal){const r=goalReadiness(s,h.goal,{knownRoute});if(r.status==='blocked')deferMethod(h,h.goal,r,methodRevision(s,h.goal),s.tick);else if(['ready','progressing'].includes(r.status))parkMethod(h,h.goal);}
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
@@ -888,6 +894,8 @@ export function advanceWorld(s) {
  initializeInteriors(s);
  initializeLodging(s);
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
+ for(const h of detailedActors(s))if(selfDrivenActor(s,h)&&h.alive){const view=actorView(s,h);bodyTick(view,context(view,'body'));syncActiveActor(view);}
+ if(s.tick%8===0)for(const p of Object.values(s.people))if(p.alive&&!selfDrivenActor(s,p.id)){personNeeds(s,p,context(s,'people'),{onlyUpkeep:true,area:actorPartyLeader(s,p.id)?.area});const enemy=personEnemy(s,p);if(enemy&&p.enemyBody.stage==='hostile'){enemy.hp=p.health;enemy.alive=p.alive;if(!p.alive){enemy.resolved=true;p.enemyBody.stage='dead';}}}
  worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
@@ -925,10 +933,11 @@ export function observeExistingPerson(s,person){
  return observeDetailedActor(s,person);
 }
 function actObserved(s) {
- const h=s.hero;
-  musicTick(s,context(s,'camp-music'));
+ const h=s.hero,need=biologicalNeed(s,h);let urgent=need.critical;
+  if(!need.critical){musicTick(s,context(s,'camp-music'));
   petTrainingTick(s);
   if(h.petPassage?.lastActionTick===s.tick){h.lastAction='companion';return s;}
+  }
   weaponTick(s);wardTick(s);
   pairCombatTick(s);
   rememberPracticalRole(s,s.people[h.lineage],h);
@@ -938,7 +947,7 @@ function actObserved(s) {
   weatherTick(s,context(s,'weather'));
   propertyMemoryTick(s,context(s,'property-memory'));
   recollectionTick(s,context(s,'recollection'));
-  storyTick(s,context(s,'stories'));
+  if(!need.critical)storyTick(s,context(s,'stories'));
   factionPathTick(s,context(s,'faction-paths'));
   questTick(s,context(s,'quests'));
   commitmentTick(s,context(s,'commitments'));
@@ -984,7 +993,7 @@ function actObserved(s) {
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
-  if(prostheticTurn(s,context(s,'prosthetics')))return s;
+  if(!need.critical){if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(rivalryTurn(s,context(s,'craft-rivalry')))return s;
   noticeCaravan(s,context(s,'caravans'));
@@ -1000,24 +1009,26 @@ function actObserved(s) {
   if(!holdWoundRest(s)&&balanceIntentions(s,{...context(s,'intention-balance'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))}))return s;
   if(!h.goal?.intention&&respondAid(s,context(s,'personal-aid')))return s;
   if(h.goal?.kind==='leisure'&&h.goal.signals!==undefined&&h.goal.signals!==quietSignals(s))h.goal=null;
-  const urgent = groupNeed==='rest'||h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23;
+  urgent = groupNeed==='rest'||h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23;
   if(!urgent&&h.hunger<=70)navigationToolPlan(s,context(s,'navigation-tools'));
   if(!urgent)actorMaterialDeliveryPlan(s,context(s,'material-delivery'));
   if(!h.goal||h.goal.kind==='provision')collectionPlan(s,context(s,'collections'),{urgentOnly:true});
   if(!urgent&&h.hunger<=75&&!h.goal?.intention)hearCaptivePlan(s,context(s,'dungeon-rescue'));
   if (!h.goal || groupNeed==='food'&&!['provision','eat','forage','brothEat','campPitch'].includes(h.goal.kind) || urgent && !['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || enabled(s, 'body') && h.hunger > 75 && !h.goal.collectionEmergency&&!['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || h.goal.quest && activeQuest(h) && questReady(s, activeQuest(h)) && !['rest', 'turnin', 'provision','eat','forage','brothEat'].includes(h.goal.kind)) if(plan(s))return s;
-  if(reconsiderKnownQuest(s))return s;
-  reconsiderMethods(s,(world,g)=>goalReadiness(world,g,{knownRoute},{memory:false}),methodRevision);
+  }else planBiologicalNeed(s,{...context(s,'supply'),knownRoute,assess:(world,g)=>goalReadiness(world,g,{knownRoute})});
+  if(!need.critical&&reconsiderKnownQuest(s))return s;
+  if(!need.critical)reconsiderMethods(s,(world,g)=>goalReadiness(world,g,{knownRoute},{memory:false}),methodRevision);
   if(h.goal&&['routeWait','leisure','localRecovery'].includes(h.goal.kind)&&h.actionSelection?.deferred.some(e=>e.signature!==methodRevision(s,e.step))){h.goal=null;if(plan(s))return s;}
   if(h.goal){const readiness=goalReadiness(s,h.goal,{knownRoute});if(readiness.status==='waiting'){if(plan(s))return s;}else if(!['ready','progressing'].includes(readiness.status)){const previous=h.goal;if(readiness.status==='blocked')deferMethod(h,previous,readiness,methodRevision(s,previous),s.tick);h.goal=null;if(plan(s))return s;}}
-  if(!verifyTarget(s,'navigationReturnTarget',()=>navigationReturnTarget(s,context(s,'navigation-memory'))))return s;
+  let beforeLateGoal=h.goal;
+  if(!need.critical){if(!verifyTarget(s,'navigationReturnTarget',()=>navigationReturnTarget(s,context(s,'navigation-memory'))))return s;
   if(navigationHoldKnownBlocker(s,context(s,'navigation-memory')))return s;
   if(!verifyTarget(s,'rescueTarget',()=>rescueTarget(s,{log,failQuest}))||!verifyTarget(s,'intentionTarget',()=>intentionTarget(s))||!verifyTarget(s,'lodgingTarget',()=>lodgingTarget(s))||!verifyTarget(s,'aidTarget',()=>aidTarget(s))||!verifyTarget(s,'serviceTarget',()=>serviceTarget(s,context(s,'work-orders')))||!verifyTarget(s,'propertyAidTarget',()=>propertyAidTarget(s,context(s,'property-aid')))||!verifyTarget(s,'propertyGiftTarget',()=>propertyGiftTarget(s,context(s,'property-gifts')))||!verifyTarget(s,'propertyContractTarget',()=>propertyContractTarget(s,context(s,'property-contracts')))||!verifyTarget(s,'propertyTarget',()=>propertyTarget(s,context(s,'property'))))return s;
   if(!verifyTarget(s,'itemRepairTarget',()=>itemRepairTarget(s,context(s,'item-wear')))||!verifyTarget(s,'refitTarget',()=>refitTarget(s))||!verifyTarget(s,'workshopWorkTarget',()=>workshopWorkTarget(s,{...context(s,'workshop-interiors'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))})))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(clothingPriority(s))return s;
   if(!urgent&&packPetCare(s,context(s,'pack-pets')))return s;
-  const beforeLateGoal=h.goal;
+  beforeLateGoal=h.goal;
   if(!urgent)petRetrievalPlan(s,context(s,'pet-passage'));
   if(petPassagePlan(s,context(s,'pet-passage')))return s;
   petBoardingTarget(s);
@@ -1025,13 +1036,15 @@ function actObserved(s) {
   if(!urgent)packPetPlan(s,context(s,'pack-pets'));
   if(!urgent)clothingPlan(s,context(s,'practical-clothing'));
   if(changeSpareOutfit(s,context(s,'spare-outfit')))return s;
-  if(h.goal!==beforeLateGoal)dependency(s,beforeLateGoal,h.goal,methodRevision);
+  }
+  if(!need.critical&&h.goal!==beforeLateGoal)dependency(s,beforeLateGoal,h.goal,methodRevision);
   resumeFordTaskView(s);
   if(!verifyTarget(s,'collectionTarget',()=>collectionTarget(s)))return s;
   if(!verifyTarget(s,'landmarkTarget',()=>landmarkTarget(s)))return s;
   if(!admitAction(s,{assess:(world,g)=>goalReadiness(world,g,{knownRoute}),revision:methodRevision,select:plan,transform:world=>preparePlan(world,context(world,'preparation')),progress:actionProgress,accepted:(world,g)=>preparationAccepted(world,g,log)}))return s;
   const g = h.goal;
   if (!g) return s;
+  if(g.kind==='needWait'){h.lastAction='idle';if(h.needEpisode.report!==h.reason){h.needEpisode.report=h.reason;log(s,h.reason,'food');}return s;}
   const beforeAction=actionProgress(s,g);let rejectedBy=null;const execute=(id,run)=>{const value=run();if(value===false)rejectedBy=id;return value;};
   try {
   const a = s.areas[h.area];
@@ -1074,6 +1087,7 @@ function actObserved(s) {
   if (next) { const from=h.area,passage=interiorPassage(s,from,next),arrivalX=passage?.arrival??(target===100?5:95);if(!passage&&heroFordGate(s,next,arrivalX,context(s,'fords')))return s;if(!passage&&beginTransit(s,next,arrivalX,context(s,'travel')))return s;h.x=arrivalX;enter(s,next);resumeFordTaskView(s);campCrossed(s,from,next,context(s,'fieldcamp'));h.lastAction='walk';return s; }
   if(['trackStudy','trackLesson'].includes(g.kind)){execute('trackingAction',()=>trackingAction(s,context(s,'tracking')));return s;}
   if(['directionAsk','directionInspect'].includes(g.kind)){execute('routeOpportunityAction',()=>routeOpportunityAction(s,g,{observeLocalRoutes,log}));return s;}
+  if(g.kind==='needInspect'){observeServices(s);h.needEpisode.tried[g.area]=needBasis(s,a);h.goal=null;log(s,'Проверены местные условия еды и заработка. Доступность определяется настоящим запасом и людьми.','food');return s;}
   if(g.kind==='localRecovery'){h.hp=Math.min(h.maxHp,h.hp+restAmount(s,a));h.energy=Math.min(100,h.energy+4);traitsRest(s,context(s,'body'));magicRest(s);partyRest(s);h.lastAction='rest';h.goal=null;return s;}
   if (g.kind === 'rest') {
     restoreCampRestView(s);

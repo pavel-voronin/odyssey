@@ -1,3 +1,4 @@
+import {biologicalNeed,ordinaryRecovery} from './biology.js';
 import {recordClinicalOrdinary} from './clinical-world.js';import {clinicalTeacherTurn,clinicalStudyNPCTurn} from './clinical-study.js';
 import {clinicalPatientTurn,clinicalNPCTurn,recordClinicalReturn} from './clinical-actions.js';
 import {administrationNPCTurn} from './administration-actions.js';
@@ -338,7 +339,7 @@ export function peopleTick(s,ctx){
     if(!['resident','wandering'].includes(p.status)){p.agenda.task=null;continue;}
     if(enabled(s,'npc-logistics')&&p.freightReleasedAt===s.tick)continue;
     if(enabled(s,'npc-travel')&&p.journeyReleasedAt===s.tick)continue;
-    if(!npcAction(s,p,controller))continue;
+    if(!npcAction(s,p,controller,biologicalNeed(s,p).critical?'need':'act'))continue;
     rememberPracticalRole(s,p);
     observeNPCPlace(s,p);observeShortcutPerson(s,p);
     observeRouteMap(s,p);
@@ -350,7 +351,9 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
-    if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
+    const hungry=biologicalNeed(s,p).food;
+    if(hungry&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit){const a=s.areas[p.area],source=localFoodChoice(s,p,null,a);if(!['farm','gather','return'].includes(p.agenda.task?.kind)){if(p.agenda.task)p.needPaused ||= p.agenda.task;if(source)begin(p,'gather',a.id,source.x,source.remaining,{foodSource:source.id,home:a.id});else if(goodsEnabled(s)&&productionSources(s,a)?.field.stock>0)begin(p,'farm',a.id,42,3);else {p.needObstacle='Нет доступной местной еды или известного способа её добыть.';continue;}}}
+    if(!hungry){if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
     if(clinicalPatientTurn(s,p))continue;
     if(clinicalNPCTurn(s,p,ctx))continue;
     if(clinicalStudyNPCTurn(s,p))continue;
@@ -399,8 +402,9 @@ export function peopleTick(s,ctx){
     if(brothTeacherTurn(s,p))continue;
     if(toolTeacherTurn(s,p))continue;
     if(materialOfferTurn(s,p,ctx))continue;
-    const materialTrip=npcMaterialDeliveryPlan(s,p);
-    if(!materialTrip)npcDeedsTick(s,p,ctx);
+    }
+    const materialTrip=!hungry&&npcMaterialDeliveryPlan(s,p);
+    if(!hungry&&!materialTrip)npcDeedsTick(s,p,ctx);
     if(p.caseReports?.length)announceCaseWitness(s,p);
     if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
     if(['literacyStudy','textAloud','literacySell'].includes(p.agenda.task?.kind)&&!literacyEnabled(s))continue;
@@ -425,7 +429,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind?.startsWith('mask')&&s.rules['service-masks']===false)continue;
     if(p.agenda.task?.kind?.startsWith('cargo')&&s.rules['cargo-cases']===false)continue;
     if(p.agenda.task?.kind?.startsWith('hobby')&&s.rules['hobby-supply']===false)continue;
-    if(p.agenda.task?.kind?.startsWith('farm')&&s.rules.farming===false)continue;
+    if(p.agenda.task?.kind!=='farm'&&p.agenda.task?.kind?.startsWith('farm')&&s.rules.farming===false)continue;
     if(p.agenda.task?.kind==='titleVisit'&&s.rules['title-enforcement']===false)continue;
     if(p.agenda.task?.kind?.startsWith('will')&&s.rules.testaments===false)continue;
     if(p.agenda.task?.kind?.startsWith('publicRepair')&&s.rules['public-repairs']===false)continue;
@@ -442,7 +446,7 @@ export function peopleTick(s,ctx){
     if(p.status==='resident'&&p.agenda.task&&p.area!==p.agenda.task.target&&p.agenda.task.kind!=='return'&&p.agenda.task.kind!=='gather'&&p.agenda.task.kind!=='visit')p.agenda.task=null;
     if(!p.agenda.task){if(s.tick<p.agenda.due)continue;plan(s,p,ctx);}
     adaptNPCWork(s,p);bindNPCDeedTask(s,p);
-    if(controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
+    if(!hungry&&controller==='personal'&&npcClothingTurn(s,p,ctx))continue;
     if(!p.agenda.task||!moveTask(s,p,ctx))continue;
     if(neighborHousingAction(s,p,ctx)||foundationAction(s,p,ctx))continue;
     if(p.agenda.task.kind==='refugeSurvey'){if(p.ailment||p.needs.energy<2||p.health<(p.maxHealth||100)*.75){p.agenda.task=null;p.agenda.due=s.tick+48;continue;}p.agenda.task.turns++;p.needs.energy-=2;}

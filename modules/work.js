@@ -1,3 +1,4 @@
+import {ordinaryRecovery} from './biology.js';
 import {limbWorkAllows} from './limb-state.js';
 import {woundForce,woundActivity} from './wound-state.js';
 import {containersOn} from './container-state.js';
@@ -80,6 +81,7 @@ export function workTick(s,ctx){
     const site=job.id==='repair'?workshopSite(s,h.area):null,workArea=site?.area||s.areas[h.area],employer=workArea.civic,harvest=goodsEnabled(s)&&job.id==='harvest'?completeGoodsWork(s,s.areas[h.area],g.goodsWork,{units:8}):null;
     const pay=goodsEnabled(s)?harvest&&!harvest.quantity?0:Math.min(job.pay,Math.max(0,employer?.treasury||0)):job.pay;
     if(goodsEnabled(s)||enabled(s,'service-access')){if(employer)employer.treasury-=pay;}
+    if(pay<=0&&!harvest?.quantity){h.goal=null;h.reason='Работа не дала оплаты или настоящего продукта; нужен другой способ получить еду.';ctx.log(s,h.reason,'work');return;}
     h.gold+=pay;advanceCareer(s,5,ctx);ctx.gainXp(s,5);h.workAfter=s.tick+(h.career.path==='peaceful'?18:120);h.goal=null;
     witnessRepairWork(s,job);
     if(job.id==='repair'){const a=workArea,o=site?.object;if(o)recordToolUse(s,a,o,h.lineage,ctx);observeWorkTools(s);}
@@ -92,10 +94,10 @@ export function workTick(s,ctx){
   }
 }
 export function leisureTick(s,ctx){
-  const h=s.hero,g=h.goal;g.remaining--;h.energy=Math.min(100,h.energy+8);h.hp=Math.min(h.maxHp,h.hp+2);h.lastAction='rest';h.mind.stress=Math.max(0,h.mind.stress-3);
+  const h=s.hero,g=h.goal;g.remaining--;h.energy=Math.min(100,h.energy+8);h.hp=Math.min(h.maxHp,h.hp+ordinaryRecovery(s,h,2));h.lastAction='rest';h.mind.stress=Math.max(0,h.mind.stress-3);
   if(g.remaining<=0){
     if(g.signals!==undefined){h.goal=null;return;} // Quiet reconsideration is not an invented neighbour event every twelve ticks.
-    const ordinary=['Герой чинит пуговицу и слушает спор соседей. Сегодня никто не погиб.','Герой записывает расходы. Приход впервые выглядит убедительнее расходов.','День проходит за разговорами, хлебом и несбывшимися предсказаниями погоды.','Герой заканчивает работу и смотрит на дорогу. Пока хочется остаться.','Житель просит починить детскую игрушку. Герой помогает бесплатно.'];
+    const ordinary=['Герой отдыхает и обдумывает следующее дело.','После короткой передышки герой снова смотрит на знакомые дороги.'];
     ctx.log(s,ordinary[Math.floor(moduleRandom(s,'work')*ordinary.length)],'life');h.goal=null;
   }
 }

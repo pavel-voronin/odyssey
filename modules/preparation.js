@@ -1,3 +1,4 @@
+import {biologicalNeed} from './biology.js';
 import {estimatePlan} from './plan-estimate.js';
 export {estimatePlan} from './plan-estimate.js';
 import {methodRevision} from './goal-readiness.js';
@@ -19,7 +20,8 @@ import {armorWalkExtra} from './armor.js';
 export function initializePreparation(h){h.planning ||= {checked:null,last:null,preparations:0};}
 export function preparePlan(s,ctx){
   if(!enabled(s,'preparation'))return false;
-  const h=s.hero,g=h.goal;if(!g||h.combat||h.transit||['localRecovery','rest','campPitch','eat','forage','provision','weatherWait','leisure','settle','caravanWait','routeWait'].includes(g.kind))return false;
+  const h=s.hero,g=h.goal;if(biologicalNeed(s,h).critical&&g?.needRoot==='nutrition')return false;
+  if(!g||h.combat||h.transit||['localRecovery','rest','campPitch','eat','forage','provision','weatherWait','leisure','settle','caravanWait','routeWait'].includes(g.kind))return false;
   if(['tavernLeave','campLeave','campContinue','brothCook','brothEat','brothLearn'].includes(g.kind))return false;
   // A validated, visible local conversation is not a new expedition. Combat
   // assistance still uses hunt and its ordinary preparation/resource budget.

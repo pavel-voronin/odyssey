@@ -1,3 +1,4 @@
+import {biologicalDose,ordinaryRecovery} from './biology.js';
 import {knownArea} from '../actor-atlas.js';
 import {partyAvailable} from './party-needs.js';
 import {foodPrice} from './prices.js';
@@ -18,7 +19,7 @@ export function addCondition(s, id, ctx, duration = CONDITIONS[id].duration) {
 
 export function bodyTick(s, ctx) {
   const h = s.hero;
-  if (enabled(s, 'body')) h.hunger = Math.min(100, h.hunger + (enabled(s,'lineage') && h.race==='automaton' ? .06 : .16));
+  const dose=biologicalDose(s,h);if(!dose.fresh)return !h.alive;
   for (const condition of enabled(s, 'body') ? [...h.conditions] : []) {
     if (s.tick >= condition.until) {
       h.conditions = h.conditions.filter(c => c !== condition);
@@ -30,9 +31,9 @@ export function bodyTick(s, ctx) {
     }
     if (condition.id === 'fever') h.energy = Math.max(0, h.energy - (enabled(s,'lineage')&&h.race==='myconid'?.03:.18));
   }
-  if (enabled(s, 'body') && h.hunger > 90 && s.tick % 16 === 0) {
-    h.energy = Math.max(0, h.energy - 2);const hpBefore=h.hp;h.hp -= 1;
-    if (h.hp <= 0) { ctx.die(s, { name: 'Голод' },{kind:'starvation',damage:1,hpBefore}); return true; }
+  if (dose.damage||dose.ceiling!==undefined&&h.hp>dose.ceiling) {
+    const hpBefore=h.hp;h.hp=Math.min(h.hp-dose.damage,dose.ceiling);
+    if (h.hp <= 0) { ctx.die(s, { name: 'Голод' },{kind:'starvation',damage:hpBefore-h.hp,hpBefore}); return true; }
   }
   return false;
 }
@@ -54,7 +55,7 @@ export function traitsPlan(s, ctx) {
 export function provisions(s, ctx) {
   if(buyFood(s,ctx))return;
   if(denyService(s,ctx,'food')){s.hero.goal=null;return;}
-  const h = s.hero, price = foodPrice(s);
+  const h = s.hero, price = foodPrice(s),stock=s.areas[h.area]?.civic;if(!stock||stock.food<4){h.goal=null;h.reason='Нет настоящей еды в кладовой.';return;}stock.food-=4;
   if (h.gold >= price) { h.gold -= price; const civic=s.areas[h.area]?.civic;if(enabled(s,'service-access')&&civic)civic.treasury=(Number.isFinite(civic.treasury)?civic.treasury:0)+price;ctx.log(s, 'Горячая еда, хлеб в дорогу. Голод больше не определяет маршрут.', 'food'); }
   else { h.energy = Math.max(0, h.energy - 5); moral(s, 1); ctx.log(s, 'За помощь на кухне герой получает еду. Без денег тоже можно выжить.', 'food'); }
   h.hunger = 5; h.lastAction = 'eat'; h.goal = null;
@@ -73,6 +74,6 @@ export function traitsRest(s, ctx) {
   }
   if (hasCondition(h, 'insomnia')) h.energy = Math.max(0, h.energy - 7);
   const healing = (enabled(s, 'companions') ? h.companions.filter(c=>partyAvailable(s,c)).reduce((n, c) => n + c.healing, 0) : 0) + (profile(h).skill === 'healing' ? 2 : 0);
-  h.hp = Math.min(h.maxHp, h.hp + healing);
+  h.hp = Math.min(h.maxHp, h.hp + ordinaryRecovery(s,h,healing));
   enchantedRest(s,ctx);
 }

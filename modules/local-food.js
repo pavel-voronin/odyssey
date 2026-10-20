@@ -31,9 +31,9 @@ export function foodSourceState(s,a){
  return{...node,name:LOCAL_FOODS[node.kind].name,stock:f.stock,max:f.max,x:f.x,open:!closed,available:!closed&&f.stock>0,condition:closed?(node.kind==='mushroom'?'В этот сезон грибы не собирают.':'Ловля закрыта: лёд или гроза.'):f.stock<=0?'Источник истощён.':'Сейчас добыча доступна.'};
 }
 export function foodCapability(s,p,kind,h=null){
- const d=LOCAL_FOODS[kind],q=p?.localFood;if(!d)return{allowed:false,reason:'Неизвестный продукт.'};
- if(!q?.methods[kind]&&methodKind(p,h)!==kind)return{allowed:false,reason:kind==='mushroom'?'Не умеет отличать съедобные грибы. Нужен совет знатока.':'Не знает способа ловли на леску.'};
- const kit=q?.tools[d.tool],knives=d.tool==='knife'?collectionItems(s,p.id).filter(i=>i.toolKind==='knife'&&itemWorking(i)):[],precise=knives.find(i=>i.refit?.mode==='precision'),tool=precise||(kit?.owner===p.id&&kit.state==='working'&&itemWorking(kit)?kit:knives[0]);if(!tool)return{allowed:false,reason:kind==='mushroom'?'Нет собственного ножа для сбора.':'Нет собственной лески с крючком.'};
+ const d=LOCAL_FOODS[kind],q=p?.localFood;if(!d)return{allowed:false,code:'product',reason:'Неизвестный продукт.'};
+ if(!q?.methods[kind]&&methodKind(p,h)!==kind)return{allowed:false,code:'method',reason:kind==='mushroom'?'Не умеет отличать съедобные грибы. Нужен совет знатока.':'Не знает способа ловли на леску.'};
+ const kit=q?.tools[d.tool],knives=d.tool==='knife'?collectionItems(s,p.id).filter(i=>i.toolKind==='knife'&&itemWorking(i)):[],precise=knives.find(i=>i.refit?.mode==='precision'),tool=precise||(kit?.owner===p.id&&kit.state==='working'&&itemWorking(kit)?kit:knives[0]);if(!tool)return{allowed:false,code:'tool',reason:kind==='mushroom'?'Нет собственного ножа для сбора.':'Нет собственной лески с крючком.'};
  return{allowed:true,tool:tool.id,method:d.method,...(precise?{turns:Math.max(2,d.turns-1)}:{})};
 }
 export function localFoodChoice(s,p,h,a){
