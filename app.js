@@ -1,3 +1,4 @@
+import {observationOriginHTML} from './observation-origin-sheet.js';
 import {clinicalHTML} from './clinical-sheet.js';
 import {currencyHTML} from './currency-sheet.js';
 import {castleHTML} from './castle-sheet.js';
@@ -245,6 +246,7 @@ function detail() {
   }
 }
 function enrichSheet(){
+  if(tab==='hero')$('detail-panel').insertAdjacentHTML('afterbegin',observationOriginHTML(state,escape));
   if(tab==='hero'&&enabled(state,'principles')){
     const principle=state.hero.principles?.verifyGuilt;
     if(principle)$('detail-panel').insertAdjacentHTML('afterbegin',`<div class="habit"><b>Личный принцип · проверить чужую вину</b><p>${principle.status==='adopted'?'Принят. При возможности ищет вторую известную улику.':principle.status==='rejected'?'Не принят. Прежний взгляд сохранился.':'Обдумывает пережитое: осталось '+principle.remaining+' действий.'}</p><p>${escape(principle.sources.at(-1)?.name||'Обвинённый')}: ${principle.sources.at(-1)?.kind==='report'?'свидетель сообщил сведения против приговора; пересказ требует проверки.':'лично узнанное основание пересмотреть приговор.'}</p></div>`);

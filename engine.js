@@ -1,5 +1,8 @@
+import {firstObservationCandidates,observationCandidateReason} from './modules/population-observer.js';
+export {firstObservationCandidates};
+import {personAgeAt} from './modules/age-state.js';
 import {WARM_TICKS,PREPARATION_CHUNK,beginPreparationState,assertPreparationStep,finishPreparationStep} from './modules/preparation-state.js';
-import {populationState,populationSnapshot,recordPopulationStep,populationEvent,serializePopulation,restorePopulation} from './modules/population-state.js';
+import {populationState,validatePopulation,populationSnapshot,recordPopulationStep,populationEvent,serializePopulation,restorePopulation} from './modules/population-state.js';
 export {serializePopulation,restorePopulation};
 import {observeNPCPlace} from './modules/npc-knowledge.js';
 import {observeNPCContacts} from './modules/npc-contacts.js';
@@ -185,7 +188,7 @@ import {finishLootTick} from './modules/loot-results.js';
 import {deathRecord} from './modules/death-records.js';
 import {areaScale,physicalDistance,areaOffset,areaStep,routeDistance,campLink} from './geometry.js';
 import {personLocation} from './person-location.js';
-import {workOrdersTick,servicePlan,serviceTarget,acceptService,serviceRepairAllowed,fundServiceRepair,finishServiceRepair,hasServiceTool,extendService} from './modules/resident-orders.js';
+import {initializeWorkOrders,workOrdersTick,servicePlan,serviceTarget,acceptService,serviceRepairAllowed,fundServiceRepair,finishServiceRepair,hasServiceTool,extendService} from './modules/resident-orders.js';
 import {localNeedsPlan,quietPlan,quietSignals} from './modules/residence.js';
 import {initializeWorkMaterials,observeMaterials,buyServiceTool} from './modules/work-materials.js';
 import {respondAid,aidTarget,performAid} from './modules/personal-aid.js';
@@ -411,6 +414,11 @@ export function createPopulation(seed,{rules={},stocks='seed'}={}){
 }
 export function createWarmPopulation(seed,{duration=WARM_TICKS,...options}={}){const s=createPopulation(seed,options);beginPreparationState(s,duration,populationSnapshot(s));return s;}
 export function beginPopulationPreparation(s,{duration=WARM_TICKS}={}){if(!populationState(s))throw Error('Preparation requires an unobserved population');beginPreparationState(s,duration,populationSnapshot(s));return s;}
+export function observePreparedPopulation(s,{person=null}={}){
+ if(!populationState(s)||s.population.preparation?.status!=='ready'||s.hero!==null)return {ok:false,reason:'Мир ещё не готов к первому наблюдению.'};validatePopulation(s);const id=person||firstObservationCandidates(s)[0],p=s.people[id],reason=observationCandidateReason(s,p);if(reason)return {ok:false,reason};
+ const h=npcActorProfile(s,p,createHero,1);Object.assign(h,{actorMode:'resident',actorGeneration:1,born:s.tick,originTick:s.tick,startAge:personAgeAt(p,s.tick),ageOrigin:{...p.ageOrigin},actorStep:s.tick,timeline:[],timelineDropped:0,biography:[],actorJournal:[],origin:'Житель подготовленного мира',intent:'Продолжить собственную жизнь',reason:'Собственное тело, знания, имущество и прожитое время сохранены.',action:'ЖИЗНЬ'});h.npcProfile.controllerTransferredAt=s.tick;h.residentExperience={recordedAt:s.tick,area:p.area,job:p.agenda.job,work:p.agenda.work};h.career.lastChange=s.tick;
+ h.stories={active:null,nextOffer:s.tick+500,completed:[]};s.hero=h;s.generation=1;s.nextGeneration=2;s.originTick=s.tick;s.observation={version:1,person:id,sequence:1,started:s.tick};s.population.phase='observed';s.population.observation={person:id,area:p.area,tick:s.tick};initializeWorkOrders(s);initializeStories(s,h);initializeObservation(s);bindObservedJournal(s);log(s,h.name+' становится наблюдаемым жителем. Его жизнь в мире уже шла.','birth',h.area);syncActiveActor(s);return {ok:true,person:id};
+}
 export function advancePreparation(s,steps=1){if(!populationState(s)||!s.population.preparation)throw Error('No population preparation');if(!Number.isSafeInteger(steps)||steps<0||steps>PREPARATION_CHUNK)throw Error('Preparation chunk exceeds '+PREPARATION_CHUNK);for(let i=0;i<steps&&s.population.preparation.status!=='ready';i++)advancePopulation(s);return s;}
 export function advancePopulation(s){
  if(!populationState(s)||s.hero!==null||Object.keys(s.actorStates).length||s.observation!==null)throw Error('Only an unobserved population can use the world-only clock');assertPreparationStep(s);const before=populationSnapshot(s);s.tick++;s.actorFacts={tick:s.tick,events:[]};initializeInteriors(s);initializeLodging(s);ageWorldTick(s);

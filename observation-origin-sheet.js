@@ -1,0 +1,2 @@
+import {NPC_JOBS} from './npc-labels.js';
+export function observationOriginHTML(s,escape){const h=s.hero,r=h.residentExperience;if(h.originTick===undefined||!r)return '';return '<p class="detail-label">ЖИЗНЬ ДО НАБЛЮДЕНИЯ</p><div class="habit"><b>'+escape(NPC_JOBS[r.job]||r.job)+'</b><p>Завершено собственных работ: '+r.work+'.</p><p>Место начала рассказа: '+escape(s.areas[r.area]?.name||'его прежнем месте')+'.</p></div>';}

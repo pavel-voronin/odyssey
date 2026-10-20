@@ -1,4 +1,5 @@
 export function validateAges(s,fail){
+ for(const h of [s.hero,...Object.values(s.actorStates)].filter(Boolean))if(h.ageOrigin&&JSON.stringify(h.ageOrigin)!==JSON.stringify(s.people[h.lineage]?.ageOrigin))fail(h.lineage+'.ageOrigin');
  const date=n=>Number.isSafeInteger(n)&&n>=0&&n<=s.tick;
  for(const p of Object.values(s.people)){
   const a=p.ageOrigin;if(a&&(!date(a.at)||!Number.isSafeInteger(a.years)||a.years<0))fail(p.id+'.ageOrigin');

@@ -15,7 +15,8 @@ export function initializeAge(s,h){
 }
 export function observedAge(h,tick){
   if(!Number.isFinite(h.startAge))return null;
-  return h.startAge+Math.floor(Math.max(0,(!h.alive&&Number.isFinite(h.life?.endedAt)?Math.min(tick,h.life.endedAt):tick)-h.born)/YEAR_TICKS);
+  const origin=h.ageOrigin||{at:h.born,years:h.startAge};
+  return origin.years+Math.floor(Math.max(0,(!h.alive&&Number.isFinite(h.life?.endedAt)?Math.min(tick,h.life.endedAt):tick)-origin.at)/YEAR_TICKS);
 }
 export function personAge(s,p){return personAgeAt(p,s.tick);}
 export function ageLabel(age){
