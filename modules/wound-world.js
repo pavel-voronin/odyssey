@@ -1,4 +1,5 @@
 import {fracturePhase,fracturePending} from './fracture-state.js';
+import {boneBody} from './anatomy-state.js';
 import {woundCareOn,goodDressing} from './wound-care-state.js';
 import {enabled} from '../rules.js';
 import {woundActor} from './wound-state.js';
@@ -7,6 +8,7 @@ export function woundsTick(s,{bleed,changed}={}){
  if(!enabled(s,'local-wounds')||!s.woundClock)return;
  s.woundClock.active=s.woundClock.active.filter(id=>{
   const p=s.people[id],t=p?.localWounds;if(!p?.alive||!t?.active.length)return false;if(t.lastTick===s.tick)return true;t.lastTick=s.tick;
+  if(boneBody(p))return true; // Retained injuries remain physical limits, without blood or organic healing.
   const h=woundActor(s,p),a=s.areas[h?.area||p.area],x=h?.x??p.x,activity=t.activity;
   const current=activity&&s.tick-activity.tick<=(h?1:8),loaded=current&&!activity.rest,rest=current&&activity.rest&&!a?.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&Math.abs(o.x-x)*a.length/100<=15),fed=(h?.hunger??p.needs?.hunger??100)<65;
   let blood=0,drain=0;const sources=[];

@@ -1,4 +1,5 @@
 import {RACES} from '../content.js';
+export const boneBody=p=>p?.returnEpisode?.form==='skeleton';
 const human=[['head','голова','head'],['torso','туловище','body'],['leftArm','левая рука','arm'],['rightArm','правая рука','arm'],['leftLeg','левая нога','leg'],['rightLeg','правая нога','leg']];
 export function bodyParts(p){
  const unknown=p?.anatomy?.form&&!['humanoid','biped',p.race].includes(p.anatomy.form)||p?.anatomy?.missing!==undefined&&!Array.isArray(p.anatomy.missing)||p?.anatomy?.parts!==undefined&&!Array.isArray(p.anatomy.parts);

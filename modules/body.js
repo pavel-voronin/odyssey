@@ -1,4 +1,5 @@
 import {biologicalDose,ordinaryRecovery} from './biology.js';
+import {boneBody} from './anatomy-state.js';
 import {knownArea} from '../actor-atlas.js';
 import {partyAvailable} from './party-needs.js';
 import {foodPrice} from './prices.js';
@@ -25,11 +26,11 @@ export function bodyTick(s, ctx) {
       h.conditions = h.conditions.filter(c => c !== condition);
       ctx.log(s, `${CONDITIONS[condition.id].name} проходит.`, 'heal'); continue;
     }
-    if (condition.id === 'poison' && s.tick % (enabled(s,'lineage')&&['dwarf','revenant'].includes(h.race)?16:8) === 0) {
+    if (!boneBody(s.people[h.lineage])&&condition.id === 'poison' && s.tick % (enabled(s,'lineage')&&['dwarf','revenant'].includes(h.race)?16:8) === 0) {
       const hpBefore=h.hp;h.hp -= 1; h.lastAction = 'hurt';
       if (h.hp <= 0) { ctx.die(s, { name: 'Отравление' },{kind:'poison',damage:1,hpBefore}); return true; }
     }
-    if (condition.id === 'fever') h.energy = Math.max(0, h.energy - (enabled(s,'lineage')&&h.race==='myconid'?.03:.18));
+    if (!boneBody(s.people[h.lineage])&&condition.id === 'fever') h.energy = Math.max(0, h.energy - (enabled(s,'lineage')&&h.race==='myconid'?.03:.18));
   }
   if (dose.damage||dose.ceiling!==undefined&&h.hp>dose.ceiling) {
     const hpBefore=h.hp;h.hp=Math.min(h.hp-dose.damage,dose.ceiling);

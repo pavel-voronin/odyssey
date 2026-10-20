@@ -38,6 +38,7 @@ import {scentPlantKnown} from './modules/pet-scent-policy.js';
 import { race } from './content.js';
 import {calendar} from './calendar.js';
 import {appearance,heroAppearance,personAppearance} from './appearance.js';
+import {drawSkeletonTorso} from './skeleton-look.js';
 import {drawGarment} from './outfit.js';
 import {scenery,houseProfile} from './scenery.js';
 import {terrainProfile,terrainRidge,paintTerrainBackdrop,facadeSmoke} from './terrain-profile.js';
@@ -632,12 +633,12 @@ export class Scene {
       const side=i?'rightLeg':'leftLeg',peg=look.prostheticLegs?.[side];
       if(look.missingLimbs?.[side]&&!peg)continue;
       if(peg){drawProstheticLeg(c,i?3:-3,feet[i],gait.bodyY);continue;}
-      const hip=i?3:-3,foot=feet[i];c.strokeStyle=look.trousers||'#283629';c.lineWidth=4;c.beginPath();c.moveTo(hip,-12+gait.bodyY);c.lineTo((hip+foot.x)/2+2,(-12+foot.y)/2-1);c.lineTo(foot.x,foot.y-1);c.stroke();
-      c.fillStyle=look.shoes||'#3f382e';c.fillRect(foot.x-3,foot.y-3,7,3);
+      const hip=i?3:-3,foot=feet[i];c.strokeStyle=look.skeletal?'#ddd3b8':look.trousers||'#283629';c.lineWidth=look.skeletal?3:4;c.beginPath();c.moveTo(hip,-12+gait.bodyY);c.lineTo((hip+foot.x)/2+2,(-12+foot.y)/2-1);c.lineTo(foot.x,foot.y-1);c.stroke();
+      c.fillStyle=look.skeletal?'#ddd3b8':look.shoes||'#3f382e';c.fillRect(foot.x-3,foot.y-3,7,look.skeletal?2:3);
     }
     c.translate(pose.hurt?-2:attack?Math.sin(t*Math.PI)*2:0,gait.bodyY);
     if(pose.hurt)color='#aa8270';
-    drawActorPack(c,look);drawGarment(c,look,color,lower);
+    drawActorPack(c,look);if(look.skeletal)drawSkeletonTorso(c);else drawGarment(c,look,color,lower);
 
     drawHead(c,look,species,color,skin,hero);
     if(species?.id==='fae'){c.globalAlpha=.55;c.fillStyle='#b9d8c4';c.beginPath();c.ellipse(-8,-24,7,13,-.4,0,7);c.fill();c.globalAlpha=1;}

@@ -29,7 +29,7 @@ export function recordRemains(s,subject,{kind,id,area,x,transit=null,anchor=null
   const table=world.remains.byId;
   if(!table||typeof table!=='object'||Array.isArray(table))return null;
   if(table[key]&&table[key].version!==1)return null;
-  const form=shape||subject.shape||subject.race||'unknown';
+  const person=kind==='person'?world.people[id]:null,form=person?.returnEpisode?.form==='skeleton'?'skeleton':shape||subject.shape||subject.race||'unknown';
   const at=position(world,area,x,transit);
   const direction=Number.isFinite(facing)&&facing!==0?Math.sign(facing):null;
   const fresh=!table[key];
@@ -38,7 +38,7 @@ export function recordRemains(s,subject,{kind,id,area,x,transit=null,anchor=null
     death:{tick,source:{kind,id},name:subject.name||null,family:subject.family||null,
       race:subject.race||null,species:subject.species||null,shape:form,role:subject.role||null,traveller,facing:direction,fallSide:traveller&&x>80?-1:1,
       appearance:copy(look===undefined?(form==='human'?{cloak:subject.pacified?'#b2ba8a':'#a38b78'}:subject.appearance):look),
-      anatomy:{form,stature:subject.role==='ребёнок'?.65:1,recorded:copy(subject.anatomy)},position:copy(at),cause:copy(cause)},
+      anatomy:{form,stature:subject.role==='ребёнок'?.65:1,recorded:copy(person?.anatomy||subject.anatomy)},position:copy(at),cause:copy(cause)},
     loot:copy(loot)};
   if(fresh){initializeBodyMaterial(s,body,subject);initializeRemainsSubstance(s,body);}
   subject.remainsId=body.id;

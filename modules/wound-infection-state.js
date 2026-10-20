@@ -1,8 +1,8 @@
-import {enabled} from '../rules.js';import {presentParts} from './anatomy-state.js';
+import {enabled} from '../rules.js';import {presentParts,boneBody} from './anatomy-state.js';
 export const infectionOn=s=>enabled(s,'local-wounds')&&enabled(s,'wound-infection');
 const bandaged=w=>Boolean(w.dressing?.remaining>4);
 const bounded=(list,e)=>{list.push(e);if(list.length>8)list.shift();};
-export const infectionSite=(p,w)=>w.kind==='cut'&&!w.loss&&presentParts(p).some(([id])=>id===w.part);
+export const infectionSite=(p,w)=>!boneBody(p)&&w.kind==='cut'&&!w.loss&&presentParts(p).some(([id])=>id===w.part);
 export const infectionSeverity=(s,p,w)=>infectionOn(s)&&infectionSite(p,w)&&!w.infection?.ended?w.infection?.severity||0:0;
 export const infectionNeedsCare=(s,p,w)=>infectionOn(s)&&infectionSite(p,w)&&!w.infection?.ended&&Boolean(w.infection&&(w.infection.contamination>=6||w.infection.severity===0&&w.infection.contamination>=4||w.infection.severity>0&&!bandaged(w)));
 export const infectionPending=w=>Boolean(w.infection&&!w.infection.ended&&(w.infection.severity>0||w.infection.contamination>0));

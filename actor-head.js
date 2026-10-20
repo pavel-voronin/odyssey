@@ -1,5 +1,6 @@
-export function actorSkin(look={},species=null){return !species||['human','halfling','gnome','dwarf'].includes(species.id)?look.skin||species?.skin||'#d4bb92':species.skin;}
+export function actorSkin(look={},species=null){return look.skeletal?'#ddd3b8':!species||['human','halfling','gnome','dwarf'].includes(species.id)?look.skin||species?.skin||'#d4bb92':species.skin;}
 export function drawHead(c,look={},species=null,color='#a9c686',skin=actorSkin(look,species),hero=false){
+    if(look.skeletal){c.fillStyle='#ddd3b8';c.fillRect(-5,-43,11,10);c.fillRect(-3,-33,7,3);c.fillStyle='#26332d';c.fillRect(-3,-40,3,3);c.fillRect(3,-40,2,3);c.fillRect(0,-36,2,2);for(let i=-2;i<4;i+=2)c.fillRect(i,-31,1,2);return;}
     c.fillStyle = skin; c.fillRect(-4, -41, 9, 10); c.fillStyle = look.hair||(hero ? '#595d3d' : '#554b3d');
     if(look.hairStyle!=='bald')c.fillRect(-5,-43,11,5);
     if(look.hairStyle==='long'||look.hairStyle==='braid')c.fillRect(-6,-40,4,look.hairStyle==='braid'?17:12);

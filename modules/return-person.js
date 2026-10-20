@@ -1,4 +1,4 @@
-import {returnSource,returnReason,returnsOn} from './return-state.js';
+import {returnSource,returnForm,returnReason,returnsOn} from './return-state.js';
 import {actorView} from '../actor-view.js';
 import {physicalDistance} from '../geometry.js';
 import {rootWorld} from '../world-ref.js';
@@ -8,9 +8,9 @@ import {selfDrivenActor,syncActiveActor} from '../actor-projection.js';
 export function returnPerson(input,caster,b,task,relic,ctx){
  const s=rootWorld(input),p=s.people[b?.source.id],q=caster.returnRite,a=s.areas[caster.area];
  if(!returnsOn(s)||!returnSource(s,b)||!caster.alive||!q||q.used||q.lastAction!==s.tick||q.task!==task||task.prepared!==3||q.relic!==relic||!returnReason(s,caster,b)||b.position.area!==caster.area||physicalDistance(a,caster.x,b.position.x)>2||!s.areas[relic.area]?.objects.some(o=>o.id===relic.object&&o.kind==='relic'&&o.taken))return false;
- const h=s.actorStates[p.id],episode={version:1,body:b.id,deathId:b.deathId,at:s.tick,caster:caster.id,reason:task.reason,form:'revenant',cohesion:3,spent:0,lastDay:s.tick,price:{...relic,quantity:1}};
+ const h=s.actorStates[p.id],episode={version:1,body:b.id,deathId:b.deathId,at:s.tick,caster:caster.id,reason:task.reason,form:returnForm(s,b),material:{flesh:b.substance.flesh.remaining,bone:b.substance.structure.remaining},cohesion:3,spent:0,lastDay:s.tick,price:{...relic,quantity:1}};
  b.returned={person:p.id,at:s.tick,caster:caster.id};b.stage='returned';b.substance.nextDecay=null;
- p.returnEpisode=episode;p.alive=true;p.health=Math.max(1,Math.ceil((p.maxHealth||100)*.3));p.race='revenant';p.status='resident';p.area=b.position.area;p.x=b.position.x;p.agenda.task=null;p.needs.hunger=0;p.needs.energy=40;delete p.remainsId;
+ p.returnEpisode=episode;p.alive=true;p.health=Math.max(1,Math.ceil((p.maxHealth||100)*.3));p.status='resident';p.area=b.position.area;p.x=b.position.x;p.agenda.task=null;p.needs.hunger=0;p.needs.energy=40;delete p.remainsId;
  const area=s.areas[p.area];area.population ||= [];if(!area.population.includes(p.id))area.population.push(p.id);
  if(h){h.alive=true;h.hp=h.maxHp*p.health/(p.maxHealth||100);h.race=p.race;h.hunger=0;h.energy=40;h.area=p.area;h.x=p.x;h.goal=null;h.combat=null;h.transit=null;delete h.remainsId;
   if(s.observation?.person!==p.id||h.actorMode==='npc'){h.actorMode='npc';s.nextNPCObservation=Math.max(s.nextNPCObservation||0,...Object.values(s.actorStates).filter(v=>v.actorGeneration<0).map(v=>-v.actorGeneration))+1;h.actorGeneration=-s.nextNPCObservation;h.npcProfile ||= {version:1,job:p.agenda.job,observedAt:s.tick};}
