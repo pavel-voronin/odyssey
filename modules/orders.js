@@ -1,3 +1,5 @@
+import {campaignOrderTick} from './campaign-orders.js';
+import {campaignsOn} from './campaign-state.js';
 import {woundForce,woundActivity} from './wound-state.js';
 import {commissionedOn,commissionGuard,guardWeapon,commissionedWalk,finishCommission,commissionReports} from './commissioned-orders.js';
 import {wearOwnedItem} from './item-condition.js';
@@ -42,9 +44,9 @@ export function ordersTick(s,ctx){
   if(!enabled(s,'orders'))return;
   commissionReports(s,ctx);
   for(const order of [...s.society.orders]){
-    if(order.commission&&!commissionedOn(s))continue;
-    const p=s.people[order.person],target=s.areas[order.to],source=s.areas[order.from];if(!p?.alive){finishCommission(s,order,'lost');s.society.orders=s.society.orders.filter(o=>o!==order);continue;}
-    if(!npcAction(s,p,'orders'))continue;
+    if(order.campaign&&!campaignsOn(s))continue;if(order.commission&&!commissionedOn(s))continue;
+    const p=s.people[order.person],target=s.areas[order.to],source=s.areas[order.from];if(order.campaign&&!p?.alive){campaignOrderTick(s,order,ctx);continue;}if(!p?.alive){finishCommission(s,order,'lost');s.society.orders=s.society.orders.filter(o=>o!==order);continue;}
+    if(!npcAction(s,p,'orders'))continue;if(order.campaign){campaignOrderTick(s,order,ctx);continue;}
     beginWatchDuty(s,p,order);
     if(order.commission&&!guardWeapon(s,p,order.commission.weapon)&&order.stage!=='returning'){order.commission.failure='Настоящее оружие потеряно или сломано. Исполнитель возвращается.';order.stage='returning';p.status='returning';}
     if(order.localAssistance&&order.stage==='returning'){

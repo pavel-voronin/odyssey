@@ -93,8 +93,10 @@ function stashCargo(s,g){
   p.roadSupplies ||= {food:0,medicine:0};
   for(const key of ['food','medicine']){p.roadSupplies[key]+=g.cargo[key];g.cargo[key]=0;}
 }
+// A local witnessed clash may trigger the existing finite family departure.
+function campaignRefuge(s,ctx){if(s.rules['limited-campaigns']===false)return;for(const p of Object.values(s.people)){const d=p.campaignDanger,op=d&&s.authorities?.campaigns?.operations[d.operation],a=s.areas[p.area];if(!d||!op||!a?.exodus||p.area!==d.area||s.tick-d.at>96||!p.alive||p.migration||selfDrivenActor(s,p.id)||p.status!=='resident'||p.role==='ребёнок'||p.agenda.duty>=.9||s.tick<a.exodus.nextAttempt||!canStartNPCActivity(s,p)||npcController(s,p)!=='personal')continue;const members=family(s,a,p),target=destination(s,a,members,a.id,ctx);if(!target)continue;const previous=a.exodus.pressure;a.exodus.pressure={since:d.at,reason:'лично увиденный бой у перехода'};depart(s,a,members,target,ctx);a.exodus.pressure=previous;}}
 export function migrationsTick(s,ctx){
-  if(!enabled(s,'migrations')||!enabled(s,'people')||s.tick%16!==0)return;
+  if(!enabled(s,'migrations')||!enabled(s,'people')||s.tick%16!==0)return;campaignRefuge(s,ctx);
   for(const g of Object.values(s.migrations)){
     if(g.status==='settled'){unload(s,g);continue;}if(!['active','camped','site-ready'].includes(g.status))continue;if(g.knowledge&&!migrationKnowledgeOn(s))continue;
     const carrier=s.people[g.carrier];

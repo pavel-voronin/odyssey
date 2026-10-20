@@ -1,0 +1,3 @@
+import {physicalDistance} from '../geometry.js';
+export function livePhysicalSource(s,source,area,target=null){if(s.areas[area]?.objects.includes(source)&&source.kind==='enemy')return true;const p=source?.person&&s.people[source.person],c=p?.actionControl;return Boolean(p?.alive&&source.id===p.id&&source.name===p.name&&p.area===area&&(!target||physicalDistance(s.areas[area],p.x,target.x)<=12)&&c?.tick===s.tick&&(['orders','personal'].includes(c.owner))&&(c.phases.includes('act')||c.phases.includes('campaign-defense')));}
+export const retainedPhysicalSource=(s,c)=>Boolean(s.areas[c.area]?.objects.some(e=>e.id===c.enemy&&e.kind==='enemy')||c.person===c.enemy&&s.people[c.person]);

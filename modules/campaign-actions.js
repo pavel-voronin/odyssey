@@ -1,0 +1,32 @@
+import {fitsPack} from './container-state.js';
+import {campaignsOn,campaignBook,campaignReady,campaignNear,campaignKnown,campaignBody} from './campaign-state.js';
+import {authorityAt,authorityBody} from './authority-state.js';
+import {proposals,nearDiplomat,diplomaticSpeech} from './diplomacy-state.js';
+import {relayNews} from './witness-news.js';
+import {npcKnownRoute,knownNPCHazards} from './npc-knowledge.js';
+import {npcAction,markNPCDeparture,canStartNPCActivity} from './npc-control.js';
+import {guardWeapon} from './commissioned-orders.js';
+import {takeGoods} from './goods.js';
+import {marketWallet} from './market.js';
+import {setActorMoney,selfDrivenActor} from '../actor-projection.js';
+import {physicalDistance} from '../geometry.js';
+export function campaignDecision(s,p,q,ctx,{inTurn=false}={}){
+ const a=q&&s.authorities?.byId[q.fromState],b=s.authorities?.border,book=s.authorities?.campaigns;if(!campaignsOn(s)||!a||a.ruler!==p.id||!campaignReady(s,p)||!campaignKnown(s,p,q)||book&&Object.keys(book.operations).length>=1||!campaignNear(s,p,a.capital,42)||(campaignBody(s,p).lineage?campaignBody(s,p)!==s.hero||p.campaignLastAt===s.tick:!inTurn||p.actionControl?.tick!==s.tick||!p.actionControl.phases.includes('act')))return false;
+ const capital=s.areas[a.capital],duty=campaignBody(s,p).lineage?campaignBody(s,p).personality.generosity:p.agenda.duty,curiosity=campaignBody(s,p).lineage?campaignBody(s,p).personality.curiosity:p.agenda.curiosity,oldGuard=s.people[b.guard],path=npcKnownRoute(p,p.area,b.from,knownNPCHazards(s,p));
+ const candidates=Object.values(s.people).filter(v=>campaignReady(s,v)&&!campaignBody(s,v).lineage&&fitsPack(s,v.id,{stacks:{food:(v.roadSupplies?.food||0)+3}})&&(v.id===p.id||canStartNPCActivity(s,v))&&campaignNear(s,v,a.capital,42,12)&&(!v.agenda.task||v.agenda.task.kind==='borderWatch')&&guardWeapon(s,v)&&v.agenda.duty>=.5&&diplomaticSpeech(s,p,v)&&!(v.agenda.bonds[p.id]<-3)&&npcKnownRoute(v,v.area,b.from,knownNPCHazards(s,v)).length).sort((x,y)=>Number(y.id===p.id)-Number(x.id===p.id)||y.agenda.duty-x.agenda.duty||x.id.localeCompare(y.id));
+ let status='refused',reason='Правитель отказывается от похода после известного отказа в переговорах.';if(duty>=.5&&curiosity>=.65){status='negotiation';reason='После отказа правитель сохраняет мир и прежнюю пошлину; новый поход не разрешён.';}else if(duty>=.5){status='unavailable';reason='Нет согласных вооружённых людей, известного пути, шести порций или восьми монет.';if(candidates.length>=2&&path.length&&capital.civic.food>=6&&capital.civic.treasury>=8&&oldGuard?.alive){status='marching';reason='Конечный отряд идёт занять один известный переход после действительного отказа в общем въезде.';}}
+ const members=status==='marching'?candidates.slice(0,2):[],op={version:1,id:q.id,proposal:q.id,fromState:a.id,toState:q.toState,chief:p.id,knowledge:{news:q.responseNews,heardAt:p.news.known[q.responseNews].heardAt,mode:p.news.known[q.responseNews].mode,via:structuredClone(p.news.known[q.responseNews].via)},commander:members[0]?.id||null,edge:b.edge,from:a.capital,target:b.from,x:b.x,defender:oldGuard.id,started:s.tick,status,reason,members:[],ended:status==='marching'?null:s.tick,battles:[],control:null};campaignBook(s).operations[q.id]=op;p.campaignLastAt=s.tick;if(campaignBody(s,p).lineage)campaignBody(s,p).energy--;else p.needs.energy--;
+ for(const v of members){const cash=capital.civic.treasury,wallet=marketWallet(s,v.id),stock=capital.civic.food,held=v.roadSupplies?.food||0;takeGoods(s,capital,'food',3,{reason:'limited-campaign',actor:v.id});v.roadSupplies ||= {food:0,medicine:0};v.roadSupplies.food+=3;capital.civic.treasury-=4;setActorMoney(s,v,wallet+4);if(v.borderDuty?.active)v.borderDuty.active=false;const prior=v.agenda.task?structuredClone(v.agenda.task):null;v.agenda.task=null;v.status='marching';const route=npcKnownRoute(v,v.area,b.from,knownNPCHazards(s,v));op.members.push({person:v.id,weapon:guardWeapon(s,v).id,path:route,prior,paid:4,treasuryBefore:cash,treasuryAfter:cash-4,walletBefore:wallet,walletAfter:wallet+4,food:3,stockBefore:stock,stockAfter:stock-3,heldBefore:held,heldAfter:held+3,finished:null});s.society.orders.push({person:v.id,owner:p.id,from:a.capital,to:b.from,enemy:null,stage:'marching',remaining:0,campaign:op.id});markNPCDeparture(s,v,'orders');}
+ return true;
+}
+export function campaignNPCTurn(s,p,ctx){
+ if(!campaignsOn(s)||!campaignReady(s,p)||p.agenda.task&&p.agenda.task.kind!=='borderWatch')return false;
+ if(p.campaignPost&&campaignNear(s,p,p.campaignPost.area,p.campaignPost.x,2)){p.needs.energy=Math.max(0,p.needs.energy-.1);return true;}
+ // A rejected proposal is known only through the real returning messenger.
+ for(const q of proposals(s)){if(q.status!=='vetoed')continue;const a=s.authorities.byId[q.fromState],chief=s.people[a.ruler];if(q.agent===p.id&&p.news?.known[q.responseNews]&&!chief.news?.known[q.responseNews]&&!nearDiplomat(s,p,chief)&&npcKnownRoute(p,p.area,a.capital,knownNPCHazards(s,p)).length){p.agenda.task={kind:'visit',target:a.capital,x:authorityBody(s,chief.id).area===a.capital?authorityBody(s,chief.id).x:42,person:chief.id,remaining:1,knownNavigation:true};p.status=p.area===a.capital?'resident':'wandering';return false;}if(q.agent===p.id&&p.news?.known[q.responseNews]&&nearDiplomat(s,p,chief)&&diplomaticSpeech(s,p,chief)&&!chief.news?.known[q.responseNews]){if(relayNews(s,p,chief,q.responseNews)){p.needs.energy--;p.campaignLastAt=s.tick;return true;}}
+ if(a.ruler===p.id&&campaignKnown(s,p,q)&&!s.authorities.campaigns?.operations[q.id]&&campaignDecision(s,p,q,ctx,{inTurn:true}))return true;}
+ return false;
+}
+
+export function campaignHeroPlan(s,ctx){const h=s.hero,p=s.people[h.lineage];if(!selfDrivenActor(s,h)||!campaignsOn(s)||!campaignReady(s,p)||s.authorities.campaigns&&Object.keys(s.authorities.campaigns.operations).length)return false;for(const q of proposals(s)){const a=s.authorities.byId[q.fromState];if(a.ruler===p.id&&campaignKnown(s,p,q)&&ctx.knownRoute(s,h.area,a.capital).length){ctx.goal(s,'campaignDecide',a.capital,42,'Ответить на известный отказ в переговорах','Можно сохранить мир, отказаться или оплатить конечный поход двух согласных людей.',{proposal:q.id});return true;}}return false;}
+export function campaignHeroAction(s,g,ctx){const ok=campaignDecision(s,s.people[s.hero.lineage],s.authorities.diplomacy?.proposals[g.proposal],ctx);s.hero.goal=null;return ok;}

@@ -1,3 +1,4 @@
+import {livePhysicalSource} from './physical-strike-source.js';
 import {enabled} from '../rules.js';
 import {RACES} from '../content.js';
 
@@ -10,7 +11,7 @@ export function injuryPart(p,kind){
 }
 export function recordLastingInjury(s,p,enemy,{before,after,maximum,area,controller='combat'},ctx){
  if(!enabled(s,'lasting-injuries')||!p?.alive||!enemy?.id||!s.areas[area]||![before,after,maximum].every(Number.isFinite)||maximum<=0||before>maximum||after<=0||after>=before)return null;
- const body=s.actorStates?.[p.id];if(!s.areas[area].objects.includes(enemy)||(body&&body.actorMode!=='npc'?body.hp:p.health)!==after)return null;
+ const body=s.actorStates?.[p.id];if(!livePhysicalSource(s,enemy,area,p)||(body&&body.actorMode!=='npc'?body.hp:p.health)!==after)return null;
  const damage=before-after;if(damage<Math.max(6,Math.ceil(maximum*.22)))return null;
  const kind=enabled(s,'elements')&&enemy.element==='fire'?'burn':['bandit','skeleton','wolf','rat','dragon'].includes(enemy.species)||enemy.damageType==='cut'?'scar':null;
  const part=kind&&injuryPart(p,kind),id=`injury/${p.id}/${s.tick}/${enemy.id}`;

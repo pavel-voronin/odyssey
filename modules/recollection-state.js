@@ -17,7 +17,7 @@ function record(s,domain,id,cause,source,ctx){
 export function forgetOldPromise(s,q,ctx){return record(s,'promise',q.id,'neglect',null,ctx);}
 export function recollectionTick(s,ctx){if(!enabled(s,'recollection')||s.tick%DAY_TICKS||s.hero.combat||s.hero.transit)return false;const p=s.people[s.hero.lineage];for(const n of p.moneyCaches?.places||[])if(record(s,'cache',n.id,'neglect',null,ctx))return true;return false;}
 export function memoryDamage(s,p,w,ctx){
- const h=s.hero,c=w?.lastCause;if(!enabled(s,'recollection')||!enabled(s,'local-wounds')||p.id!==h.lineage||!h.alive||h.hp<=0||!p.localWounds?.active.includes(w)||w.role!=='head'||w.severity<2||w.lastHit!==s.tick||c?.tick!==s.tick||c.after!==h.hp||c.after<=0||c.before-c.after<c.maximum*.2||h.recollection?.losses.some(n=>n.source?.id===c.id))return false;
+ const h=s.hero,c=w?.lastCause;if(!enabled(s,'recollection')||!enabled(s,'local-wounds')||!h||p.id!==h.lineage||!h.alive||h.hp<=0||!p.localWounds?.active.includes(w)||w.role!=='head'||w.severity<2||w.lastHit!==s.tick||c?.tick!==s.tick||c.after!==h.hp||c.after<=0||c.before-c.after<c.maximum*.2||h.recollection?.losses.some(n=>n.source?.id===c.id))return false;
  const n=hash(s.seed+'/'+c.id+'/memory');if(n%32)return false;
  const candidates=[...(p.moneyCaches?.places||[]).map(k=>({domain:'cache',id:k.id})),...h.quests.filter(q=>q.status==='active'&&promiseRemembered(h,q)).map(q=>({domain:'promise',id:q.id}))].sort((a,b)=>(a.domain+'/'+a.id).localeCompare(b.domain+'/'+b.id));if(!candidates.length)return false;
  const chosen=candidates[(n>>>5)%candidates.length],source={...c,wound:w.id,role:w.role,severity:w.severity};return record(s,chosen.domain,chosen.id,'head-impact',source,ctx);
