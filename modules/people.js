@@ -1,3 +1,4 @@
+import {adultPerson} from './age-state.js';
 import {councilsOn} from './council-state.js';
 import {councilNPCTurn,councilNPCAction} from './council-actions.js';
 import {biologicalNeed,ordinaryRecovery} from './biology.js';
@@ -125,7 +126,7 @@ import {observeMentors,mentorEnabled} from './mentor-memory.js';
 import {mentorTarget,mentorLessonAction,endDeadMentorJourney} from './mentor-journey.js';
 import {caseRecordStudyPlan,caseRecordStudyAction,announceCaseWitness} from './verdict-witness.js';
 import {rescueEscapePlan,rescueEscapeRoute,finishRescueEscape,rescueGuardPass} from './rescue-escape.js';
-const jobs=Object.keys(NPC_JOBS).filter(id=>id!=='student');
+const jobs=Object.keys(NPC_JOBS).filter(id=>!['student','laborer'].includes(id));
 export function initializePersonAgenda(s,p){
   if(p.alive){initializeNeeds(p);initializeNPCKnowledge(s,p);initializeNPCContacts(s,p);}
   if(p.agenda||!p.alive)return;
@@ -151,6 +152,7 @@ function safePath(s,path,p=null){const blocked=new Set(p?fordBlocked(s,p):[]);re
 function begin(p,kind,target,x,remaining=3,extra={}){p.agenda.task={kind,target,x,remaining,...(kind==='work'?{workMode:null}:{}),...extra};}
 function plan(s,p,ctx){
   const a=s.areas[p.area],m=p.agenda;
+  if(!adultPerson(s,p)){begin(p,'learn',p.area,42,2);return;}
   const desk=currencyNPCTask(s,p);if(desk){m.task=desk;return;}
   const familyShelf=castleTask(s,p);if(familyShelf){m.task=familyShelf;return;}
   const sign=serviceSignTask(s,p);if(sign){m.task=sign;return;}
@@ -354,8 +356,9 @@ export function peopleTick(s,ctx){
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
     const hungry=biologicalNeed(s,p).food;
+    if(!adultPerson(s,p)){if(hungry){p.needObstacle='Ребёнку нужна настоящая еда и помощь; взрослый труд недоступен.';continue;}if(p.agenda.task?.kind!=='learn')p.agenda.task=null;}
     if(hungry&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit){const a=s.areas[p.area],source=localFoodChoice(s,p,null,a);if(!['farm','gather','return'].includes(p.agenda.task?.kind)){if(p.agenda.task)p.needPaused ||= p.agenda.task;if(source)begin(p,'gather',a.id,source.x,source.remaining,{foodSource:source.id,home:a.id});else if(goodsEnabled(s)&&productionSources(s,a)?.field.stock>0)begin(p,'farm',a.id,42,3);else {p.needObstacle='Нет доступной местной еды или известного способа её добыть.';continue;}}}
-    if(!hungry){if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
+    if(!hungry&&adultPerson(s,p)){if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
     if(clinicalPatientTurn(s,p))continue;
     if(clinicalNPCTurn(s,p,ctx))continue;
     if(clinicalStudyNPCTurn(s,p))continue;

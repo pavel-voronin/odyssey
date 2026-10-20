@@ -1,3 +1,4 @@
+import {adultPerson} from './age-state.js';
 import {BODY_ENTRIES,biologicalNeed} from './biology.js';
 import {enabled} from '../rules.js';
 import {selfDrivenActor,actorPartyLeader,detailedActors} from '../actor-projection.js';
@@ -25,10 +26,11 @@ export function npcController(s,p){
  if(!['resident','wandering'].includes(p.status))return 'none';const m=s.migrations?.[p.migration];if(m?.status==='active'&&m.members.includes(p.id)&&!m.arrivals[p.id])return 'migration';return 'personal';
 }
 export function npcControlledBy(s,p,owner){if(selfDrivenActor(s,p?.id))return owner==='actor';if(actorPartyLeader(s,p?.id))return owner==='party';return !enabled(s,'npc-control')||npcController(s,p)===owner;}
-export function canStartNPCActivity(s,p,{inTurn=false}={}){if(p?.ferryDuty||p?.ferryTicket||p?.roadTransit||p?.roadStop||partyBodySpent(s,p)||selfDrivenActor(s,p?.id)||actorPartyLeader(s,p?.id))return false;const delivery=p&&pendingMaterialContract(rootWorld(s),p.id);if(delivery?.carrier===p.id&&delivery.status!=='quoted')return false;return !enabled(s,'npc-control')||p?.actionControl?.tick!==s.tick||inTurn&&p.actionControl.owner==='personal'&&p.actionControl.phases.every(x=>x==='act');}
+export function canStartNPCActivity(s,p,{inTurn=false}={}){if(!adultPerson(s,p))return false;if(p?.ferryDuty||p?.ferryTicket||p?.roadTransit||p?.roadStop||partyBodySpent(s,p)||selfDrivenActor(s,p?.id)||actorPartyLeader(s,p?.id))return false;const delivery=p&&pendingMaterialContract(rootWorld(s),p.id);if(delivery?.carrier===p.id&&delivery.status!=='quoted')return false;return !enabled(s,'npc-control')||p?.actionControl?.tick!==s.tick||inTurn&&p.actionControl.owner==='personal'&&p.actionControl.phases.every(x=>x==='act');}
 export function markNPCDeparture(s,p,owner){if(enabled(s,'npc-control'))p.actionControl={tick:s.tick,owner,phases:['depart']};}
 export function npcAction(s,p,owner,phase='act'){
  if(!BODY_ENTRIES[owner])return false;
+ if(owner==='personal'&&!adultPerson(s,p)&&!['act','need'].includes(phase))return false;
  if(owner==='personal'&&biologicalNeed(s,p).critical&&phase!=='need')return false;
  if(partyBodySpent(s,p)&&!PARTY_PASSIVE_PHASES.includes(phase))return false;
  if(selfDrivenActor(s,p?.id)&&owner!=='actor')return false;

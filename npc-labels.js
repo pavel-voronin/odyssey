@@ -1,4 +1,4 @@
-export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится'};
+export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится',laborer:'Подёнщик'};
 export const NPC_TASKS={
  fxDesk:'У своего разменного стола',clinicalAssess:'Предложить очищение',clinicalCast:'Снять жар словом',clinicalRest:'Восстановить собственную ману',clinicalStop:'Завершить прерванную пробу',adminTransfer:'Передать административную должность',fxPurchase:'Размен для настоящей еды',fxExchange:'Конечный обмен монет',fxObserve:'Узнать местный курс',
  castleGuardInvite:'Пригласить хранителя фонда',

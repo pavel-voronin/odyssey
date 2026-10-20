@@ -15,6 +15,7 @@ export const PROFESSIONS = [
 ];
 // Resident roles are lookup profiles, not additional random adventurer origins.
 export const NPC_PROFESSIONS=[['farmer','Земледелец','ranger'],['healer','Травник','alchemist'],['artisan','Ремесленник','smith'],['scholar','Летописец','scholar'],['guard','Страж','soldier'],['merchant','Торговец','merchant'],['student','Ученик','scholar']].map(([job,name,base])=>({...PROFESSIONS.find(p=>p.id===base),id:'npc-'+job,name,story:'Житель мира продолжает собственное дело.',talent:'Опыт повседневной работы'}));
+NPC_PROFESSIONS.push({id:'npc-laborer',name:'Подёнщик',story:'Взрослый житель без обученной профессии.',talent:'Учится собственным трудом',skill:'labor',stats:[3,3,3,3,3]});
 export const DESTINIES = [
   { id: 'atlas', name: 'Карта невозможного', text: 'Увидеть двенадцать мест, которых нет на старых картах.', target: 12, counter: 'places', reward: 'Звание: Ходящий за горизонт' },
   { id: 'hoard', name: 'Богатство на чёрный день', text: 'Сберечь сто монет. На всякий случай. Даже если случай никогда не наступит.', target: 100, counter: 'gold', reward: 'Звание: Хранитель сокровищ' },

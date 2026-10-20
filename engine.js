@@ -1,3 +1,4 @@
+import {ageDose} from './modules/age-state.js';
 import {councilHeroPlan,councilHeroAction} from './modules/council-actions.js';
 import {bodyTick} from './modules/body.js';
 import {actorPartyLeader} from './actor-projection.js';
@@ -888,6 +889,17 @@ function archiveNPCObservers(s){for(const h of detailedActors(s))if(h.actorMode=
  archiveLife(view,'dead',cause,{ended,recordedAt:late?s.tick:undefined,wealthBasis:late?'recorded-estate':undefined});
  openInheritance(view,h,null,context(view,'finances'));
 }}
+function ageWorldTick(s){
+ for(const p of Object.values(s.people)){
+  const dose=ageDose(s,p);if(!dose)continue;
+  const h=s.actorStates[p.id],maximum=p.maxHealth||100,ceiling=Math.max(0,maximum*(100-dose.loss)/100);
+  if(h&&selfDrivenActor(s,h)&&h.alive){const view=actorView(s,h),before=h.hp;h.hp=Math.min(h.hp,h.maxHp*(100-dose.loss)/100);if(h.hp<=0)die(view,{name:'Старость'},{kind:'old-age',damage:before,hpBefore:before});syncActiveActor(view);}
+  else {p.health=Math.min(p.health,ceiling);const leader=actorPartyLeader(s,p.id),companion=leader?.companions.find(c=>c.person===p.id);if(companion){const target=companion.maxHp*(100-dose.loss)/100;if(companion.hp>target)hurtCompanion(actorView(s,leader),companion,companion.hp-target,context(actorView(s,leader),'age'),'old-age');}
+   if(p.health<=0&&p.alive){p.alive=false;p.health=0;p.status='dead';p.died=s.tick;p.deathCause='Старость';context(s,'age').dropRemains(s,p,'носитель умер от старости');const area=s.areas[p.area];if(area)area.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x??42});recordPersonRemains(s,p);s.changes.push({tick:s.tick,text:p.name+' умирает от старости.'});if(p.area===s.hero.area)log(s,p.name+' умирает от старости.','loss');}
+   const enemy=personEnemy(s,p);if(enemy&&p.enemyBody.stage==='hostile'){enemy.hp=p.health;enemy.alive=p.alive;if(!p.alive){enemy.resolved=true;p.enemyBody.stage='dead';}}
+  }
+ }
+}
 export function advanceWorld(s) {
  if(rootWorld(s)!==s)throw new Error('Only the shared world advances time');
  syncNPCActors(s);bindObservedJournal(s);
@@ -896,6 +908,7 @@ export function advanceWorld(s) {
  initializeInteriors(s);
  initializeLodging(s);
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
+ ageWorldTick(s);
  for(const h of detailedActors(s))if(selfDrivenActor(s,h)&&h.alive){const view=actorView(s,h);bodyTick(view,context(view,'body'));syncActiveActor(view);}
  if(s.tick%8===0)for(const p of Object.values(s.people))if(p.alive&&!selfDrivenActor(s,p.id)){personNeeds(s,p,context(s,'people'),{onlyUpkeep:true,area:actorPartyLeader(s,p.id)?.area});const enemy=personEnemy(s,p);if(enemy&&p.enemyBody.stage==='hostile'){enemy.hp=p.health;enemy.alive=p.alive;if(!p.alive){enemy.resolved=true;p.enemyBody.stage='dead';}}}
  worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);

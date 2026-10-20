@@ -1,3 +1,4 @@
+import {canBearChild} from './age-state.js';
 import {councilsOn} from './council-state.js';
 import {establishAuthority,establishBorder,borderCandidate} from './authority-foundation.js';
 import {authorityAt,authoritiesOn} from './authority-state.js';
@@ -83,6 +84,8 @@ function applyEvent(s,a,ctx){
       record(s,a,authorityAt(s,a.id)?`${a.name}: другая фракция получает местное влияние; правитель и пограничный закон сохраняются.`:`${a.name}: жители меняют власть. Новая печать принадлежит другой фракции.`,ctx,'politics');
     }else{c.tax+=2;record(s,a,`${a.name}: канцелярия поднимает подать до ${c.tax}%. Недовольство растёт.`,ctx,'politics');}
   }else if(draw<.79){
+    const parent=a.population?.map(id=>s.people[id]).find(person=>canBearChild(s,person,a.id));if(!parent)return;
+    const p=parent;
     const family=enabled(s,'background-towns')?p.family||p.name.split(' ').slice(1).join(' '):p.name.split(' ').slice(1).join(' ')||s.hero.family;
     const child=createPerson(s,{name:pick(s,['Ним','Летта','Саф','Юна'])+' '+family,race:p.race,role:'ребёнок',parents:[p.id],area:a.id,alive:true,health:100,ailment:null,status:'resident',born:s.tick,procedural:true,family:p.culture==='ember'?undefined:p.family});
     a.population.push(child);record(s,a,`${a.name}: в семье ${p.name} появляется ребёнок. Родословная мира продолжается.`,ctx,'family');
