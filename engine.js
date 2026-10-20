@@ -1,3 +1,4 @@
+import {familyHeroPlan,familyHeroAction,familyWorldTick} from './modules/family-actions.js';
 import {ageDose} from './modules/age-state.js';
 import {councilHeroPlan,councilHeroAction} from './modules/council-actions.js';
 import {bodyTick} from './modules/body.js';
@@ -225,7 +226,7 @@ import {initializeCommitments,rememberRetreat,commitmentTick,commitmentPlan} fro
 // Pure, deterministic simulation. No timers, UI, wall clock or storage here.
 import { MODULES, initializeRules, enabled, moduleRandom } from './rules.js';
 import { initializeHero, decorateArea, traitsTick, traitsPlan, traitsRest, provisions, encounter, tryParley, combatAttack, combatResponse, afterVictory, receiveItem, sellBag, hasHabit, hasCondition, itemBonus } from './systems.js';
-import { initializeLineage, populateArea } from './modules/lineage.js';
+import { initializeLineage, populateArea, createPerson } from './modules/lineage.js';
 import { initializeMind, mindPlan, fearResponse } from './modules/psychology.js';
 import { initializeMagic, learnSpell, magicRest, castInCombat,teachSpell } from './modules/magic.js';
 import {chooseCombatAction,rememberCombatChoice,resolveCombatChoice,rememberCombatReply} from './modules/combat-judgment.js';
@@ -288,7 +289,7 @@ export function random(s) {
 const roll = (s, n) => Math.floor(random(s) * n);
 installMigrationEmployment((s,a)=>['harvest','medicine','repair','records','market'].some(job=>actualService(s,a,'employment',{job}).available));
 installPaperFireHandler((s,a,source)=>damagePaperFromSource(s,a,source,{log}));
-function context(s, stream) { return { methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
   if(observingBodyActive(s)||type==='death'||type==='retirement')rememberMoment(s,s.journal[0]);else s.journal[0].afterLife=true;
@@ -475,6 +476,7 @@ function plan(s) {
   if(h.goal){const r=goalReadiness(s,h.goal,{knownRoute});if(r.status==='blocked')deferMethod(h,h.goal,r,methodRevision(s,h.goal),s.tick);else if(['ready','progressing'].includes(r.status))parkMethod(h,h.goal);}
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
+  if(offer('familyHeroPlan',()=>familyHeroPlan(s,context(s,'families'))))return planningSpent;
   if(offer('councilHeroPlan',()=>councilHeroPlan(s,context(s,'active-councils'))))return planningSpent;
   if(offer('clinicalStudyHeroPlan',()=>clinicalStudyHeroPlan(s,context(s,'clinical-transmission'))))return planningSpent;
   if(offer('clinicalHeroPlan',()=>clinicalHeroPlan(s,context(s,'clinical-cleansing'))))return planningSpent;
@@ -924,7 +926,7 @@ export function advanceWorld(s) {
   try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{syncHorse(view,h);syncWagons(view);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
- settleRemainsCarriers(s,context(s,'remains-carry'));settleBurialWork(s);syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);noticeAuthorityDeaths(s);clinicalWorldTick(s);return s;
+ settleRemainsCarriers(s,context(s,'remains-carry'));settleBurialWork(s);syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);noticeAuthorityDeaths(s);clinicalWorldTick(s);familyWorldTick(s);return s;
 }
 export const step=advanceWorld;
 export function createNextStory(s,{allowLiving=false}={}){
@@ -1176,6 +1178,7 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(g.kind.startsWith('familyPair'))execute('familyHeroAction',()=>familyHeroAction(s,g,context(s,'families')));
   else if(g.kind.startsWith('council'))execute('councilHeroAction',()=>councilHeroAction(s,g,context(s,'active-councils')));
   else if(['clinicalWrite','clinicalStudy','clinicalLesson','clinicalTeach','clinicalPaper','clinicalCopy'].includes(g.kind))execute('clinicalStudyAction',()=>{clinicalStudyAction(s,s.people[s.hero.lineage],g,{ctx:context(s,'clinical-transmission')});s.hero.goal=null;});
   else if(g.kind.startsWith('clinical'))execute('clinicalHeroAction',()=>clinicalHeroAction(s,g,context(s,'clinical-cleansing')));

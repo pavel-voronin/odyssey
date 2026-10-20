@@ -1,3 +1,4 @@
+import {recordFamilyCooperation} from './family-state.js';
 import {rememberCampPairCare} from './camp-topic-memory.js';
 import {enabled} from '../rules.js';
 import {recordPracticalAid,fieldMedicineCost,skillBranchesEnabled} from './skill-branches.js';
@@ -62,7 +63,7 @@ export function pairCampWatch(s,ctx){
  const event={...camp.watch,id:`${h.lineage}/camp/${campIdentity(h)}/watch`,kind:'watch'};
  for(const [p,partner]of [[a,b],[b,a]]){const basis=watchBasis(p,partner.id);remember(p,partner,event,0).lastWatch={tick:s.tick,basis,outcome:event.outcome};}
  a.needs.energy-=willing?3:1;b.needs.energy-=willing?3:1;h.energy--;h.lastAction='talk';
- if(willing){h.mind.stress=Math.max(0,h.mind.stress-3);ctx.log(s,`${a.name} и ${b.name} вместе обходят лагерь и договариваются о сигналах тревоги. У огня становится спокойнее.`,'relationship');}
+ if(willing){recordFamilyCooperation(s,[a.id,b.id],{id:event.id+'/'+s.tick,kind:'watch'});h.mind.stress=Math.max(0,h.mind.stress-3);ctx.log(s,`${a.name} и ${b.name} вместе обходят лагерь и договариваются о сигналах тревоги. У огня становится спокойнее.`,'relationship');}
  else {const refusing=pairFeeling(a,b.id)<=-3?a:b;ctx.log(s,`${a.name} и ${b.name} обсуждают общий дозор. ${refusing.name}: «После того отказа я пока предпочту побыть один». Разговор затихает. К совместному дозору они не приступают.`,'relationship');}
  return true;
 }

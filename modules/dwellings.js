@@ -45,7 +45,7 @@ function proposal(s,p){
  if((p.dwellingAfter||0)>s.tick)return null;
  const invite=p.dwellingInvitation;if(invite?.until>s.tick&&invite.area===a.id)return {stage:'acceptGuest',a,x:localContact(s,invite.owner,a.id)?.x??plot?.x??72,person:invite.owner};
  if(plot?.house){if(plot.house.owner!==p.id){const room=s.areas[plot.house.room];return residenceAdmission(s,room,p.id)&&dwellingEnergy(s,p).energy<60?{stage:'enter',a:room,x:68}:null;}
-  if(p.privateHome?.room!==plot.house.room)return {stage:'inspect',a,x:plot.x};const room=s.areas[plot.house.room],desired=p.housePreference==='family'?'family':plot.house.plan;
+  if(p.privateHome?.room!==plot.house.room)return {stage:'inspect',a,x:plot.x};const room=s.areas[plot.house.room],desired=['family','household'].includes(p.housePreference)?p.housePreference:plot.house.plan;
   if(desired!==plot.house.plan&&HOUSE_PLANS[desired]&&(!r||r.status==='done'&&r.payment.paid===r.payment.reserved))return {stage:'start',a,x:plot.x,plan:desired,mode:p.agenda.duty<.55&&marketWallet(s,p.id)>=14?'hire':'self',rebuild:true};
   if(dwellingEnergy(s,p).energy<60){const party=h&&partyRoomConsent(s,h);if(party&&party.length<=room.residence.capacity&&party.some(id=>!room.residence.occupants.includes(id)))return {stage:'inviteParty',a,x:plot.x};return {stage:'enter',a:room,x:68};}
   if(room.residence.occupants.length<room.residence.capacity){const guest=Object.values(s.people).find(q=>q.id!==p.id&&dwellingReady(s,q)&&npcController(s,q)==='personal'&&relatedPeople(p,q)&&near(s,p,q,a)&&!room.residence.occupants.includes(q.id)&&!q.dwellingInvitation);if(guest)return {stage:'inviteGuest',a,x:localContact(s,guest.id,a.id).x,person:guest.id};}

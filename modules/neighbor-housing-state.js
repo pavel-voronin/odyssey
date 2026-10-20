@@ -1,3 +1,4 @@
+import {recordFamilyCooperation} from './family-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {bodyRemains} from './remains.js';
@@ -13,5 +14,6 @@ export function occupiedBeds(s,a){const f=a.foundedSettlement,m=a.neighborHousin
 export function recordFoundationCooperation(s,a,r){
  const ids=[...new Set(r.steps.map(e=>e.actor))].filter(id=>{const p=s.people[id];return p?.alive&&!p.needs.sleeping&&p.area===a.id&&physicalDistance(a,p.x,a.refugeSite.x)<=12;});if(ids.length<2)return;
  const effects=[];for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++)for(const [from,to]of [[ids[i],ids[j]],[ids[j],ids[i]]]){const p=s.people[from],before=p.agenda.bonds[to]||0,after=enabled(s,'relationships')?Math.min(100,before+1):before;p.agenda.bonds[to]=after;effects.push({from,to,before,after});}
+ recordFamilyCooperation(s,ids,{id:r.id,kind:'foundation',actions:r.steps.length});
  neighborState(a).cooperation={source:r.id,tick:s.tick,participants:ids,effects};
 }
