@@ -1,3 +1,4 @@
+import {meatBagHTML,meatMealHTML} from './meat-sheet.js';
 import {WARM_TICKS,LONG_HISTORY_TICKS} from './modules/preparation-state.js';
 import {startBrowserWorld,requestGeneration,generateInBrowser} from './generation-client.js';
 import {observationOriginHTML} from './observation-origin-sheet.js';
@@ -206,7 +207,7 @@ function detail() {
   const h = state.hero;
   $('sheet').querySelector('h2').textContent=(tab==='rules'?'Центр управления':tab==='log'?'Дневник':'Лист приключения')+' · '+calendarCaption(state);
   if(tab==='skills'){renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape),{force:true});return;}
-  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+npc+(tab==='bag'?containerHTML(state)+materialCargoHTML(state,h,escape):'');return;}
+  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+npc+(tab==='bag'?containerHTML(state)+materialCargoHTML(state,h,escape)+meatBagHTML(state,escape):tab==='map'?meatMealHTML(state,escape):'');return;}
   if (tab === 'hero') {
     const traits = [h.personality.courage > .65 ? 'Смелый' : 'Осторожный', h.personality.curiosity > .65 ? 'Любопытный' : 'Вдумчивый', h.personality.sociability > .65 ? 'Общительный' : 'Немногословный', h.personality.generosity > .6 ? 'Отзывчивый' : 'Практичный'];
     const p = profession(h.profession), d = destiny(h.destiny.id);

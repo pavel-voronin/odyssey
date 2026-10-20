@@ -97,7 +97,7 @@ export function sellBag(s, ctx) {
   s.merchant.items ||= [];
   const physical=containersOn(s)||originalsOn(s)||s.merchant.itemOriginalsVersion===1||h.bag.some(i=>i.physical?.version===1||i.durability);
   const reserve=spareNeedsMoney(s,ctx)?null:reserveArmor(s);
-  const candidates=h.bag.filter(i => !i.waystone&&!keep.includes(i)&&i!==reserve&&i.kind!=='bioMaterial'&&i.kind!=='prosthesis'&&i.kind!=='textCopy'&&i.kind!=='writingPaper'&&(!practicalClothingOn(s)||!clothingKind(i))&&(!navigationToolsOn(s)||!isRopeItem(i)));
+  const candidates=h.bag.filter(i => !i.waystone&&!keep.includes(i)&&i!==reserve&&i.kind!=='rawMeat'&&i.kind!=='meatFuel'&&i.kind!=='bioMaterial'&&i.kind!=='prosthesis'&&i.kind!=='textCopy'&&i.kind!=='writingPaper'&&(!practicalClothingOn(s)||!clothingKind(i))&&(!navigationToolsOn(s)||!isRopeItem(i)));
   let sold;if(containersOn(s)){let occupied=s.merchant.items.reduce((n,i)=>n+itemUnits(i),0);sold=candidates.filter(i=>{const units=itemUnits(i);if(occupied+units>ITEM_CAPACITY)return false;occupied+=units;return true;});}else sold=physical?candidates.slice(0,Math.max(0,ITEM_CAPACITY-s.merchant.items.length)):candidates;
   if(!sold.length&&physical){if(candidates.length&&h.itemBuyerFull!==s.merchant.items.length){h.itemBuyerFull=s.merchant.items.length;ctx.log(s,'У Савы нет места для новых вещей. Непроданные находки остаются в сумке.','trade');}return;}
   const income = sold.reduce((n, i) => n + itemWorth(i), 0) * (profile(h).skill === 'trade' ? 1 : .7);

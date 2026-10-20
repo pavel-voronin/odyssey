@@ -5,8 +5,8 @@ import {hasHabit} from './common.js';
 
 const bases=new Set(ITEM_BASES.map(b=>b.id));
 export const collectionsOn=s=>['collections','equipment','item-originals'].every(id=>enabled(s,id));
-export function collectionItems(s,person=s.hero.lineage){
- const h=s.hero.lineage===person?s.hero:s.actorStates?.[person],p=s.people?.[person],items=h?[...h.bag,...Object.values(h.equipment||{}).filter(Boolean)]:[...(p?.looseItems||[]),...(p?.legacy?.keepsakes||[])];
+export function collectionItems(s,person=s.hero?.lineage){
+ const h=s.hero?.lineage===person?s.hero:s.actorStates?.[person],p=s.people?.[person],items=h?[...h.bag,...Object.values(h.equipment||{}).filter(Boolean)]:[...(p?.looseItems||[]),...(p?.legacy?.keepsakes||[])];
  const ids=new Set();return items.filter(i=>i?.id&&!ids.has(i.id)&&ids.add(i.id));
 }
 export function collectible(item){return Boolean(item?.id&&item.creator&&bases.has(item.base)&&item.kind!=='workPart');}

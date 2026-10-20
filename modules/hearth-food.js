@@ -53,6 +53,7 @@ export function startBroth(s,h,{mode='goal'}={}){
  if(!knowsBroth(s,p)||!hearth||physicalDistance(a,h.x,hearth.x)>1||!input)return null;
  if(p.foodCooking.pending||p.foodCooking.lastAction>=s.tick||!batchWorkMatches(s,h,{area:a.id,owner:p.id,mode}))return null;
  kitchenTick(s,a);const previous=kitchenBatch(s,a.id);
+ if(['preparing','ready'].includes(a.meatKitchen?.current?.status))return null;
  if(previous&&['preparing','ready'].includes(previous.status))return null;
  const q=culinary(p);if(q.pending)return null;
  const k=a.hearthKitchen ||= {hearth:hearth.id,implement:{kind:'fixed-pot',origin:'existing-hearth',portable:false},next:0,inputPortions:0,ruinedInputPortions:0,preparedPortions:0,eatenPortions:0,lostPortions:0,history:[],current:null};

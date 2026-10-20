@@ -1,3 +1,4 @@
+import {meatNPCPlan,meatNPCAction,observeGameFood} from './meat-plans.js';
 import {wildGrazer} from './ecology-state.js';
 import {campaignNPCTurn} from './campaign-actions.js';
 import {observeMaterialObjects} from './material-research.js';
@@ -340,7 +341,7 @@ export function peopleTick(s,ctx){
     releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
-    if(p.raidDefenseTick>=s.tick||p.rivalActionTick>=s.tick||p.fieldTeachTick>=s.tick||p.enemyBody?.lastActionTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
+    if(p.meatCraft?.lastAction>=s.tick||p.raidDefenseTick>=s.tick||p.rivalActionTick>=s.tick||p.fieldTeachTick>=s.tick||p.enemyBody?.lastActionTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
     const controller=npcController(s,p);
     if(enabled(s,'npc-control')&&!['personal','migration'].includes(controller)){if(controller==='none'&&p.agenda)p.agenda.task=null;continue;}
@@ -349,7 +350,7 @@ export function peopleTick(s,ctx){
     if(enabled(s,'npc-travel')&&p.journeyReleasedAt===s.tick)continue;
     if(!npcAction(s,p,controller,biologicalNeed(s,p).critical?'need':'act'))continue;
     rememberPracticalRole(s,p);
-    observeNPCPlace(s,p);observeMaterialObjects(s,p);observeShortcutPerson(s,p);
+    observeNPCPlace(s,p);observeGameFood(s,p);observeMaterialObjects(s,p);observeShortcutPerson(s,p);
     observeRouteMap(s,p);
     observeBestiaryTraces(s,p,ctx);
     observeMarket(s,p.id);observeHobbyMarket(s,p);
@@ -358,11 +359,11 @@ export function peopleTick(s,ctx){
     observeFreightActor(s,p,p.area,true);
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
-    if(personNeeds(s,p,ctx))continue;
+    if(personNeeds(s,p,ctx))continue;if(p.agenda.task?.kind==='meatHunt'){meatNPCAction(s,p,ctx);continue;}
     const hungry=biologicalNeed(s,p).food;
     if(!adultPerson(s,p)){if(hungry){p.needObstacle='Ребёнку нужна настоящая еда и помощь; взрослый труд недоступен.';continue;}if(p.agenda.task?.kind!=='learn')p.agenda.task=null;}
     if(hungry&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit){const a=s.areas[p.area],source=localFoodChoice(s,p,null,a);if(!['farm','gather','return'].includes(p.agenda.task?.kind)){if(p.agenda.task)p.needPaused ||= p.agenda.task;if(source)begin(p,'gather',a.id,source.x,source.remaining,{foodSource:source.id,home:a.id});else if(goodsEnabled(s)&&productionSources(s,a)?.field.stock>0)begin(p,'farm',a.id,42,3);else {p.needObstacle='Нет доступной местной еды или известного способа её добыть.';continue;}}}
-    if(!hungry&&adultPerson(s,p)){if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}if(familyNPCTurn(s,p,ctx))continue;if(campaignNPCTurn(s,p,ctx))continue;if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
+    if(!hungry&&adultPerson(s,p)){if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}meatNPCPlan(s,p,ctx);if(familyNPCTurn(s,p,ctx))continue;if(campaignNPCTurn(s,p,ctx))continue;if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
     if(clinicalPatientTurn(s,p))continue;
     if(clinicalNPCTurn(s,p,ctx))continue;
     if(clinicalStudyNPCTurn(s,p))continue;
@@ -481,6 +482,7 @@ export function peopleTick(s,ctx){
     if(['forgeSupply','forgeWork'].includes(p.agenda.task.kind)){npcForgeAction(s,p,p.agenda.task,ctx);continue;}
     if(p.agenda.task.kind==='refitBench'){npcRefitWait(s,p);continue;}
     if(p.agenda.task.kind==='itemRepairBench'){npcItemRepairWait(s,p);continue;}
+    if(p.agenda.task.kind.startsWith('meat')){meatNPCAction(s,p,ctx);continue;}
     if(p.agenda.task.kind==='bodyMaterial'){npcBiomaterialAction(s,p,p.agenda.task,ctx);continue;}
     if(['familySupply','familyAid'].includes(p.agenda.task.kind)){npcFamilyAction(s,p,p.agenda.task,ctx);continue;}
     if(p.agenda.task.kind==='gather'&&p.agenda.task.foodSource){

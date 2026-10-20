@@ -1,3 +1,4 @@
+import {eatGameMeal} from './meat-cooking.js';
 import {biologicalDose,biologicalNeed} from './biology.js';
 import {shareEstateKnowledge} from './estate-claim-state.js';
 import {fieldMedicineCost} from './skill-branches.js';
@@ -16,6 +17,7 @@ export function personNeeds(s,p,ctx,adapter=null){
   const dose=biologicalDose(s,p,{native:true});if(dose.damage||dose.ceiling!==undefined&&p.health>dose.ceiling)p.health=Math.max(0,Math.min(p.health-dose.damage,dose.ceiling));
   const personal=!adapter&&enabled(s,'npc-personal-supplies'),maximum=p.maxHealth||100;
   if(!adapter?.onlyUpkeep){
+  if(n.hunger>=65&&eatGameMeal(s,p,ctx,{inTurn:true,need:true}))return true;
   if(personal&&(!biologicalNeed(s,p).food||p.health<maximum*.2)&&enabled(s,'supply')&&(p.health<maximum*.75||p.ailment)&&consumeCarriedSupplies(p,null,'medicine',fieldMedicineCost(s,p.id))){p.health=Math.min(maximum,p.health+25);if(p.health>=maximum*.85)p.ailment=null;return true;}
   if(adapter?.aid?.()||adapter?.migration!==false&&migrationAid(s,p,{skipPersonal:personal}))return true;
   if(n.hunger>=65&&personal&&enabled(s,'supply')&&consumeCarriedSupplies(p,null,'food',1)){n.hunger=Math.max(0,n.hunger-48);n.meals++;return true;}

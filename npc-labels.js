@@ -1,5 +1,6 @@
 export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится',laborer:'Подёнщик'};
 export const NPC_TASKS={
+ meatHunt:'Добыть замеченную дичь',meatButcher:'Разделать настоящую тушу',meatCook:'Приготовить дичь у очага',meatEat:'Поесть приготовленную дичь',meatFuelBuy:'Купить заготовку для огня',meatHearthVisit:'Проверить очаг в знакомом лагере',meatLearn:'Урок разделки у туши',meatSell:'Продать ту же долю мяса',meatCarry:'Нести тушу к знакомому очагу',meatDrop:'Опустить перенесённую тушу',meatDiscard:'Убрать испорченное мясо',
  fxDesk:'У своего разменного стола',clinicalAssess:'Предложить очищение',clinicalCast:'Снять жар словом',clinicalRest:'Восстановить собственную ману',clinicalStop:'Завершить прерванную пробу',adminTransfer:'Передать административную должность',fxPurchase:'Размен для настоящей еды',fxExchange:'Конечный обмен монет',fxObserve:'Узнать местный курс',
  castleGuardInvite:'Пригласить хранителя фонда',
  castleRequest:'Признание семейного допуска',castleInspect:'Настоящая книжная полка',castleHost:'Прийти к семейному фонду',
