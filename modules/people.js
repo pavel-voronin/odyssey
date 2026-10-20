@@ -1,3 +1,4 @@
+import {observeMaterialObjects} from './material-research.js';
 import {familyNPCTurn} from './family-actions.js';
 import {adultPerson} from './age-state.js';
 import {councilsOn} from './council-state.js';
@@ -346,7 +347,7 @@ export function peopleTick(s,ctx){
     if(enabled(s,'npc-travel')&&p.journeyReleasedAt===s.tick)continue;
     if(!npcAction(s,p,controller,biologicalNeed(s,p).critical?'need':'act'))continue;
     rememberPracticalRole(s,p);
-    observeNPCPlace(s,p);observeShortcutPerson(s,p);
+    observeNPCPlace(s,p);observeMaterialObjects(s,p);observeShortcutPerson(s,p);
     observeRouteMap(s,p);
     observeBestiaryTraces(s,p,ctx);
     observeMarket(s,p.id);observeHobbyMarket(s,p);
@@ -415,7 +416,7 @@ export function peopleTick(s,ctx){
     if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
     if(['literacyStudy','textAloud','literacySell'].includes(p.agenda.task?.kind)&&!literacyEnabled(s))continue;
     if(p.agenda.task?.kind==='literacySell'&&p.agenda.task.valueReason&&!textValuesOn(s))continue;
-    if(['spellTextWrite','spellTextStudy','spellTextGift','scholarCompare','scholarInspect','scholarWrite','scholarLesson','textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
+    if(['spellTextWrite','spellTextStudy','spellTextGift','scholarObjectListen','scholarObjectSurvey','scholarObjectTrace','scholarCompare','scholarInspect','scholarWrite','scholarLesson','textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
     if(p.agenda.task?.dwelling&&!homeBuildingOn(s))continue;
     if(['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(p.agenda.task?.kind)&&!homeBuildingOn(s))continue;
     if(p.agenda.task?.kind==='caseRecordStudy'&&!enabled(s,'verdict-knowledge'))continue;

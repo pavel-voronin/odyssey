@@ -22,7 +22,7 @@ export function recordWorkshop(s,a,o,text,kind,ctx,details={}){
   for(const h of actors)if(h.alive&&!h.transit&&[a.id,o.workshopInterior?.area].includes(selfDrivenActor(root,h)?h.area:root.people[h.lineage]?.area)){
     const view=actorView(root,h);ctx.observeProperty?.(view,root.areas[h.area]||a);ctx.log(view,text,kind,a.id,{relay:false});
   }
-  if(!root.hero.alive&&!root.hero.transit&&[a.id,o.workshopInterior?.area].includes(root.hero.area))ctx.log(root,text,kind,a.id);
+  if(root.hero&&!root.hero.alive&&!root.hero.transit&&[a.id,o.workshopInterior?.area].includes(root.hero.area))ctx.log(root,text,kind,a.id);
 }
 export function restoreWorkshop(s,a,o,ctx,actor=s.hero.lineage){
   if(controlBlocked(s,a,o))return false;

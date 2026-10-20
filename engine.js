@@ -1,3 +1,4 @@
+import {observeMaterialObjects} from './modules/material-research.js';
 import {firstObservationCandidates,observationCandidateReason} from './modules/population-observer.js';
 export {firstObservationCandidates};
 import {personAgeAt} from './modules/age-state.js';
@@ -920,6 +921,7 @@ function worldTick(s) {
     }
   }
 
+  for(const h of detailedActors(s))if(h.alive&&!h.transit)observeMaterialObjects(s,s.people[h.lineage]);
   settleCastleDeaths(s,context(s,'royal-libraries'));
   if (s.changes.length > 300) s.changes.splice(0, s.changes.length - 300);
 }
@@ -1242,7 +1244,7 @@ function actObserved(s) {
   else if(['diplomacyAnswer','diplomacySupport'].includes(g.kind))execute('diplomacyHeroAction',()=>diplomacyHeroAction(s,g));
   else if(['decoySupply','decoyWork','decoyRetrieve','decoyGift'].includes(g.kind))execute('decoyAction',()=>decoyAction(s,s.people[h.lineage],g,{...context(s,'noise-decoys'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}));
   else if(g.kind==='stealthLesson')execute('stealthLessonAction',()=>{const ok=stealthLessonAction(s,s.people[h.lineage],g);h.goal=null;return ok;});
-  else if(['spellTextWrite','spellTextStudy','spellTextGift','scholarCompare','scholarInspect','scholarWrite','scholarLesson','textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))execute('textAction',()=>textAction(s,context(s,'texts')));
+  else if(['spellTextWrite','spellTextStudy','spellTextGift','scholarObjectListen','scholarObjectSurvey','scholarObjectTrace','scholarCompare','scholarInspect','scholarWrite','scholarLesson','textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','textGift','sequenceWrite'].includes(g.kind))execute('textAction',()=>textAction(s,context(s,'texts')));
   else if(['homeBuildHire','homeBuildWork','homeBuildPay'].includes(g.kind))execute('homeBuildingAction',()=>homeBuildingAction(s,context(s,'home-building')));
   else if(['homeAgree','homeFit','homeStore','homeMaterials'].includes(g.kind))execute('homeAction',()=>homeAction(s,context(s,'homes')));
   else if (g.kind === 'storyAction') execute('storyAction',()=>storyAction(s,g.story,context(s,'stories')));
