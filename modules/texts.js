@@ -28,7 +28,7 @@ export function buyTextPaper(s,p,ctx=null){
  const before=raw.stock;raw.stock--;raw.used++;setActorMoney(s,p,marketWallet(s,p.id)-2);a.civic.treasury+=2;
  textMemory(p).serial++;paper.writingMaterial={version:1,id:paper.id,source:raw.id,sourceArea:raw.place,area:a.id,buyer:p.id,created:s.tick,paid:2,stockBefore:before,stockAfter:raw.stock};paper.history.push({tick:s.tick,text:'Бумага приобретена из настоящего местного сырья за ◈2.'});bag(s,p).push(paper);actorItemLocation(s,paper,p.id);spend(s,p,1);return paper;
 }
-function inscribe(s,p,paper,work,sourceCopy=null){
+export function inscribe(s,p,paper,work,sourceCopy=null){
  registerLiteracy(s,p,textActor(s,p.id),sourceCopy?'copied-text':'written-text',work.id);
  paper.kind='textCopy';paper.base='booklet';paper.name=work.title;paper.value=2;paper.textCopy={version:1,content:work.id,revision:work.revision,owner:p.id,writer:p.id,written:s.tick,sourceCopy,condition:'intact',damage:null};paper.history.push({tick:s.tick,text:sourceCopy?'Переписано с физического экземпляра; содержание и редакция прежние.':'Автор записал лично наблюдённые сведения.'});actorItemLocation(s,paper,p.id);spend(s,p,2);return paper;
 }

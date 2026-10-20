@@ -1,4 +1,5 @@
-import {initializeClinicalPractitioner} from './modules/clinical-create.js';import {clinicalHeroPlan,clinicalHeroAction} from './modules/clinical-actions.js';
+import {clinicalStudyHeroPlan,clinicalStudyAction} from './modules/clinical-study.js';import {clinicalWorldTick} from './modules/clinical-world.js';
+import {initializeClinicalPractitioner,initializeClinicalApprentice} from './modules/clinical-create.js';import {clinicalHeroPlan,clinicalHeroAction} from './modules/clinical-actions.js';
 import {noticeAuthorityDeaths,administrationHeroPlan,administrationHeroAction} from './modules/administration-actions.js';
 import {initializeCurrencyOffice} from './modules/currency-create.js';import {currencyHeroPlan,currencyHeroAction} from './modules/currency-actions.js';
 import {settleCastleDeaths} from './modules/castle-death.js';
@@ -371,7 +372,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
   createStableHorse(s);createWagon(s);createPortFerry(s,{addArea,connect});
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
-  initializeAuthorities(s);initializeRoyalHouse(s);initializeCurrencyOffice(s);initializeClinicalPractitioner(s);
+  initializeAuthorities(s);initializeRoyalHouse(s);initializeCurrencyOffice(s);initializeClinicalPractitioner(s);initializeClinicalApprentice(s);
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);
   log(s, `${s.hero.name} начинает путь: ${s.areas[s.hero.area].name}, ${s.continents.c0.name}.`, 'birth');
@@ -466,6 +467,7 @@ function plan(s) {
   if(h.goal){const r=goalReadiness(s,h.goal,{knownRoute});if(r.status==='blocked')deferMethod(h,h.goal,r,methodRevision(s,h.goal),s.tick);else if(['ready','progressing'].includes(r.status))parkMethod(h,h.goal);}
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
+  if(offer('clinicalStudyHeroPlan',()=>clinicalStudyHeroPlan(s,context(s,'clinical-transmission'))))return planningSpent;
   if(offer('clinicalHeroPlan',()=>clinicalHeroPlan(s,context(s,'clinical-cleansing'))))return planningSpent;
   if(offer('administrationHeroPlan',()=>administrationHeroPlan(s,context(s,'administration-changes'))))return planningSpent;
   if(offer('currencyHeroPlan',()=>currencyHeroPlan(s,context(s,'finite-exchange'))))return planningSpent;
@@ -899,7 +901,7 @@ export function advanceWorld(s) {
   try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{syncHorse(view,h);syncWagons(view);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
- settleRemainsCarriers(s,context(s,'remains-carry'));settleBurialWork(s);syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);noticeAuthorityDeaths(s);return s;
+ settleRemainsCarriers(s,context(s,'remains-carry'));settleBurialWork(s);syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);noticeAuthorityDeaths(s);clinicalWorldTick(s);return s;
 }
 export const step=advanceWorld;
 export function createNextStory(s,{allowLiving=false}={}){
@@ -1145,6 +1147,7 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(['clinicalWrite','clinicalStudy','clinicalLesson','clinicalTeach','clinicalPaper','clinicalCopy'].includes(g.kind))execute('clinicalStudyAction',()=>{clinicalStudyAction(s,s.people[s.hero.lineage],g,{ctx:context(s,'clinical-transmission')});s.hero.goal=null;});
   else if(g.kind.startsWith('clinical'))execute('clinicalHeroAction',()=>clinicalHeroAction(s,g,context(s,'clinical-cleansing')));
   else if(g.kind==='adminTransfer')execute('administrationHeroAction',()=>administrationHeroAction(s,g));
   else if(g.kind.startsWith('fx'))execute('currencyHeroAction',()=>currencyHeroAction(s,g,context(s,'finite-exchange')));

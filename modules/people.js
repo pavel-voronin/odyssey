@@ -1,3 +1,4 @@
+import {recordClinicalOrdinary} from './clinical-world.js';import {clinicalTeacherTurn,clinicalStudyNPCTurn} from './clinical-study.js';
 import {clinicalPatientTurn,clinicalNPCTurn,recordClinicalReturn} from './clinical-actions.js';
 import {administrationNPCTurn} from './administration-actions.js';
 import {currencyNPCTurn,currencyNPCTask,currencyAction} from './currency-actions.js';
@@ -304,7 +305,8 @@ function finish(s,p,ctx){
     if(t.personal)finishPersonalVisit(s,p,met);
     begin(p,'return',t.home,42,1,{...(t.knownNavigation?{knownNavigation:true}:{})});return;
   }else if(t.kind==='recover'){
-    if(a.civic?.medicine>=2){a.civic.medicine-=2;p.health=Math.min(maximum,p.health+25);if(p.health>=maximum*.85){p.ailment=null;if(a.civic.crisis?.person===p.id)a.civic.crisis=null;}tell(s,p,`${p.name} сам приходит за помощью и расходует лекарства поселения.`,ctx);}
+    const ordinaryBefore={medicine:a.civic?.medicine,health:p.health,ailment:p.ailment};
+    if(a.civic?.medicine>=2){a.civic.medicine-=2;p.health=Math.min(maximum,p.health+25);if(p.health>=maximum*.85){p.ailment=null;if(a.civic.crisis?.person===p.id)a.civic.crisis=null;}recordClinicalOrdinary(s,p,a,ordinaryBefore);tell(s,p,`${p.name} сам приходит за помощью и расходует лекарства поселения.`,ctx);}
   }else if(t.kind==='tool'){
     if(marketEnabled(s)){const deal=tradeGoods(s,a,p.id,'tools','buy',1);if(deal.quantity){p.marketCargo.tools--;m.tools=1;tell(s,p,`${p.name} покупает инструмент за ◈${deal.total} на собственный заработок.`,ctx);}}
     else if(a.civic.tools>0&&m.wealth>=18){m.wealth-=18;a.civic.treasury+=18;takeGoods(s,a,'tools',1,{flow:'exported',reason:'personal-tool',actor:p.id});m.tools=1;tell(s,p,`${p.name} покупает инструменты на собственный заработок. Работа станет результативнее.`,ctx);}
@@ -348,8 +350,10 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
     if(clinicalPatientTurn(s,p))continue;
     if(clinicalNPCTurn(s,p,ctx))continue;
+    if(clinicalStudyNPCTurn(s,p))continue;
     if(administrationNPCTurn(s,p))continue;
     if(currencyNPCTurn(s,p,ctx))continue;
     if(castleNPCTurn(s,p,ctx))continue;
