@@ -1,3 +1,4 @@
+import {clinicalPatientTurn,clinicalNPCTurn,recordClinicalReturn} from './clinical-actions.js';
 import {administrationNPCTurn} from './administration-actions.js';
 import {currencyNPCTurn,currencyNPCTask,currencyAction} from './currency-actions.js';
 import {castleNPCTurn,castleTask,castleAction} from './castle-actions.js';
@@ -318,6 +319,7 @@ function finish(s,p,ctx){
     if(m.work%5===0)tell(s,p,`${p.name} ${p.role==='ребёнок'?'учится читать дорожные знаки':'записывает историю своего места'}.`,ctx);m.work++;paid=p.role!=='ребёнок';
   }else if(t.kind==='work'&&a.civic){if(goodsEnabled(s)&&m.job==='artisan'){if(t.workMode==='service'){paid=p.goodsWork?.id!==t.goodsWork.id;if(paid)p.goodsWork={id:t.goodsWork.id,at:s.tick,kind:'service',quantity:0,reason:'service-started-with-production-off'};}else{const result=completeGoodsWork(s,a,t.goodsWork,{kind:'tools',units:1});paid=result.quantity>0;if(!paid)tell(s,p,`${p.name}: для выпуска инструмента нужны сырьё и доступная рабочая мастерская.`,ctx);}}else{paid=true;if(m.job==='artisan'&&(m.work+1)%3===0)a.civic.tools=Math.min(12,a.civic.tools+1);}if(paid)m.work++;}
   if(paid&&a.civic){const pay=Math.min(3,a.civic.treasury);a.civic.treasury-=pay;m.wealth+=pay;}
+  if(paid)recordClinicalReturn(s,p,t.kind);
   if(paid&&t.kind==='work'&&m.job==='artisan'){const o=a.objects.find(o=>o.kind==='workshop'&&o.owner===p.id);if(o)recordToolUse(s,a,o,p.id,ctx);}
   m.task=null;m.due=s.tick+48+Math.floor(moduleRandom(s,'people')*48);
 }
@@ -346,6 +348,8 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(clinicalPatientTurn(s,p))continue;
+    if(clinicalNPCTurn(s,p,ctx))continue;
     if(administrationNPCTurn(s,p))continue;
     if(currencyNPCTurn(s,p,ctx))continue;
     if(castleNPCTurn(s,p,ctx))continue;
