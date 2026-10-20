@@ -1,3 +1,4 @@
+import {validateTitles} from './modules/title-schema.js';
 import {validateWills} from './modules/will-schema.js';
 import {validatePublicRepairs} from './modules/public-repair-schema.js';
 import {validateDiplomacy} from './modules/diplomacy-schema.js';
@@ -206,7 +207,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
+ validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateTracking(s,fail);

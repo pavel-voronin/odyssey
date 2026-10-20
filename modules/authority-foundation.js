@@ -1,3 +1,4 @@
+import {titleLaw} from './title-state.js';
 import {makeEstateLaw} from './will-records.js';
 import {authoritiesOn,authorityKey} from './authority-state.js';
 import {npcController,npcAction,canStartNPCActivity} from './npc-control.js';
@@ -9,6 +10,7 @@ export function establishAuthority(s,area,ruler,{origin='council-action'}={}){
  if(!authoritiesOn(s))return null;const a=s.areas[s.areas[area]?.city||area],p=s.people[ruler];if(!a?.civic||!p?.alive||p.area!==a.id||a.civic.ruler&&a.civic.ruler!==p.id||a.authority||Object.keys(s.authorities?.byId||{}).length>=2)return null;
  const q=s.authorities ||= {version:1,byId:{},border:null},id='authority/'+a.id,territory=Object.values(s.areas).filter(b=>b.id===a.id||b.city===a.id).map(b=>b.id);
  const state={version:1,id,name:'Вольный совет · '+a.name,capital:a.id,territory,ruler:p.id,treasuryArea:a.id,created:s.tick,origin,law:{version:1,id:id+'/entry-law/1',since:s.tick,fee:3,workAllowed:true,workRequired:3}};
+ if(s.rules['title-enforcement']!==false)state.titleLaw=titleLaw(state,p.id,s.tick);
  if(s.rules.testaments!==false)state.estateLaw=makeEstateLaw(state,p.id,s.tick,'charter');
  q.byId[id]=state;a.civic.ruler=p.id;for(const id of territory)s.areas[id].authority=state.id;return state;
 }
