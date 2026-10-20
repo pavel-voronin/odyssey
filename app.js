@@ -1,3 +1,4 @@
+import {publicRepairHTML} from './public-repair-sheet.js';
 import {diplomacyHTML} from './diplomacy-sheet.js';
 import {authorityHTML} from './authority-sheet.js';
 import {decoyHTML} from './decoy-sheet.js';
@@ -194,7 +195,7 @@ function detail() {
   const h = state.hero;
   $('sheet').querySelector('h2').textContent=(tab==='rules'?'Центр управления':tab==='log'?'Дневник':'Лист приключения')+' · '+calendarCaption(state);
   if(tab==='skills'){renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape),{force:true});return;}
-  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+(tab==='quests'?diplomacyHTML(state,escape):'')+npc+(tab==='bag'?containerHTML(state)+materialCargoHTML(state,h,escape):'');return;}
+  const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+npc+(tab==='bag'?containerHTML(state)+materialCargoHTML(state,h,escape):'');return;}
   if (tab === 'hero') {
     const traits = [h.personality.courage > .65 ? 'Смелый' : 'Осторожный', h.personality.curiosity > .65 ? 'Любопытный' : 'Вдумчивый', h.personality.sociability > .65 ? 'Общительный' : 'Немногословный', h.personality.generosity > .6 ? 'Отзывчивый' : 'Практичный'];
     const p = profession(h.profession), d = destiny(h.destiny.id);
@@ -256,7 +257,7 @@ function enrichSheet(){
   if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape)+petPassageHTML(state,escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',petPassageHTML(state,escape)+packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
   if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',causewayHTML(state,escape)+localMaterialHTML(state)+recollectionHTML(state)+estateClaimHTML(state,escape)+ruinReturnHTML(state,escape)+harvestFailureHTML(state)+neighborHousingHTML(state,escape)+dwellingHTML(state,escape));
-  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',stealthHTML(state,escape)+decoyHTML(state,escape)+authorityHTML(state,escape)+diplomacyHTML(state,escape));
+  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',stealthHTML(state,escape)+decoyHTML(state,escape)+authorityHTML(state,escape)+diplomacyHTML(state,escape)+publicRepairHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));

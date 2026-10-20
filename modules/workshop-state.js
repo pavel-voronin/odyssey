@@ -1,3 +1,4 @@
+import {publicRepairMaterial,depositPublicRepairMaterial,publicCase} from './public-repair-state.js';
 import {recordPatronRepair} from './patronage-state.js';
 import {controlBlocked} from './building-control-state.js';
 import {restoreStructure} from './building-condition.js';
@@ -25,8 +26,9 @@ export function recordWorkshop(s,a,o,text,kind,ctx,details={}){
 }
 export function restoreWorkshop(s,a,o,ctx,actor=s.hero.lineage){
   if(controlBlocked(s,a,o))return false;
-  const details={actor,payer:o.repair?.payer||actor,damageAt:o.damagedAt,materialCost:18,...(o.repair?.purchase?{purchase:o.repair.purchase}:{})};
+  const details={actor,payer:o.repair?.payer||actor,damageAt:o.damagedAt,materialCost:o.repair?.publicGrant?o.repair.materialCost:18,...(o.repair?.publicGrant?{publicGrant:o.repair.publicGrant}:{}),...(o.repair?.purchase?{purchase:o.repair.purchase}:{})};
   restoreStructure(s,a,o,actor);o.state='intact';o.repair=null;recordWorkshop(s,a,o,'Ремонт закончен. В мастерской снова можно работать.','repair',ctx,details);
+  const publicRequest=details.publicGrant&&Object.values(s.publicRepairs?.byArea||{}).flatMap(i=>Object.values(i.cases)).find(q=>q.deposited?.cargo===details.publicGrant);if(publicRequest){publicRequest.status='finished';publicRequest.completed={at:s.tick,actor,property:o.id,damageAt:details.damageAt};const known=s.people[publicRequest.actor]?.publicRepairKnown?.[a.id];if(known){known.status='finished';known.heard=s.tick;known.reason='Ремонт закончен действительным собственным трудом.';}}
   recordPatronRepair(s,a,o,details);
   witnessRepair(s,a,o,details);
   recordCraftRepair(s,a,o,details);
@@ -36,6 +38,7 @@ export function restoreWorkshop(s,a,o,ctx,actor=s.hero.lineage){
 export function npcRepairPlan(s,p,ctx={}){
   if(!active(s))return false;const a=s.areas[p.area],o=a.objects.find(o=>o.kind==='workshop'&&o.owner===p.id&&o.state==='burned');if(!o||controlBlocked(s,a,o))return false;
   if(reservedRepair(s,o,p.id)){p.agenda.due=s.tick+48;return true;}
+  if(publicRepairMaterial(s,p.id,o)){p.agenda.task={kind:'propertyRepair',target:a.id,x:o.x,remaining:3,property:o.id};return true;}
   if(npcDisputePlan(s,p,o,ctx))return true;
   if(commissionRepair(s,p,o))return true;
   if(o.repair?.materials||p.agenda.wealth>=18&&a.civic?.tools>0)p.agenda.task={kind:'propertyRepair',target:a.id,x:o.x,remaining:o.repair?.remaining||3,property:o.id};
@@ -49,7 +52,8 @@ export function npcRepairFinish(s,p,t,ctx){
   restoreWorkshop(s,a,o,ctx,p.id);
 }
 export function npcRepairAction(s,p,t,ctx){
- if(!skillBranchesEnabled(s))return false;
+ const carried=property(s,p.area,t.property);if(carried&&depositPublicRepairMaterial(s,p,s.areas[p.area],carried)){t.remaining=3;p.needs.energy=Math.max(0,p.needs.energy-2);return true;}
+ if(!skillBranchesEnabled(s)&&!carried?.repair?.publicGrant)return false;
  const a=s.areas[p.area],o=property(s,p.area,t.property);
  if(!active(s)||!o||o.owner!==p.id||o.state!=='burned'||controlBlocked(s,a,o)||reservedRepair(s,o,p.id)){p.agenda.task=null;p.agenda.due=s.tick+48;return true;}
  if(!o.repair?.materials){
