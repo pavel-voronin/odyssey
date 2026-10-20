@@ -1,3 +1,4 @@
+import {validateReturns} from './modules/return-schema.js';
 import {validateGameMeat} from './modules/meat-schema.js';
 import {validateEcology} from './modules/ecology-schema.js';
 import {validateCampaigns} from './modules/campaign-schema.js';
@@ -225,7 +226,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateEcology(s,fail);validateGameMeat(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
+ validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateEcology(s,fail);validateGameMeat(s,fail);validateReturns(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateTracking(s,fail);
@@ -260,7 +261,7 @@ export function validateSave(s){
    fields(b,['version','id','deathId','source','stage','carrier','position','facing','death','loot'],key);fields(b.source,['kind','id'],key+'.source');fields(b.death,['tick','source','name','family','race','species','shape','role','traveller','facing','fallSide','appearance','anatomy','position','cause'],key+'.death');
    const d=b.death;integer(d.tick,key+'.death.tick');if(d.tick>s.tick||!['person','enemy','companion'].includes(b.source.kind)||typeof b.source.id!=='string'||b.id!==key||key!==`corpse:${b.source.kind}:${b.source.id}:${d.tick}`||b.deathId!==`death:${b.source.kind}:${b.source.id}:${d.tick}`||JSON.stringify(d.source)!==JSON.stringify(b.source))fail(key+'.identity');
    if(b.material)validateBodyMaterial(s,b,key+'.material');
-   if(!['fresh','trace','bones','buried','consumed'].includes(b.stage)||![-1,1].includes(b.facing)||![null,-1,1].includes(d.facing)||![-1,1].includes(d.fallSide))fail(key+'.stage');
+   if(!['fresh','trace','bones','buried','consumed','returned'].includes(b.stage)||![-1,1].includes(b.facing)||![null,-1,1].includes(d.facing)||![-1,1].includes(d.fallSide))fail(key+'.stage');
    fields(d.anatomy,['form','stature','recorded'],key+'.anatomy');if(!(d.anatomy.stature>0))fail(key+'.anatomy.stature');position(b.position,key+'.position');position(d.position,key+'.death.position');if(d.position.kind==='carrier')fail(key+'.death.position');array(b.loot,key+'.loot');
    if(b.carrier!==null)fields(b.carrier,['kind','id'],key+'.carrier');for(const k of ['gold','items','inventory','equipment'])if(own(b,k))fail(key+'.'+k);
   }

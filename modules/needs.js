@@ -12,6 +12,7 @@ import {consumeCarriedSupplies} from './stores.js';
 export function initializeNeeds(p){p.needs ||= {hunger:10,energy:100,loneliness:0,meals:0,sleeps:0,conversations:0};}
 // Returns true when a personal need occupies this NPC's present action.
 export function personNeeds(s,p,ctx,adapter=null){
+  if(p.returnEpisode){initializeNeeds(p);p.needs.hunger=0;if(!adapter?.onlyUpkeep&&p.needs.energy<25){p.needs.energy=Math.min(100,p.needs.energy+8);return true;}return false;}
   if(!enabled(s,'npc-needs'))return false;
   initializeNeeds(p);const n=p.needs;let a=s.areas[p.area]||s.areas[p.roadTransit?.from]||s.areas[adapter?.area];if(!a)return false;
   const dose=biologicalDose(s,p,{native:true});if(dose.damage||dose.ceiling!==undefined&&p.health>dose.ceiling)p.health=Math.max(0,Math.min(p.health-dose.damage,dose.ceiling));

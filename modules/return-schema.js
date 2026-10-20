@@ -1,0 +1,10 @@
+export function validateReturns(s,fail){
+ const time=n=>Number.isSafeInteger(n)&&n>=0&&n<=s.tick,body=id=>s.remains?.byId[id],relic=r=>r&&time(r.at)&&s.areas[r.area]?.objects.some(o=>o.id===r.object&&o.kind==='relic'&&o.taken);
+ const prices=new Set();
+ for(const p of Object.values(s.people)){
+  const r=p.returnRite;if(r){if(r.version!==1||!time(r.learned)||r.source!=='initial-healer'||!Number.isSafeInteger(r.lastAction)||r.lastAction< -1||r.lastAction>s.tick||r.relic&&!relic(r.relic)||r.used&&(!body(r.used.body)?.returned||body(r.used.body).returned.caster!==p.id||!time(r.used.at))||r.task&&(!body(r.task.body)||r.task.deathId!==body(r.task.body).deathId||!time(r.task.known)||typeof r.task.reason!=='string'||!Number.isInteger(r.task.prepared)||r.task.prepared<0||r.task.prepared>3)||r.refusal&&(!body(r.refusal.body)||!time(r.refusal.at)||typeof r.refusal.reason!=='string'))fail(p.id+'.return-ritual');if(r.relic){const key=r.relic.area+'/'+r.relic.object;if(prices.has(key))fail('return-ritual.relic.duplicate');prices.add(key);}}
+  const q=p.returnEpisode;if(!q)continue;const b=body(q.body),caster=s.people[q.caster];if(q.version!==1||!b||b.source.kind!=='person'||b.source.id!==p.id||b.deathId!==q.deathId||b.stage!=='returned'||!caster?.returnRite?.used||caster.returnRite.used.body!==b.id||b.returned?.person!==p.id||b.returned.caster!==q.caster||b.returned.at!==q.at||!time(q.at)||q.at<b.death.tick||!time(q.lastDay)||q.lastDay<q.at||q.form!=='revenant'||p.race!=='revenant'||!Number.isInteger(q.cohesion)||q.cohesion<0||q.cohesion>3||!Number.isInteger(q.spent)||q.spent<0||q.cohesion+q.spent!==3||p.alive&&!q.cohesion||!relic(q.price)||q.price.quantity!==1||q.price.at>q.at)fail(p.id+'.return-episode');
+  const key=q.price.area+'/'+q.price.object;if(prices.has(key))fail('return-ritual.relic.duplicate');prices.add(key);
+ }
+ for(const b of Object.values(s.remains?.byId||{}))if(b.stage==='returned'||b.returned){const q=s.people[b.source.id]?.returnEpisode;if(!q||q.body!==b.id||b.stage!=='returned'||b.carrier||b.substance.nextDecay!==null)fail(b.id+'.returned');}
+}

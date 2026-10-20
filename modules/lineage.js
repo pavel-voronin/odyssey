@@ -1,3 +1,4 @@
+import {birthReturnKnowledge} from './return-state.js';
 import {birthMeatKnowledge} from './meat-state.js';
 import {initializePersonAge,canBearChild,ageLimits,initialAdultAge,personAgeAt} from './age-state.js';
 import {recordCastleChild,castlesOn} from './castle-state.js';
@@ -26,7 +27,7 @@ export function createPerson(s,record,{initialJob=null,ageYears=null}={}){
   // Consume exactly the former random agenda, then finalize the initial role
   // before any occupation-specific possessions or knowledge are granted.
   if(initialJob&&s.people[id].agenda)s.people[id].agenda.job=initialJob;
-  initializeFoodKit(s,s.people[id],null,{newborn:true});birthMeatKnowledge(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);birthFarmKit(s,s.people[id],null,{newborn:true});birthHobbyProducer(s,s.people[id],{newborn:true});recordCastleChild(s,s.people[id]);if(record.role==='ребёнок')for(const parent of record.parents)s.people[parent].lastBirth=s.tick;return id;
+  initializeFoodKit(s,s.people[id],null,{newborn:true});birthMeatKnowledge(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);birthFarmKit(s,s.people[id],null,{newborn:true});birthHobbyProducer(s,s.people[id],{newborn:true});recordCastleChild(s,s.people[id]);birthReturnKnowledge(s,s.people[id]);if(record.role==='ребёнок')for(const parent of record.parents)s.people[parent].lastBirth=s.tick;return id;
 }
 const person=createPerson;
 export function populateArea(s,a){
