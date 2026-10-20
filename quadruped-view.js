@@ -1,8 +1,8 @@
 import {paintPetCargo} from './pet-cargo-view.js';
 export function paintQuadruped(c,pose,kind,cargo=null){
-    const dog=kind==='dog',scale=dog?.7:1;
+    const dog=kind==='dog',deer=kind==='deer',scale=dog?.7:deer?.85:1;
     c.save();c.scale(pose.direction*scale,scale*(1-(pose.death||0)*.35));
-    const body=pose.hurt?'#d1aaa0':dog?'#b3a284':'#9aa99a',dark=dog?'#7e705b':'#687f74';
+    const body=pose.hurt?'#d1aaa0':dog?'#b3a284':deer?'#ad8962':'#9aa99a',dark=dog?'#7e705b':deer?'#795f45':'#687f74';
     c.lineWidth=3;c.lineCap='round';
     // Knees join the body to planted/swinging feet; feet never pass below their support.
     for(let i=0;i<4;i++){
@@ -19,6 +19,7 @@ export function paintQuadruped(c,pose,kind,cargo=null){
     if(pose.resting||pose.dead){c.strokeStyle='#293c32';c.lineWidth=1;c.beginPath();c.moveTo(14,-20);c.lineTo(17,-20);c.stroke();}
     else{c.fillStyle=dog?'#293c32':'#e2c694';c.fillRect(15,-21,2,2);}
     if(pose.jaw){c.strokeStyle='#3d453d';c.lineWidth=2;c.beginPath();c.moveTo(15,-13);c.lineTo(22,-13+pose.jaw);c.stroke();}
+    if(deer){c.strokeStyle='#d5bea1';c.lineWidth=2;c.beginPath();c.moveTo(11,-24);c.lineTo(8,-34);c.lineTo(5,-36);c.moveTo(8,-31);c.lineTo(4,-32);c.moveTo(12,-25);c.lineTo(16,-33);c.lineTo(19,-34);c.stroke();}
     if(dog)paintPetCargo(c,cargo);
     c.restore();
 }

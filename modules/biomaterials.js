@@ -1,3 +1,4 @@
+import {wildGrazer} from './ecology-state.js';
 import {substanceEvent} from './remains-cycle-state.js';
 import {physicalDistance} from '../geometry.js';
 import {rootWorld} from '../world-ref.js';
@@ -32,7 +33,7 @@ export function extractBodyMaterial(s,p,b,ctx){
  if(h)ctx.receiveItem(s,ctx,null,item);else{npcLooseItems(s,p).push(item);actorItemLocation(s,item,p.id);}
  wearOwnedItem(s,t,p.id,'gather',b.id,ctx);ctx.log(s,`${p.name} извлекает один пригодный клык из ${b.death.name}. Другому сборщику он уже не достанется.`,'craft');return true;
 }
-function candidate(s,p){const a=at(s,p),margin=body(s,p)?24:Infinity;return Object.values(rootWorld(s).remains?.byId||{}).find(b=>usable(s,p,b)&&near(s,p,b,30)&&!s.areas[a.area].objects.some(e=>e.kind==='enemy'&&e.alive&&physicalDistance(s.areas[a.area],a.x,e.x)<margin));}
+function candidate(s,p){const a=at(s,p),margin=body(s,p)?24:Infinity;return Object.values(rootWorld(s).remains?.byId||{}).find(b=>usable(s,p,b)&&near(s,p,b,30)&&!s.areas[a.area].objects.some(e=>e.kind==='enemy'&&!wildGrazer(e)&&e.alive&&physicalDistance(s.areas[a.area],a.x,e.x)<margin));}
 function buyer(s,p){const h=body(s,p);return Object.values(s.people).find(m=>m.id!==p.id&&m.alive&&m.area===at(s,p).area&&['artisan','merchant'].includes(m.agenda?.job)&&m.agenda.wealth>=BIO_MATERIAL.price&&!m.agenda.task&&!m.needs.sleeping&&m.needs.energy>=25&&m.needs.hunger<60&&npcController(s,m)==='personal'&&canStartNPCActivity(s,m)&&bag(s,m).length<ITEM_CAPACITY&&(h.memory.people.includes(m.id)||Object.hasOwn(h.relations,m.id)));}
 export function sellBodyMaterial(s,p,m,item,ctx){
  const h=body(s,p);if(!biomaterialOn(s)||!h||!healthy(s,p)||!isFang(item)||!h.bag.includes(item)||buyer(s,p)?.id!==m?.id||physicalDistance(s.areas[h.area],h.x,m.x)>2||!npcAction(s,m,'personal','material-purchase'))return false;

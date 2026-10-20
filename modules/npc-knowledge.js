@@ -1,3 +1,4 @@
+import {wildGrazer} from './ecology-state.js';
 import {observeRefuge} from './refuge-state.js';
 import {observeRupture} from './quake-knowledge.js';
 import {quakeBlocked,knownQuakeBlocked} from './quake-state.js';
@@ -20,7 +21,7 @@ export function observeNPCPlace(s,p){
     if(!entry){entry={area:area.id,name:area.name,seen:s.tick};nav.places.push(entry);}
     entry.seen=s.tick;entry.name=area.name;
     if(local&&a.civic){entry.payroll=a.civic.treasury>=12;entry.workSeen=s.tick;}
-    if(local&&entry.hazardUntil&&!a.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved))delete entry.hazardUntil;
+    if(local&&entry.hazardUntil&&!a.objects.some(o=>o.kind==='enemy'&&!wildGrazer(o)&&o.alive&&!o.resolved))delete entry.hazardUntil;
     return entry;
   };
   remember(a,true);

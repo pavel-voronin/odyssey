@@ -1,3 +1,4 @@
+import {wildGrazer} from './ecology-state.js';
 import {remainsLocation} from '../remains-position.js';
 import {physicalDistance,areaStep} from '../geometry.js';
 import {rootWorld} from '../world-ref.js';
@@ -7,9 +8,9 @@ import {remainsCycleOn,edibleRemains,substanceEvent} from './remains-cycle-state
 const hash=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
 export function initializePredator(s,a,e){if(!remainsCycleOn(s)||e.predator||!e.alive||e.person||e.species!=='wolf'||e.shape!=='wolf')return;const initial=Number.isSafeInteger(e.initialHunger)&&e.initialHunger>=0&&e.initialHunger<=100?e.initialHunger:hash(s.seed+'/'+e.id)%80;e.predator={version:1,born:s.tick,initial,hunger:initial,accrued:0,overflow:0,nutrition:0,energy:100,portions:0,lastTick:s.tick-1,goal:null,history:[]};}
 function note(s,e,kind,b=null){const q=e.predator;q.history.push({tick:s.tick,kind,body:b?.id||null});if(q.history.length>8)q.history.shift();}
-function threat(s,a,e){if(a.objects.some(o=>o!==e&&o.kind==='enemy'&&o.alive&&!o.resolved&&!o.hidden&&o.species!=='wolf'&&physicalDistance(a,e.x,o.x)<=12))return true;const ids=new Set([...(a.population||[]),...a.objects.map(o=>o.person).filter(Boolean)]);for(const h of Object.values(rootWorld(s).actorStates||{}))if(h.alive&&h.actorMode!=='npc'&&h.area===a.id&&!h.transit){ids.add(h.lineage);for(const c of h.companions)if(c.person)ids.add(c.person);}return [...ids].some(id=>{const b=localContact(s,id,a.id);return b&&physicalDistance(a,e.x,b.x)<=12;});}
+function threat(s,a,e){if(a.objects.some(o=>o!==e&&o.kind==='enemy'&&!wildGrazer(o)&&o.alive&&!o.resolved&&!o.hidden&&o.species!=='wolf'&&physicalDistance(a,e.x,o.x)<=12))return true;const ids=new Set([...(a.population||[]),...a.objects.map(o=>o.person).filter(Boolean)]);for(const h of Object.values(rootWorld(s).actorStates||{}))if(h.alive&&h.actorMode!=='npc'&&h.area===a.id&&!h.transit){ids.add(h.lineage);for(const c of h.companions)if(c.person)ids.add(c.person);}return [...ids].some(id=>{const b=localContact(s,id,a.id);return b&&physicalDistance(a,e.x,b.x)<=12;});}
 export function predatorCarrionTurn(s,a,e,ctx={}){
- const q=e.predator;if(!q||!remainsCycleOn(s)||!e.alive||e.resolved||ctx.fighting?.has(e.id)||s.tick%4!==0||q.lastTick===s.tick)return false;q.lastTick=s.tick;q.accrued++;q.overflow+=Math.max(0,q.hunger+1-100);q.hunger=Math.min(100,q.hunger+1);
+ const q=e.predator;if(!q||!remainsCycleOn(s)||!e.alive||e.resolved||s.tick%4!==0||q.lastTick===s.tick)return false;q.lastTick=s.tick;q.accrued++;q.overflow+=Math.max(0,q.hunger+1-100);q.hunger=Math.min(100,q.hunger+1);if(ctx.fighting?.has(e.id))return true;
  if(threat(s,a,e)){if(q.goal){note(s,e,'interrupted');q.goal=null;}return false;}
  if(q.energy<20){q.energy=Math.min(100,q.energy+4);note(s,e,'rest');return true;}
  const local=(ctx.bodies||[]).filter(b=>bodyRemains(s,b.id)===b&&edibleRemains(b)&&b.position.area===a.id&&physicalDistance(a,e.x,b.position.x)<=18);

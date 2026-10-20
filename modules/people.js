@@ -1,3 +1,4 @@
+import {wildGrazer} from './ecology-state.js';
 import {campaignNPCTurn} from './campaign-actions.js';
 import {observeMaterialObjects} from './material-research.js';
 import {familyNPCTurn} from './family-actions.js';
@@ -151,7 +152,7 @@ function tell(s,p,text,ctx){
   p.agenda.knowledge.push({tick:s.tick,text});if(p.agenda.knowledge.length>8)p.agenda.knowledge.shift();
   if(p.area===s.hero?.area)ctx.log(s,text,'npc');
 }
-function safePath(s,path,p=null){const blocked=new Set(p?fordBlocked(s,p):[]);return path.length>0&&!path.slice(1).some((id,i)=>blocked.has(fordKey(path[i],id)))&&path.every(id=>!s.areas[id].objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved));}
+function safePath(s,path,p=null){const blocked=new Set(p?fordBlocked(s,p):[]);return path.length>0&&!path.slice(1).some((id,i)=>blocked.has(fordKey(path[i],id)))&&path.every(id=>!s.areas[id].objects.some(o=>o.kind==='enemy'&&!wildGrazer(o)&&o.alive&&!o.resolved));}
 function begin(p,kind,target,x,remaining=3,extra={}){p.agenda.task={kind,target,x,remaining,...(kind==='work'?{workMode:null}:{}),...extra};}
 function plan(s,p,ctx){
   const a=s.areas[p.area],m=p.agenda;
@@ -245,7 +246,7 @@ function moveTask(s,p,ctx){
     forgetNPCRoad(p,p.area,next);p.agenda.task=null;p.agenda.due=s.tick+96;p.status='resident';return false;
   }
   const margin=escape?9/areaScale(s.areas[p.area]):9;
-  const obstacle=(known||escape)&&s.areas[p.area].objects.find(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&o.x>=Math.min(p.x,x)-margin&&o.x<=Math.max(p.x,x)+margin&&(!escape||!rescueGuardPass(s,o,p.id,x)));
+  const obstacle=(known||escape)&&s.areas[p.area].objects.find(o=>o.kind==='enemy'&&!wildGrazer(o)&&o.alive&&!o.resolved&&o.x>=Math.min(p.x,x)-margin&&o.x<=Math.max(p.x,x)+margin&&(!escape||!rescueGuardPass(s,o,p.id,x)));
   const danger=known||escape?Boolean(obstacle):!safePath(s,path);
   if(danger){
     if(known)rememberNPCHazard(s,p);

@@ -10,7 +10,7 @@ export function actorFact(s,kind,actor,target=null,amount=0){
 }
 export function companionKey(c){return `party:${c.uid}`;}
 export const REMAINS_TICKS=80;
-export const MOTION_SHAPES=['wolf','dog','fungus','ghost','dragon'];
+export const MOTION_SHAPES=['wolf','deer','dog','fungus','ghost','dragon'];
 export function companionShape(c){return c.id==='dog'?'dog':c.id==='mushroom'?'fungus':c.id==='moth'?'ghost':null;}
 export function enemyShape(o){return o.shape==='wolf'||o.name?.includes('волк')?'wolf':o.shape;}
 export function markActorDeath(s,o,actor,shape){

@@ -222,6 +222,7 @@ export class Scene {
     drawLifts(c,s,a,screenX,ground);
     if(!travel){const trails=localEdgeTraces(s),painted=new Set();for(const t of trails){const at=t.edge+'/'+t.x;if(painted.has(at))continue;painted.add(at);const x=screenX(t.x),restore=billboardFrame(c,this.camera,x,ground,dpr);drawCreatureTrace(c,x,ground,trails.filter(q=>q.edge===t.edge&&q.x===t.x).length>1);restore();}}
 
+    for(const patch of a.ecology?.patches||[]){const px=screenX(patch.x),restore=billboardFrame(c,this.camera,px,ground,dpr);c.save();c.strokeStyle=patch.stock?'#789366':'#645e43';c.lineWidth=2;for(let i=0;i<Math.min(12,patch.stock);i++){c.beginPath();c.moveTo(px+(i-6)*3,ground);c.lineTo(px+(i-6)*3-2,ground-4-i%3);c.stroke();}c.restore();restore();}
     for (const o of a.objects) {
       const beastTrack=this.beastTracks.tracks.get(o.id),beastMotion=s.rules?.['creature-motion']!==false;
       const x = screenX(beastMotion&&beastTrack?beastTrack.from+(beastTrack.to-beastTrack.from)*phase:o.x);
@@ -234,6 +235,7 @@ export class Scene {
           if(beastMotion)this.quadruped(x,ground,quadrupedPose(beastTrack,phase,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))*(w-48)/100),'wolf');
           else this.wolf(x, ground, s.tick, h.combat === o.id);
         }
+        else if(o.shape==='deer')this.quadruped(x,ground,quadrupedPose(beastTrack,beastMotion?phase:1,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))*(w-48)/100),'deer');
         else if(beastMotion&&o.shape==='dog')this.quadruped(x,ground,quadrupedPose(beastTrack,phase,Math.abs((beastTrack?.to??o.x)-(beastTrack?.from??o.x))*(w-48)/100),'dog');
         else if (o.shape === 'guard' || !o.shape) this.guard(x, ground);
         else if (o.shape === 'human'){const p=s.people[o.person],look=p?looks(p,p.appearance):null,track=p&&this.actorPositions?.get(p.id),walking=track&&track.from!==track.to&&phase<1&&!this.reduced,px=walking?screenX(track.from+(track.to-track.from)*phase):x,rest=Boolean(p?.needs?.sleeping)||p?.hostileLife?.action==='rest';this.person(px,ground,look?.cloak||(p?'#ac906b':o.pacified?'#b2ba8a':'#a38b78'),false,walking?Math.sign(track.to-track.from):o.facing||-1,0,false,rest,look,null,{kind:rest?'rest':walking?'walk':'idle',progress:phase,walking,distance:track?Math.abs(track.to-track.from)*(w-48)/100:0});}
@@ -248,7 +250,7 @@ export class Scene {
       if(remains&&!ownBody&&(beastMotion||remains.body)){
         const d=remains,track=this.beastTracks.tracks.get(d.actor)||{dead:true};
         if(d.body?.stage==='bones')paintRemainsAt(this,s,d.body,screenX(d.x),ground);
-        else if(['wolf','dog'].includes(d.shape))this.quadruped(screenX(d.x),ground,quadrupedPose(track,beastMotion?phase:1),d.shape);
+        else if(['wolf','deer','dog'].includes(d.shape))this.quadruped(screenX(d.x),ground,quadrupedPose(track,beastMotion?phase:1),d.shape);
         else if(MOTION_SHAPES.includes(d.shape))this.formedCreature(screenX(d.x),ground,d.shape,creatureActionPose(d.shape,track,beastMotion?phase:1));
         else if(petShape({id:d.shape}))this.pet(screenX(d.x),ground,d.shape,d.direction||1,false,false,{...petMotion(d.shape,{dead:true,direction:d.direction},1,{animate:false}),dead:true});
         else {

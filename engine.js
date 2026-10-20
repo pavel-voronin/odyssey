@@ -1,3 +1,5 @@
+import {establishEcology,wildGrazer} from './modules/ecology-state.js';
+import {ecologyPlants,ecologyTurn} from './modules/ecology.js';
 import {campaignHeroPlan,campaignHeroAction} from './modules/campaign-actions.js';
 import {periodDate} from './modules/period-date.js';
 import {observeMaterialObjects} from './modules/material-research.js';
@@ -867,6 +869,7 @@ function npcVictory(s,a,enemy,p){
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
+  establishEcology(s,context(s,'local-ecology'));
   harvestFailureTick(s,context(s,'harvest-failure'));
   earthquakesTick(s,context(s,'earthquakes'));
   woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p),view=h?actorView(s,h):s.hero?.lineage===p.id?s:null;if(view)log(view,kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:kind==='infected'?`${w.label}: загрязнённая рана нагноилась.`:kind==='infection-changed'?`${w.label}: состояние инфекции изменилось, тяжесть ${w.infection.severity}.`:kind==='infection-resolved'?`${w.label}: местное нагноение прошло; восстановление самой раны продолжается.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount,damage){
@@ -918,7 +921,8 @@ function worldTick(s) {
   }
   // Distant regions retain their identities. Only a small scheduled change is simulated.
   const activeFights=new Set(Object.values(s.actorStates).filter(h=>selfDrivenActor(s,h)&&h.combat).map(h=>h.combat));
-  for (const a of Object.values(s.areas)) for (const o of a.objects) {
+  for (const a of Object.values(s.areas)){ecologyPlants(s,a);for (const o of [...a.objects]) {
+    if(o.ecology&&ecologyTurn(s,a,o,{...context(s,'local-ecology'),fighting:activeFights,bodies:localRemains.get(a.id)||[]}))continue;
     if(o.kind==='enemy'&&o.alive&&!o.resolved&&predatorCarrionTurn(s,a,o,{fighting:activeFights,bodies:localRemains.get(a.id)||[],log})){continue;}
     if (o.kind === 'enemy' && o.alive && !o.resolved && !s.people[o.person]?.hostileLife && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
       const beforeX=o.x;o.x += areaOffset(a,o.patrol*1.4);creatureTrace(s,a,o,beforeX);
@@ -926,6 +930,7 @@ function worldTick(s) {
     }
   }
 
+  }
   for(const h of detailedActors(s))if(h.alive&&!h.transit)observeMaterialObjects(s,s.people[h.lineage]);
   settleCastleDeaths(s,context(s,'royal-libraries'));
   if (s.changes.length > 300) s.changes.splice(0, s.changes.length - 300);
@@ -1132,7 +1137,7 @@ function actObserved(s) {
   if(guardianAction(s,{...context(s,'guardian-nodes'),move,enemyResponse:(world,enemy)=>{contactDelve(world,enemy);enemyResponse(world,enemy);}}))return s;
   // Threats interact only on the single movement axis.
   const direction = Math.sign(target - h.x);
-  const threat = a.objects.find(o => o.kind === 'enemy' && o.alive && !o.resolved && !rescueGuardPass(s,o,h.lineage,target) && Math.abs(o.x - h.x)*areaScale(s.areas[h.area]) <= 9 && (o.x - h.x) * direction >= -areaOffset(a,1));
+  const threat = a.objects.find(o => o.kind === 'enemy' && (!wildGrazer(o)||g.kind==='hunt'&&g.object===o.id) && o.alive && !o.resolved && !rescueGuardPass(s,o,h.lineage,target) && Math.abs(o.x - h.x)*areaScale(s.areas[h.area]) <= 9 && (o.x - h.x) * direction >= -areaOffset(a,1));
   if (threat && g.kind !== 'rest') {
     if(rescueGuardContact(s,threat,context(s,'dungeon-rescue')))return s;
     if(storyCombatChoice(s,threat,context(s,'stories'))){observeRejected(s,a);return s;}

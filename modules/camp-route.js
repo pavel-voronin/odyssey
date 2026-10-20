@@ -1,3 +1,4 @@
+import {wildGrazer} from './ecology-state.js';
 import {observeShortcutPerson} from './shortcut-observation.js';
 import {isShortcut} from './shortcut-state.js';
 import {campPassage,physicalDistance,areaStep} from '../geometry.js';
@@ -16,7 +17,7 @@ export function walkCampOrder(s,p,target,x,ctx,holder={}){
  const to=next?passage?.x??(Number(next.slice(1))>Number(a.id.slice(1))?100:0):x;
  if(physicalDistance(a,p.x,to)>1){
   const end=p.x+areaStep(a,p.x,to,ctx.speed?.(s,p,a)||6);
-  if(a.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&o.x>=Math.min(p.x,end)&&o.x<=Math.max(p.x,end)))return 'blocked';
+  if(a.objects.some(o=>o.kind==='enemy'&&!wildGrazer(o)&&o.alive&&!o.resolved&&o.x>=Math.min(p.x,end)&&o.x<=Math.max(p.x,end)))return 'blocked';
   p.facing=Math.sign(to-p.x)||p.facing||1;p.x=end;const body=a.objects.find(o=>o.kind==='resident'&&o.person===p.id);if(body)body.x=p.x;return 'walking';
  }
  if(!next)return 'arrived';

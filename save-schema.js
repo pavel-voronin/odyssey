@@ -1,3 +1,4 @@
+import {validateEcology} from './modules/ecology-schema.js';
 import {validateCampaigns} from './modules/campaign-schema.js';
 import {validateArtifactMemories} from './modules/artifact-memory-schema.js';
 import {validateMaterialResearch} from './modules/material-research-schema.js';
@@ -223,7 +224,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
+ validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateEcology(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateTracking(s,fail);

@@ -1,7 +1,7 @@
 import {enabled} from '../rules.js';
 export const remainsCycleOn=s=>enabled(s,'remains-cycle')&&enabled(s,'remains');
 const organic=new Set(['human','elf','dwarf','halfling','orc','goblin']);
-const units={wolf:3,dragon:8,crab:2,boar:4,bear:6,rat:1};
+const units={deer:4,wolf:3,dragon:8,crab:2,boar:4,bear:6,rat:1};
 const copy=v=>JSON.parse(JSON.stringify(v));
 // Only the actual new-death constructor issues physical material. Old bodies
 // have no guessed edible stock when loading, viewing or enabling this module.

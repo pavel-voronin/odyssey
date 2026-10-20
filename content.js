@@ -64,7 +64,8 @@ export const ENEMY_SPECIES = [
   { id: 'wyrm', name: 'Подземный червь', biomes: ['cave'], hp: 28, attack: 6, tags: ['beast'], shape: 'worm' },
   { id: 'automaton', name: 'Заводной инспектор', biomes: ['ruins', 'clockwork'], hp: 23, attack: 5, tags: ['construct'], shape: 'guard' },
   { id: 'angel', name: 'Уволенный небожитель', biomes: ['dream', 'ruins'], hp: 25, attack: 6, tags: ['spirit', 'magic'], shape: 'ghost' },
-  { id: 'notary', name: 'Демонический нотариус', biomes: ['dream', 'road', 'ruins'], hp: 24, attack: 5, tags: ['human', 'magic'], shape: 'human' }
+  { id: 'notary', name: 'Демонический нотариус', biomes: ['dream', 'road', 'ruins'], hp: 24, attack: 5, tags: ['human', 'magic'], shape: 'human' },
+ {id:'deer',name:'Лесная косуля',biomes:[],wildlifeOnly:true,hp:12,attack:2,tags:['beast','grazer'],shape:'deer'},
 ];
 export const ENEMY_POWERS = [
   { id: 'plain', name: 'обычный', text: 'Полагается на когти, зубы и плохое настроение.' },

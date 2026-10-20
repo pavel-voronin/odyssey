@@ -20,7 +20,7 @@ export function composeEnemy(s,a,enemy,rng,fresh=false){
     const biome=({dungeon:'cave',desert:'road',mountain:'forest',undercity:'cave',citadel:'ruins'}[a.type])||a.type;
     const pool=ENEMY_SPECIES.filter(e=>e.biomes.includes(biome));
     const requested=ENEMY_SPECIES.find(species=>species.id===enemy.requestedSpecies);
-    const species = requested||(a.id === 'a2' ? ENEMY_SPECIES[0] : choose(s, rng, pool.length?pool:ENEMY_SPECIES));
+    const species = requested||(a.id === 'a2' ? ENEMY_SPECIES[0] : choose(s, rng, pool.length?pool:ENEMY_SPECIES.filter(e=>!e.wildlifeOnly)));
     const powerCount = a.depth >= 4 ? 2 : 1;
     const powers = [];
     for (let i = 0; i < powerCount; i++) powers.push(choose(s, rng, ENEMY_POWERS.filter(p => !powers.includes(p.id))).id);

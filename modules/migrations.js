@@ -1,3 +1,4 @@
+import {wildGrazer} from './ecology-state.js';
 import {chooseFamilyRefuge,refugeArrivalAllowed} from './family-refuge.js';
 import {structurallySound} from './building-condition.js';
 import {migrationKnowledgeOn,localSettlement,migrationBody} from './migration-memory.js';
@@ -18,7 +19,7 @@ export function initializeMigrations(s){s.migrations ||= {};s.nextMigration ??=0
 const quakeHome=p=>{const h=p.structure?.history||[];return !structurallySound(p)&&h.findLastIndex(e=>e.kind==='earthquake')>h.findLastIndex(e=>e.kind==='repair');};
 const present=(s,a)=>(a.population||[]).map(id=>s.people[id]).filter(p=>p?.alive&&p.area===a.id&&p.status==='resident');
 function kin(a,b){return a.parents.includes(b.id)||b.parents.includes(a.id)||a.parents.some(id=>b.parents.includes(id));}
-function safe(s,path){return path.length>0&&path.length<=9&&path.every(id=>!s.areas[id].objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved));}
+function safe(s,path){return path.length>0&&path.length<=9&&path.every(id=>!s.areas[id].objects.some(o=>o.kind==='enemy'&&!wildGrazer(o)&&o.alive&&!o.resolved));}
 function family(s,a,leader){
   const people=present(s,a).filter(p=>!p.migration&&!selfDrivenActor(s,p.id));
   const children=people.filter(p=>p.role==='ребёнок'&&p.parents.includes(leader.id));
