@@ -1,3 +1,4 @@
+import {administrationNPCTurn} from './administration-actions.js';
 import {currencyNPCTurn,currencyNPCTask,currencyAction} from './currency-actions.js';
 import {castleNPCTurn,castleTask,castleAction} from './castle-actions.js';
 import {serviceRoleNPCTurn} from './service-masks.js';import {serviceSignTask,serviceSignAction} from './service-sign.js';
@@ -345,6 +346,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(administrationNPCTurn(s,p))continue;
     if(currencyNPCTurn(s,p,ctx))continue;
     if(castleNPCTurn(s,p,ctx))continue;
     if(serviceRoleNPCTurn(s,p,ctx))continue;

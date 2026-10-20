@@ -1,3 +1,4 @@
+import {validateAdministrationNews} from './administration-news.js';
 import {validateRoleNews} from './service-masks.js';
 import {validateCargoNews} from './cargo-news.js';
 import {validateDiplomacyNews} from './diplomacy-news-schema.js';
@@ -9,6 +10,7 @@ export function validateNews(s,fail){
    if(e?.kind==='role'){validateRoleNews(s,fail,id,e);continue;}
    if(e?.kind==='cargo'){validateCargoNews(s,fail,id,e);continue;}
    if(e?.kind==='diplomacy'){validateDiplomacyNews(s,fail,id,e);continue;}
+   if(e?.kind==='administration'){validateAdministrationNews(s,fail,id,e);continue;}
    const housing=e?.kind==='housing';
    if(e?.version!==1||e.id!==id||id!==(housing?'news/housing/':'news/aid/')+e.source||!['aid','housing'].includes(e.kind)||!e.versions||!Object.keys(e.versions).length||Object.keys(e.versions).some(k=>!(housing?['1']:['1','2']).includes(k)))fail('newsEvents.event');
    for(const [revision,f]of Object.entries(e.versions)){
@@ -27,6 +29,7 @@ export function validateNews(s,fail){
    if(!f||r.id!==id||!['witness','reported'].includes(r.mode)||r.status!==f.status||r.occurred!==f.occurred||r.area!==f.area||r.actor?.id!==f.actor.id||r.actor?.name!==f.actor.name||r.patient?.id!==f.patient.id||r.patient?.name!==f.patient.name||r.source?.id!==f.source.id||r.source?.kind!==f.source.kind||!tick(r.heardAt)||r.heardAt<f.occurred||!r.origin||!f.witnesses.includes(r.origin.person)||r.origin.at!==f.occurred||!Array.isArray(r.via)||r.via.length>6)fail(key+'.report');
    if(r.mode==='witness'&&(r.via.length||r.origin.person!==p.id||r.heardAt!==f.occurred)||r.mode==='reported'&&(!r.via.length||r.via.at(-1).to!==p.id||r.heardAt!==r.via.at(-1).tick))fail(key+'.origin');
    for(const [i,hop]of r.via.entries())if(!s.people[hop.from]||!s.people[hop.to]||hop.from===hop.to||!s.areas[hop.area]||!tick(hop.tick)||hop.tick<(r.via[i-1]?.tick??f.occurred)||hop.from!==(r.via[i-1]?.to??r.origin.person))fail(key+'.path');
+   if(JSON.stringify(f.administration)!==JSON.stringify(r.administration))fail(key+'.administration');
    if(JSON.stringify(f.diplomacy)!==JSON.stringify(r.diplomacy))fail(key+'.diplomacy');
    if(JSON.stringify(f.housing)!==JSON.stringify(r.housing))fail(key+'.housing');if(JSON.stringify(f.cargo)!==JSON.stringify(r.cargo))fail(key+'.cargo');
    if(m.effects[id]?.revision!==r.revision)fail(key+'.receipt');

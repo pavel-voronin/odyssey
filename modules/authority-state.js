@@ -15,3 +15,5 @@ export function finishBorderCrossing(s,id,from,to){
 }
 
 export function authorityRevision(s){const h=s.hero,p=s.people[h.lineage],b=s.authorities?.border;if(!b||h.area!==b.from||physicalDistance(s.areas[h.area],h.x,b.x)>24)return [s.rules['territorial-authorities']];const g=borderGuard(s,b),r=p.borderAccess?.entries.find(r=>r.id===p.borderAccess.pending);return [s.rules['territorial-authorities'],s.rules.politics,b.law,s.edges[b.edge]?.commonAccess?.id||null,b.maintenance.remaining,g?.id||null,g&&[g.actionControl?.tick===s.tick&&g.borderDuty.idleAt!==s.tick,g.borderDuty.servicedAt===s.tick],r&&[r.status,r.steps.length,r.payment?.amount]];}
+
+export function authorityLaw(s,state,id){const a=s.authorities?.byId[state];return a?.law.id===id?a.law:a?.administration?.changes.find(r=>r.beforeLaw.id===id)?.beforeLaw||null;}
