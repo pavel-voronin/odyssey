@@ -1,3 +1,4 @@
+import {inheritCastles} from './castle-state.js';
 import {refundFarmWork,inheritFarms} from './farming.js';
 import {applyItemWill,attachWillPaper} from './will-resolution.js';
 import {refundUnfinishedWill} from './wills.js';
@@ -27,7 +28,7 @@ export function openInheritance(s,h,cache=null,ctx={}){
  applyItemWill(s,p,h,estate,cache);attachWillPaper(s,p,estate);
  passEstateClaims(s,p,heir,estate);inheritProductionRights(s,p,heir,estate);inheritDwellings(s,p,heir,estate);inheritFarms(s,p,heir,estate);
  inheritMapCopies(s,p,heir,deathArea,deathX,estate,p.deathJourney||h.transit);
- inheritLibraryBooks(s,p,heir,estate,cache);
+ inheritCastles(s,p,heir,estate);inheritLibraryBooks(s,p,heir,estate,cache);
  if(heir&&p.routeMaps?.documents.length){const next=routeMapMemory(heir);for(const d of p.routeMaps.documents){d.owner=heir.id;next.documents.push(d);estate.assets.push({kind:'route-map',area:deathArea,id:d.id});}p.routeMaps.documents=[];}
  if(cache){cache.estate=estate.id;cache.inheritor=heir?.id??null;estate.assets.push({kind:'death-cache',area:h.area,id:cache.id});
   for(const item of cache.items||[]){if(item.inheritance?.estate===estate.id||item.inheritance?.estate&&!ownedAtDeath.has(item.id))continue;if((item.libraryLoan?.returned===null||item.libraryTheft?.returned===null)&&item.textCopy?.owner!==p.id)continue;item.inheritance={estate:estate.id,owner:estate.testament?.outcome==='effective'&&estate.testament.item===item.id?estate.testament.recipient:heir?.id??null};estate.assets.push({kind:'item',area:h.area,id:item.id,cache:cache.id});}

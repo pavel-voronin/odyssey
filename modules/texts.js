@@ -1,3 +1,4 @@
+import {rememberCastleAddress} from './castle-state.js';
 import {borrowedReading,stolenReading} from './library-state.js';
 import {literacyOn,registerLiteracy,readingScript,writingScript} from './literacy-state.js';
 import {sequenceNote,learnSequence,SEQUENCE_NAMES} from './sequence-memory.js';
@@ -80,9 +81,9 @@ export function giveText(s,from,to,id){
  const a=ready(s,from),b=ready(s,to),item=heldTexts(s,from?.id).find(i=>i.id===id),work=textWork(s,item);
  if(!a||!b||from.id===to.id||!work||item.textCopy.owner!==from.id||item.libraryLoan?.returned===null||item.libraryTheft?.returned===null||a.area!==b.area||physicalDistance(s.areas[a.area],a.x,b.x)>3||!fitsPack(s,to.id,{items:[...heldTexts(s,to.id),item]}))return false;
  const sourceActor=textActor(s,from.id),targetActor=textActor(s,to.id);
- if(!sourceActor&&(npcController(s,from)!=='personal'||heldTexts(s,from.id).filter(i=>i.textCopy?.content===work.id).length<2||from.agenda.duty<.5)||!targetActor&&(npcController(s,to)!=='personal'||!canReadText(s,to)&&to.agenda.curiosity<.65))return false;
+ if(!sourceActor&&(npcController(s,from)!=='personal'||heldTexts(s,from.id).filter(i=>i.textCopy?.content===work.id).length<2||from.agenda.duty<.5)||!targetActor&&(npcController(s,to)!=='personal'||!canReadText(s,to)&&to.agenda.curiosity<.65&&s.castles?.byId[to.castleKnown?.house]?.owner!==to.id))return false;
  if(!sourceActor&&!npcAction(s,from,'personal')||!targetActor&&!npcAction(s,to,'personal'))return false;
- const source=bag(s,from);source.splice(source.indexOf(item),1);bag(s,to).push(item);actorItemLocation(s,item,to.id);if(from.textCraft?.offer?.item===id)from.textCraft.offer=null;item.history.push({tick:s.tick,text:`Передано: ${from.name} → ${to.name}. Знание не передаётся вместе с бумагой.`});spend(s,from,1);spend(s,to,1);return true;
+ const source=bag(s,from);source.splice(source.indexOf(item),1);bag(s,to).push(item);actorItemLocation(s,item,to.id);if(from.textCraft?.offer?.item===id)from.textCraft.offer=null;item.history.push({tick:s.tick,text:`Передано: ${from.name} → ${to.name}. Знание не передаётся вместе с бумагой.`});spend(s,from,1);spend(s,to,1);const house=s.castles?.byId[to.castleKnown?.house];if(house?.owner===to.id&&to.houseChildren?.[from.id]?.house===house.id){item.castleGift={house:house.id,from:from.id,to:to.id,at:s.tick};rememberCastleAddress(s,from,house,{source:'book-gift-message',by:to.id});from.castleKnown.transfer={house:house.id,item:item.id,from:from.id,to:to.id,at:s.tick};}return true;
 }
 
 export function recoverText(s,p,targetID,sourceID,paperID){

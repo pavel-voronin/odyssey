@@ -41,7 +41,7 @@ export function interiorPassage(s,from,to,person=s.hero.lineage){
  const camp=campPassage(s,from,to,person);if(camp)return camp;
  const a=s.areas[from],b=s.areas[to];
  if(a?.interior?.parent===to){const door=interiorBuilding(s,a);return {x:8,arrival:a.interior.entrance??door?.x??20,allowed:true,exit:true};}
- if(b?.interior?.parent===from){const door=interiorBuilding(s,b);return {x:b.interior.entrance??door?.x??20,arrival:8,allowed:b.interior.kind==='workshop'?workshopAdmission(s,b,person):b.lodging?roomAdmission(s,b,person):tavernAvailable(s,door)||paidBuildingAdmission(s,door,person),exit:false};}
+ if(b?.interior?.parent===from){const door=interiorBuilding(s,b);return {x:b.interior.entrance??door?.x??20,arrival:8,allowed:b.castleRoom?door?.state==='intact'&&roomAdmission(s,b,person):b.interior.kind==='workshop'?workshopAdmission(s,b,person):b.lodging?roomAdmission(s,b,person):tavernAvailable(s,door)||paidBuildingAdmission(s,door,person),exit:false};}
  return null;
 }
 export function tavernPlan(s,ctx){

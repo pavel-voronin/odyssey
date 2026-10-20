@@ -1,3 +1,4 @@
+import {castleNPCTurn,castleTask,castleAction} from './castle-actions.js';
 import {serviceRoleNPCTurn} from './service-masks.js';import {serviceSignTask,serviceSignAction} from './service-sign.js';
 import {cargoInquiryNPCTurn,cargoInquiryAction} from './cargo-inquiries.js';
 import {hobbyNPCTurn,hobbyAction,observeHobbyMarket} from './hobby-supply.js';
@@ -143,6 +144,7 @@ function safePath(s,path,p=null){const blocked=new Set(p?fordBlocked(s,p):[]);re
 function begin(p,kind,target,x,remaining=3,extra={}){p.agenda.task={kind,target,x,remaining,...(kind==='work'?{workMode:null}:{}),...extra};}
 function plan(s,p,ctx){
   const a=s.areas[p.area],m=p.agenda;
+  const familyShelf=castleTask(s,p);if(familyShelf){m.task=familyShelf;return;}
   const sign=serviceSignTask(s,p);if(sign){m.task=sign;return;}
   const lure=decoyTask(s,p);if(lure){m.task=lure;return;}
   const quietLesson=stealthLessonTask(s,p);if(quietLesson){m.task=quietLesson;return;}
@@ -244,6 +246,7 @@ function moveTask(s,p,ctx){
 }
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
+  if(t.kind.startsWith('castle')){castleAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
   if(['maskSupply','maskWork'].includes(t.kind)){serviceSignAction(s,p,t,ctx,{inTurn:true});m.task=null;m.due=s.tick+8;return;}
   if(t.kind.startsWith('cargo')){const ok=cargoInquiryAction(s,p,t,{inTurn:true,ctx}),c=s.cargoCases?.byId[t.case];if(t.kind==='cargoTestify'&&!ok&&c?.status==='pending'&&s.tick<c.until){t.remaining=1;m.due=s.tick+8;return;}m.task=null;m.due=s.tick+8;return;}
   if(t.kind.startsWith('hobby')){hobbyAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
@@ -339,6 +342,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(castleNPCTurn(s,p,ctx))continue;
     if(serviceRoleNPCTurn(s,p,ctx))continue;
     if(cargoInquiryNPCTurn(s,p,ctx))continue;
     if(farmingNPCTurn(s,p,ctx))continue;
@@ -402,6 +406,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='socketService'&&!socketsOn(s))continue;
     if(p.agenda.task?.kind==='inheritanceClaim'&&!estateClaimsOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;
+    if(p.agenda.task?.kind?.startsWith('castle')&&s.rules['royal-libraries']===false)continue;
     if(p.agenda.task?.kind?.startsWith('mask')&&s.rules['service-masks']===false)continue;
     if(p.agenda.task?.kind?.startsWith('cargo')&&s.rules['cargo-cases']===false)continue;
     if(p.agenda.task?.kind?.startsWith('hobby')&&s.rules['hobby-supply']===false)continue;

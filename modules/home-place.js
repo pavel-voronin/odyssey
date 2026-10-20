@@ -2,6 +2,7 @@ import {enabled} from '../rules.js';
 import {roomAdmission,activeBooking} from './room-state.js';
 export const homesOn=s=>enabled(s,'homes')&&enabled(s,'lodging')&&enabled(s,'interiors');
 export function homeAdmission(s,a,id){
+ if(a?.castleRoom)return a.castleRoom.owner===id&&roomAdmission(s,a,id);
  const h=a?.home,b=activeBooking(s,a,id);
  return Boolean(homesOn(s)&&h?.version===1&&h.state==='ready'&&h.tenant===id&&(a.residence?a.residence.owner===id&&h.owner===id:b?.payer===id&&b.owner===h.owner)&&roomAdmission(s,a,id));
 }

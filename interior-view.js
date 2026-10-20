@@ -26,10 +26,10 @@ export function paintInterior(c,a,width,height,ground,world){
  c.fillStyle=wood;c.fillRect(0,12,width,8);c.fillRect(0,ground-7,width,7);
  if(shop?.state==='burned'){c.fillStyle='#788473';c.fillRect(width*.53,0,width*.17,23);c.fillRect(width*.73,0,width*.09,16);}
  if(symbols){for(const door of doors){const x=24+door.x/100*(width-48);c.fillStyle=dark;c.fillRect(x-12,ground-60,25,60);c.strokeStyle='#998566';c.strokeRect(x-12,ground-60,25,60);c.fillStyle='#b5a679';c.fillRect(x+5,ground-29,3,3);paintSymbolPlaque(c,door.kind,x,ground-76,28,22,door.direction);}}
- else{const doorX=24+.08*(width-48);c.fillStyle=dark;c.fillRect(doorX-12,ground-60,25,60);c.strokeStyle='#998566';c.strokeRect(doorX-12,ground-60,25,60);c.fillStyle='#b5a679';c.fillRect(doorX+5,ground-29,3,3);c.fillStyle='#b2a68a';c.font='10px monospace';c.fillText(room.kind==='room'&&!a.residence?'В ЗАЛ':'ВЫХОД',Math.max(2,doorX-16),ground-66);}
+ else{const doorX=24+.08*(width-48);c.fillStyle=dark;c.fillRect(doorX-12,ground-60,25,60);c.strokeStyle='#998566';c.strokeRect(doorX-12,ground-60,25,60);c.fillStyle='#b5a679';c.fillRect(doorX+5,ground-29,3,3);c.fillStyle='#b2a68a';c.font='10px monospace';c.fillText(room.kind==='room'&&!a.residence&&!a.castleRoom?'В ЗАЛ':'ВЫХОД',Math.max(2,doorX-16),ground-66);}
  if(room.kind==='workshop')paintWorkshop(c,a,width,ground,shop);
  else if(room.kind==='room'){
-  for(const fraction of a.residence?(a.residence.capacity===1?[.31]:[.25,.81]):a.extension?.status==='done'?[.26,.51,.76]:[.35,.67]){const x=width*fraction,bedWidth=Math.min(82,width*.24);c.fillStyle='#463a2d';c.fillRect(x-bedWidth/2-4,ground-48,6,48);c.fillRect(x+bedWidth/2-2,ground-24,5,24);c.fillStyle='#9b8768';c.fillRect(x-bedWidth/2,ground-29,bedWidth,8);c.fillStyle='#7b8d84';c.fillRect(x-bedWidth/2+1,ground-34,bedWidth-2,10);c.fillStyle='#c3b99c';c.fillRect(x-bedWidth/2+2,ground-38,17,8);c.fillStyle='#514333';c.fillRect(x-bedWidth/2,ground-21,4,21);}
+  for(const fraction of a.castleRoom?[]:a.residence?(a.residence.capacity===1?[.31]:[.25,.81]):a.extension?.status==='done'?[.26,.51,.76]:[.35,.67]){const x=width*fraction,bedWidth=Math.min(82,width*.24);c.fillStyle='#463a2d';c.fillRect(x-bedWidth/2-4,ground-48,6,48);c.fillRect(x+bedWidth/2-2,ground-24,5,24);c.fillStyle='#9b8768';c.fillRect(x-bedWidth/2,ground-29,bedWidth,8);c.fillStyle='#7b8d84';c.fillRect(x-bedWidth/2+1,ground-34,bedWidth-2,10);c.fillStyle='#c3b99c';c.fillRect(x-bedWidth/2+2,ground-38,17,8);c.fillStyle='#514333';c.fillRect(x-bedWidth/2,ground-21,4,21);}
   c.fillStyle='#393e39';c.fillRect(width*.72,34,39,35);c.fillStyle='#899e9b';c.fillRect(width*.72+4,38,31,27);c.strokeStyle=wood;c.beginPath();c.moveTo(width*.72+19,36);c.lineTo(width*.72+19,68);c.stroke();
  paintHome(c,a,width,ground);
  }else{
@@ -38,7 +38,8 @@ export function paintInterior(c,a,width,height,ground,world){
  for(let i=0;i<3;i++){c.fillStyle=i%2?'#a9997c':'#878e72';c.fillRect(width*.74+i*10,ground-56,5,9);}
  const entry=!symbols&&a.objects.find(o=>o.kind==='door'&&o.x>60);if(entry){const x=24+entry.x/100*(width-48);c.fillStyle=dark;c.fillRect(x-10,ground-59,21,59);c.strokeStyle='#9b8868';c.strokeRect(x-10,ground-59,21,59);c.fillStyle='#d0bf8d';c.font='8px monospace';c.fillText('ГОСТЕВАЯ',x-22,ground-65);}
  }
- if(symbols)paintSymbolPlaque(c,room.kind==='tavern'?'mug':room.kind==='room'?'bed':room.kind==='workshop'?'workshop':'neutral',width*(room.kind==='room'?.28:.78),44,30,25);
+ if(a.castleRoom){c.fillStyle='#b7aa84';c.fillRect(width*.25,30,24,24);c.strokeStyle='#655b4c';c.beginPath();c.moveTo(width*.25+12,31);c.lineTo(width*.25+12,53);c.stroke();}
+ else if(symbols)paintSymbolPlaque(c,room.kind==='tavern'?'mug':room.kind==='room'?'bed':room.kind==='workshop'?'workshop':'neutral',width*(room.kind==='room'?.28:.78),44,30,25);
  else if(room.kind==='tavern'){c.fillStyle='#332f28';c.fillRect(width*.68,28,width*.28,32);c.fillStyle='#b7a98b';c.font='10px monospace';c.fillText('ОБЩИЙ ЗАЛ',width*.69,47);}else{c.fillStyle='#b7a98b';c.font='10px monospace';c.fillText(room.kind==='workshop'?'МАСТЕРСКАЯ':a.residence?'ЖИЛОЙ ДОМ':'ГОСТЕВАЯ',width*.24,45);}
  c.fillStyle='#bfa478';c.fillRect(width*.46,23,2,18);c.fillStyle=shop?.state==='burned'?'#696052':'#dbc28b';c.fillRect(width*.46-4,41,10,14);c.fillStyle='#6b593e';c.fillRect(width*.46-5,54,12,3);
 }

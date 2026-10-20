@@ -1,3 +1,6 @@
+import {settleCastleDeaths} from './modules/castle-death.js';
+import {castleHeroPlan,castleHeroAction} from './modules/castle-actions.js';
+import {initializeRoyalHouse} from './modules/castle-create.js';
 import {serviceRoleHeroPlan,serviceRoleHeroAction} from './modules/service-masks.js';import {serviceSignAction} from './modules/service-sign.js';
 import {cargoInquiryHeroPlan,cargoInquiryHeroAction} from './modules/cargo-inquiries.js';
 import {hobbyHeroPlan,hobbyHeroAction} from './modules/hobby-supply.js';
@@ -365,7 +368,7 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
   createStableHorse(s);createWagon(s);createPortFerry(s,{addArea,connect});
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
-  initializeAuthorities(s);
+  initializeAuthorities(s);initializeRoyalHouse(s);
   s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
   enter(s, s.hero.area);
   log(s, `${s.hero.name} начинает путь: ${s.areas[s.hero.area].name}, ${s.continents.c0.name}.`, 'birth');
@@ -469,6 +472,7 @@ function plan(s) {
   if(offer('willHeroPlan',()=>willHeroPlan(s,context(s,'testaments'))))return planningSpent;
   if(offer('publicRepairHeroPlan',()=>publicRepairHeroPlan(s,context(s,'public-repairs'))))return planningSpent;
   if(offer('diplomacyHeroPlan',()=>diplomacyHeroPlan(s,context(s,'authority-diplomacy'))))return planningSpent;
+  if(offer('castleHeroPlan',()=>castleHeroPlan(s,context(s,'royal-libraries'))))return planningSpent;
   if(offer('serviceRoleHeroPlan',()=>serviceRoleHeroPlan(s,context(s,'service-masks'))))return planningSpent;
   if(offer('decoyPlan',()=>decoyPlan(s,context(s,'noise-decoys'))))return planningSpent;
   if(offer('stealthLessonPlan',()=>stealthLessonPlan(s,context(s,'stealth'))))return planningSpent;
@@ -856,6 +860,7 @@ function worldTick(s) {
     }
   }
 
+  settleCastleDeaths(s,context(s,'royal-libraries'));
   if (s.changes.length > 300) s.changes.splice(0, s.changes.length - 300);
 }
 function archiveNPCObservers(s){for(const h of detailedActors(s))if(h.actorMode==='npc'&&!h.alive){
@@ -1134,6 +1139,7 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(g.kind.startsWith('castle'))execute('castleHeroAction',()=>castleHeroAction(s,g,context(s,'royal-libraries')));
   else if(['maskSupply','maskWork'].includes(g.kind))execute('serviceSignAction',()=>serviceSignAction(s,s.people[h.lineage],g,{...context(s,'service-masks'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}));
   else if(['maskPresent','maskAnswer'].includes(g.kind))execute('serviceRoleHeroAction',()=>serviceRoleHeroAction(s,g,context(s,'service-masks')));
   else if(g.kind.startsWith('cargo'))execute('cargoInquiryHeroAction',()=>cargoInquiryHeroAction(s,g,context(s,'cargo-cases')));

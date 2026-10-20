@@ -1,3 +1,4 @@
+import {recordCastleChild,castlesOn} from './castle-state.js';
 import {birthHobbyProducer} from './hobby-stock.js';
 import {birthFarmKit} from './farming-state.js';
 import {birthMusic} from './camp-music-state.js';
@@ -20,7 +21,7 @@ export function createPerson(s,record,{initialJob=null}={}){
   // Consume exactly the former random agenda, then finalize the initial role
   // before any occupation-specific possessions or knowledge are granted.
   if(initialJob&&s.people[id].agenda)s.people[id].agenda.job=initialJob;
-  initializeFoodKit(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);birthFarmKit(s,s.people[id],null,{newborn:true});birthHobbyProducer(s,s.people[id],{newborn:true});return id;
+  initializeFoodKit(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);birthFarmKit(s,s.people[id],null,{newborn:true});birthHobbyProducer(s,s.people[id],{newborn:true});recordCastleChild(s,s.people[id]);return id;
 }
 const person=createPerson;
 export function populateArea(s,a){
@@ -39,10 +40,11 @@ export function initializeLineage(s,h){
   if(!h.lineage){
     const predecessor=s.lives?.findLast(l=>l.actorMode!=='npc')||s.graves?.at(-1);
     const inherited=predecessor?.lineage && moduleRandom(s,'lineage')<.4;
-    const oldFamily=inherited?predecessor.family:pick(s,FAMILIES),culture=inherited?s.people[predecessor.lineage]?.culture:areaCulture(s,s.areas[h.area]);
-    const family=enabled(s,'cultures')&&!inherited?makeName(s,{id:'hero-family:'+s.generation,culture}).family:oldFamily;
-    const species=inherited?predecessor.race:pick(s,RACES).id;
-    const parents=inherited?[predecessor.lineage]:[
+    const courtParent=!predecessor&&s.generation===1&&s.seed%8===4&&castlesOn(s)?Object.values(s.castles?.byId||{}).map(h=>s.people[h.founder]).find(p=>p?.alive):null;
+    const oldFamily=courtParent?.family||(inherited?predecessor.family:pick(s,FAMILIES)),culture=courtParent?.culture||(inherited?s.people[predecessor.lineage]?.culture:areaCulture(s,s.areas[h.area]));
+    const family=courtParent?.family||(enabled(s,'cultures')&&!inherited?makeName(s,{id:'hero-family:'+s.generation,culture}).family:oldFamily);
+    const species=courtParent?.race||(inherited?predecessor.race:pick(s,RACES).id);
+    const parents=courtParent?[courtParent.id]:inherited?[predecessor.lineage]:[
       person(s,{name:pick(s,names)+' '+family,race:species,role:'родитель',area:familyHome?.id,alive:moduleRandom(s,'lineage')>.2,procedural:true,culture,family}),
       person(s,{name:pick(s,names)+' '+family,race:species,role:'родитель',area:familyHome?.id,alive:moduleRandom(s,'lineage')>.2,procedural:true,culture,family})
     ];
@@ -54,7 +56,7 @@ export function initializeLineage(s,h){
     // Keep the legacy draws aligned: a cosmetic update must not reshuffle later lineage decisions.
     const legacyLook={hair:pick(s,APPEARANCES.hair),cloak:pick(s,APPEARANCES.cloak),mark:pick(s,APPEARANCES.marks)};
     h.appearance={...legacyLook,...actorPalette(s.seed,h.lineage,h.culture)};
-    h.origin=inherited?'Наследник прежней истории':'Первый путник своей семьи';
+    h.origin=courtParent?'Потомок действительного княжеского дома':inherited?'Наследник прежней истории':'Первый путник своей семьи';
     if(familyHome)for(const id of parents)if(s.people[id]?.alive&&s.people[id].role==='родитель'&&!familyHome.population.includes(id))familyHome.population.push(id);
   }
   initializeCultures(s,h);
