@@ -1,3 +1,4 @@
+import {farmingHTML} from './farming-sheet.js';
 import {titleHTML} from './title-sheet.js';
 import {willHTML} from './will-sheet.js';
 import {publicRepairHTML} from './public-repair-sheet.js';
@@ -259,7 +260,7 @@ function enrichSheet(){
   if(tab==='ties')$('detail-panel').insertAdjacentHTML('beforeend',petMemoriesHTML(state,escape)+petPassageHTML(state,escape));
   if(tab==='hero'||tab==='bag')$('detail-panel').insertAdjacentHTML('beforeend',petPassageHTML(state,escape)+packPetHTML(state,escape)+clothingHTML(state,escape)+navigationMemoryHTML(state,escape)+navigationToolHTML(state,escape)+spareOutfitHTML(state,escape)+weaponStylesHTML(state,escape)+collectionHTML(state,escape));
   if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',causewayHTML(state,escape)+localMaterialHTML(state)+recollectionHTML(state)+estateClaimHTML(state,escape)+ruinReturnHTML(state,escape)+harvestFailureHTML(state)+neighborHousingHTML(state,escape)+dwellingHTML(state,escape));
-  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',stealthHTML(state,escape)+decoyHTML(state,escape)+authorityHTML(state,escape)+diplomacyHTML(state,escape)+publicRepairHTML(state,escape)+willHTML(state,escape)+titleHTML(state,escape));
+  if(tab==='quests')$('detail-panel').insertAdjacentHTML('afterbegin',stealthHTML(state,escape)+decoyHTML(state,escape)+authorityHTML(state,escape)+diplomacyHTML(state,escape)+publicRepairHTML(state,escape)+willHTML(state,escape)+titleHTML(state,escape)+farmingHTML(state,escape));
   if(state.hero.actorMode==='npc')return;
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',containerHTML(state)+localFoodBagHTML(state,escape));
   if(tab==='bag')$('detail-panel').insertAdjacentHTML('afterbegin',mealBagHTML(state,escape));

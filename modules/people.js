@@ -1,3 +1,4 @@
+import {farmingNPCTurn,farmingAction} from './farming.js';
 import {titleNPCTurn,titleVisitAction} from './title-enforcement.js';
 import {probateNPCTurn} from './will-probate.js';
 import {willNPCTurn,willAction} from './wills.js';
@@ -239,6 +240,7 @@ function moveTask(s,p,ctx){
 }
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
+  if(t.kind.startsWith('farm')){farmingAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='titleVisit'){titleVisitAction(s,p,t);m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='refugeSurvey'){const found=finishRefugeSurvey(s,p);tell(s,p,found?`${p.name} обследует участок: здесь есть родник и известное место сбора пищи.`:`${p.name} обследует участок, но надёжной воды не находит.`,ctx);m.task=t.home?{kind:'return',target:t.home,x:42,remaining:1}:null;m.due=s.tick+8;return;}
   if(['decoySupply','decoyWork','decoyRetrieve','decoyGift'].includes(t.kind)){decoyAction(s,p,t,ctx,{inTurn:true});m.task=null;m.due=s.tick+8;return;}
@@ -330,6 +332,7 @@ export function peopleTick(s,ctx){
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
+    if(farmingNPCTurn(s,p,ctx))continue;
     if(titleNPCTurn(s,p))continue;
     if(publicRepairNPCTurn(s,p))continue;
     if(willNPCTurn(s,p))continue;
@@ -389,6 +392,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='socketService'&&!socketsOn(s))continue;
     if(p.agenda.task?.kind==='inheritanceClaim'&&!estateClaimsOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;
+    if(p.agenda.task?.kind?.startsWith('farm')&&s.rules.farming===false)continue;
     if(p.agenda.task?.kind==='titleVisit'&&s.rules['title-enforcement']===false)continue;
     if(p.agenda.task?.kind?.startsWith('will')&&s.rules.testaments===false)continue;
     if(p.agenda.task?.kind?.startsWith('publicRepair')&&s.rules['public-repairs']===false)continue;

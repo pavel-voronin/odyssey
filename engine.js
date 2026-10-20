@@ -1,3 +1,5 @@
+import {farmingHeroPlan,farmingHeroAction} from './modules/farming.js';
+import {birthFarmKit,farmingTick} from './modules/farming-state.js';
 import {titleHeroPlan,titleHeroAction} from './modules/title-enforcement.js';
 import {diplomacyWorldTick} from './modules/diplomacy-world.js';
 import {probateHeroPlan,probateHeroAction} from './modules/will-probate.js';
@@ -341,7 +343,7 @@ function createHero(s) {
   initializeSupply(s,h);
   rememberPracticalRole(s,s.people[h.lineage],h);
 
-  initializeFoodKit(s,s.people[h.lineage],h,{newborn:true});
+  initializeFoodKit(s,s.people[h.lineage],h,{newborn:true});birthFarmKit(s,s.people[h.lineage],h,{newborn:true});
   initializeActorAtlas(s,h);birthLiteracy(s,s.people[h.lineage],h);
   return h;
 }
@@ -456,6 +458,7 @@ function plan(s) {
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
   if(offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'),{lesson:false})))return planningSpent;
+  if(offer('farmingHeroPlan',()=>farmingHeroPlan(s,context(s,'farming'))))return planningSpent;
   if(offer('titleHeroPlan',()=>titleHeroPlan(s,context(s,'title-enforcement'))))return planningSpent;
   if(offer('probateHeroPlan',()=>probateHeroPlan(s,context(s,'testaments'))))return planningSpent;
   if(offer('willHeroPlan',()=>willHeroPlan(s,context(s,'testaments'))))return planningSpent;
@@ -803,7 +806,7 @@ function worldTick(s) {
   leverTeamTick(s,context(s,'mechanisms'));
   materialWorldTick(s,context(s,'local-materials'));
   biomaterialTick(s);settleBurialWork(s);
-  goodsTick(s);
+  goodsTick(s);farmingTick(s);
   lodgingTick(s);
   hallActivitiesTick(s,context(s,'hall-activities'));
   for(const h of detailedActors(s))if(selfDrivenActor(s,h)&&!h.transit){const view=actorView(s,h);observeFreightActor(view,s.people[h.lineage],h.area);observeDelveLayout(view);}
@@ -1125,6 +1128,7 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(g.kind.startsWith('farm'))execute('farmingHeroAction',()=>farmingHeroAction(s,g,context(s,'farming')));
   else if(['titlePetition','titleHearing'].includes(g.kind))execute('titleHeroAction',()=>titleHeroAction(s,g));
   else if(g.kind==='willProbate')execute('probateHeroAction',()=>probateHeroAction(s,g));
   else if(['willPaper','willLaw','willBegin','willWrite','willAttest','willCollect','willInvite','willRevoke'].includes(g.kind))execute('willHeroAction',()=>willHeroAction(s,g));

@@ -1,3 +1,4 @@
+import {refundFarmWork,inheritFarms} from './farming.js';
 import {applyItemWill,attachWillPaper} from './will-resolution.js';
 import {refundUnfinishedWill} from './wills.js';
 import {createEstateCustody} from './estate-claim-state.js';
@@ -20,11 +21,11 @@ export function openInheritance(s,h,cache=null,ctx={}){
  const ownedAtDeath=new Set((cache?.items||[]).filter(i=>!i.inheritance||i.inheritance.owner===p.id).map(i=>i.id));
  const heirs=Object.values(s.people).filter(q=>q.id!==p.id&&q.alive&&q.role!=='ребёнок'&&relatedPeople(p,q)).sort((a,b)=>Number(b.area===deathArea)-Number(a.area===deathArea)||Number(b.parents.includes(p.id))-Number(a.parents.includes(p.id))||a.id.localeCompare(b.id));
  const heir=heirs[0]||null,wallet=h.actorMode==='npc'?p.agenda.wealth:h.gold;
- refundUnfinishedWill(s,p,h);const currentWallet=h.actorMode==='npc'?p.agenda.wealth:h.gold;
+ refundUnfinishedWill(s,p,h);refundFarmWork(s,p,{deathBody:h});const currentWallet=h.actorMode==='npc'?p.agenda.wealth:h.gold;
  const total=Math.max(0,currentWallet-(cache?.gold||0));
  const estate=p.estate={version:1,id:`estate/${p.id}/${s.tick}`,opened:s.tick,heir:heir?.id??null,total,cash:total,paid:0,status:'pending',assets:[]};
  applyItemWill(s,p,h,estate,cache);attachWillPaper(s,p,estate);
- passEstateClaims(s,p,heir,estate);inheritProductionRights(s,p,heir,estate);inheritDwellings(s,p,heir,estate);
+ passEstateClaims(s,p,heir,estate);inheritProductionRights(s,p,heir,estate);inheritDwellings(s,p,heir,estate);inheritFarms(s,p,heir,estate);
  inheritMapCopies(s,p,heir,deathArea,deathX,estate,p.deathJourney||h.transit);
  inheritLibraryBooks(s,p,heir,estate,cache);
  if(heir&&p.routeMaps?.documents.length){const next=routeMapMemory(heir);for(const d of p.routeMaps.documents){d.owner=heir.id;next.documents.push(d);estate.assets.push({kind:'route-map',area:deathArea,id:d.id});}p.routeMaps.documents=[];}

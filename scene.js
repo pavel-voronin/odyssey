@@ -1,3 +1,4 @@
+import {paintFarmBed} from './farming-scene.js';
 import {paintFoundation} from './foundation-view.js';
 import {localEdgeTraces} from './modules/edge-traces.js';
 import {physicalActorLook,readableActorLook,drawActorPack,drawProstheticLeg,drawWoundMarks,actorLabelPoint} from './actor-readability.js';
@@ -282,6 +283,7 @@ export class Scene {
         const captive=o.dungeonRescue&&s.people[o.person],look=captive?looks(captive,captive.appearance):null,species=captive&&s.rules.lineage!==false?race(captive.race):null;
         if(captive)this.person(x,ground,look?.cloak||'#b39d7d',false,-1,0,false,false,look,species,{kind:captive.alive?'idle':'death',progress:1});else this.person(x,ground,'#b39d7d',false,-1,0);c.strokeStyle='#746447';c.lineWidth=2;c.beginPath();c.moveTo(x-7,ground-20);c.lineTo(x+9,ground-20);c.stroke();
       }
+      if(o.kind==='farmBed')paintFarmBed(c,a.farmPlot,x,ground);
       if(o.kind==='workshop'&&s.rules.property!==false){
         if(workshopInteriorsOn(s)&&o.workshopInterior)continue;
         if(o.state==='burned'){c.fillStyle='#45423c';c.fillRect(x-14,ground-4,29,4);c.strokeStyle='#76644e';c.lineWidth=3;c.beginPath();c.moveTo(x-11,ground-2);c.lineTo(x+7,ground-10);c.moveTo(x-8,ground-9);c.lineTo(x+12,ground-2);c.stroke();}

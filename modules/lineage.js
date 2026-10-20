@@ -1,3 +1,4 @@
+import {birthFarmKit} from './farming-state.js';
 import {birthMusic} from './camp-music-state.js';
 import {birthLiteracy} from './literacy-state.js';
 import {actorPalette} from '../palette.js';
@@ -18,7 +19,7 @@ export function createPerson(s,record,{initialJob=null}={}){
   // Consume exactly the former random agenda, then finalize the initial role
   // before any occupation-specific possessions or knowledge are granted.
   if(initialJob&&s.people[id].agenda)s.people[id].agenda.job=initialJob;
-  initializeFoodKit(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);return id;
+  initializeFoodKit(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);birthFarmKit(s,s.people[id],null,{newborn:true});return id;
 }
 const person=createPerson;
 export function populateArea(s,a){
