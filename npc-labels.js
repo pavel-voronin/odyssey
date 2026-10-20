@@ -1,5 +1,6 @@
 export const NPC_JOBS={farmer:'Земледелец',healer:'Травник',artisan:'Ремесленник',scholar:'Летописец',guard:'Страж',merchant:'Торговец',student:'Учится'};
 export const NPC_TASKS={
+ fxDesk:'У своего разменного стола',fxPurchase:'Размен для настоящей еды',fxExchange:'Конечный обмен монет',fxObserve:'Узнать местный курс',
  castleGuardInvite:'Пригласить хранителя фонда',
  castleRequest:'Признание семейного допуска',castleInspect:'Настоящая книжная полка',castleHost:'Прийти к семейному фонду',
  maskSupply:"Материал для служебного знака",maskWork:"Работа над знаком",maskPresent:"Заявленная служебная роль",maskAnswer:"Ответ на проверку роли",

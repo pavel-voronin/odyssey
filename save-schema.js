@@ -1,3 +1,4 @@
+import {validateCurrency} from './modules/currency-schema.js';
 import {validateCastles} from './modules/castle-schema.js';
 import {validateServiceMasks} from './modules/service-mask-schema.js';
 import {validateCargoCases} from './modules/cargo-case-schema.js';
@@ -212,7 +213,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
+ validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateTracking(s,fail);

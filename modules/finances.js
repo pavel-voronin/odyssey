@@ -1,3 +1,4 @@
+import {currencyPurchaseQuote} from './currency-quote.js';
 import {containersOn,packView,stackRoom} from './container-state.js';
 import {marketEnabled,quoteMarket} from './market.js';
 import {marketKnowledgeEnabled} from './market-knowledge.js';
@@ -32,7 +33,8 @@ export function moneyBudget(s,ctx){
   const reserve=enabled(s,'finances')&&style!=='carefree'?Math.min(10,food+medicine):0;
   const p=h.commitments?.personal,targetAvailable=Boolean(enabled(s,'commitments')&&p?.status==='active'&&h.weapon<p.target&&shopKnown&&knownServiceAllows(s,merchant,'merchant',{purchase:'weapon'}));
   const targetCost=targetAvailable?equipmentPrice(s,'weapon',known):0;
-  return {style,reserve,spendable:Math.max(0,h.gold-reserve),targetAvailable,targetCost,targetNeed:targetAvailable?Math.max(0,targetCost+reserve-h.gold):0,foodKnown,shopKnown};
+  const exchangeFood=s.currencyOffice?currencyPurchaseQuote(s,s.people[h.lineage],'food',1):null;
+  return {...(exchangeFood?{exchangeFood}:{}),style,reserve,spendable:Math.max(0,h.gold-reserve),targetAvailable,targetCost,targetNeed:targetAvailable?Math.max(0,targetCost+reserve-h.gold):0,foodKnown,shopKnown};
 }
 export function maySpend(s,kind,price,ctx,{urgent=false}={}){
   const h=s.hero;if(price===null||h.gold<price)return false;
