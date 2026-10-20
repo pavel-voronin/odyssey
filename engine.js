@@ -1,3 +1,6 @@
+import {createAirship} from './modules/airship-source.js';
+import {settleAirships} from './modules/airship-flight.js';
+import {airshipHeroTurn,airshipPilotTurn} from './modules/airship-actions.js';
 import {settleReturnBonds,returnBondHeroAttention,returnBondHeroAction,returnBondNPCTurn} from './modules/return-bond.js';
 import {returnPastMeet,returnPastHeroAttention,returnPastHeroAction,returnPastNPCTurn,settleReturnPast} from './modules/return-past.js';
 import {settleReturnCare,returnCareHeroAttention,returnCareHeroAction} from './modules/return-care.js';
@@ -310,7 +313,7 @@ export function random(s) {
 const roll = (s, n) => Math.floor(random(s) * n);
 installMigrationEmployment((s,a)=>['harvest','medicine','repair','records','market'].some(job=>actualService(s,a,'employment',{job}).available));
 installPaperFireHandler((s,a,source)=>damagePaperFromSource(s,a,source,{log}));
-function context(s, stream) { return { returnBondNPCTurn,returnPastNPCTurn,returnPastMeet:(world,id)=>returnPastMeet(world,world.people[world.hero.lineage],world.people[id],context(world,'return-ritual')),collectForCare:collect,returnPerson:(world,p,b,task,relic)=>returnPerson(world,p,b,task,relic,context(world,'return-ritual')),nativeGameHunt,expectedLoss,birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { airshipPilotTurn,returnBondNPCTurn,returnPastNPCTurn,returnPastMeet:(world,id)=>returnPastMeet(world,world.people[world.hero.lineage],world.people[id],context(world,'return-ritual')),collectForCare:collect,returnPerson:(world,p,b,task,relic)=>returnPerson(world,p,b,task,relic,context(world,'return-ritual')),nativeGameHunt,expectedLoss,birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero?.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   if(!s.hero){if(populationState(s)&&s.areas[area])populationEvent(s,{kind:type,area,actors:[],text});return;}
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
@@ -357,7 +360,7 @@ function addArea(s, type, name, depth = 0,metadata={}) {
   populateArea(s, area);
   civicArea(s,area);
   supplyArea(s,area);
-  peopleArea(s,area);if(s.hero){createStableHorse(s,area);createWagon(s,area);}
+  peopleArea(s,area);if(s.hero){createStableHorse(s,area);createWagon(s,area);createAirship(s,area);}
   createPlaceRule(s,area);initializeDescent(s,area);migrationArea(area);initializeFacades(s);registerSpatialArea(s,area);return id;
 }
 function createHero(s) {
@@ -404,7 +407,7 @@ function createOriginTopology(s){
   const camp = addArea(s, 'camp', origin[4], 1);
   connect(s, road, town); connect(s, town, forest); connect(s, forest, ruins); connect(s, forest, camp);
   createGeographyFrame(s,{crossroads:road,capital:town,hollow:forest,ruins,camp},{addArea,connect,openSettlement});
-  createStableHorse(s);createWagon(s);createPortFerry(s,{addArea,connect});
+  createStableHorse(s);createWagon(s);createAirship(s);createPortFerry(s,{addArea,connect});
   return {road,town,forest,ruins,camp};
 }
 export function createWorld(seed = Date.now(), {rules={}}={}) {
@@ -878,6 +881,7 @@ function npcVictory(s,a,enemy,p){
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
+  settleAirships(s);
   returnedBodyTick(s,context(s,'return-ritual'));settleReturnCare(s);settleReturnBonds(s,context(s,'return-ritual'));
   meatWorldTick(s);
   establishEcology(s,context(s,'local-ecology'));
@@ -1056,6 +1060,7 @@ function actObserved(s) {
   if(heroFordProgress(s,context(s,'fords')))return s;
   if(roadCampNeed(s,context(s,'fieldcamp')))return s;
   if(wagonTurn(s,{...context(s,'wagons'),knownRoute:(world,from,to)=>knownRoute(world,from,to)}))return s;
+  if(airshipHeroTurn(s,context(s,'airships')))return s;
   if(horseTurn(s,context(s,'riding')))return s;
   if(transitTick(s,context(s,'travel')))return s;
   if(manageHeroRoadStop(s,context(s,'fieldcamp')))return s;

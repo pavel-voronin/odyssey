@@ -1,3 +1,5 @@
+import {availableFlight} from './airship-state.js';
+import {boardFlight,advanceFlight} from './airship-flight.js';
 import {quakeBlocked,quakeTravelLimit,quakeDamage} from './quake-state.js';
 import {wagonRate,wagonMoved} from './wagon-state.js';
 import {recordCrossingTrace} from './edge-traces.js';
@@ -17,12 +19,12 @@ export function roadCampWaypoint(s,body,t,speed){
 }
 export function startMetricTravel(s,body,to,arrivalX,options={}){
  const edge=s.edges?.[metricKey(body.area,to)],m=edge?.metric;if(!m||quakeBlocked(s,body.area,to)||edge.mode!=='road'||s.rules?.travel===false||s.rules?.['geography-frame']===false)return null;
- const rate=metricTravelRate(s,body,m,options);if(rate.blocked)return null;const {speed,mount}=rate,total=Math.ceil(m.distance/speed);
- const map=metricMap(s,body.area,to,arrivalX),group=pets(body).filter(c=>c.uid&&c.hp>0&&c.petTraining&&petBody(c)?.area===body.area&&physicalDistance(s.areas[body.area],petBody(c).x,body.x)<=2).map(c=>c.uid);
- return {from:body.area,to,mode:'road',arrivalX,remaining:total,total,...(mount?{carrier:mount.id}:{}),metric:{...m,travelled:0,started:s.tick,lastTick:s.tick,departureX:body.x,departureVersion:edge.spatial?.revision||1,...(map?{map}:{})},...(group.length?{group}:{}),eventDone:true,crew:false};
+ const flight=availableFlight(s,body,to),rate=flight?{speed:12}:metricTravelRate(s,body,m,options);if(rate.blocked)return null;const {speed,mount}=rate,total=Math.ceil(m.distance/speed);
+ if(flight)arrivalX=flight.pads[to].x;const map=metricMap(s,body.area,to,arrivalX),group=pets(body).filter(c=>c.uid&&c.hp>0&&c.petTraining&&petBody(c)?.area===body.area&&physicalDistance(s.areas[body.area],petBody(c).x,body.x)<=2).map(c=>c.uid);
+ const t={from:body.area,to,mode:'road',arrivalX,remaining:total,total,...(mount?{carrier:mount.id}:{}),metric:{...m,travelled:0,started:s.tick,lastTick:s.tick,departureX:body.x,departureVersion:edge.spatial?.revision||1,...(map?{map}:{})},...(group.length?{group}:{}),eventDone:true,crew:false};return flight?boardFlight(s,body,flight,t):t;
 }
 export function advanceMetricTravel(s,body,t,options={}){
- const m=t.metric;if(m.lastTick===s.tick)return false;m.lastTick=s.tick;
+ if(t.air)return advanceFlight(s,body,t);const m=t.metric;if(m.lastTick===s.tick)return false;m.lastTick=s.tick;
  const rate=metricTravelRate(s,body,m,options),energy=body.lineage?body:body.needs;
  if(rate.blocked){if(body.lineage)body.lastAction='wait';return false;}
  const group=pets(body).filter(c=>t.group?.includes(c.uid)&&c.hp>0&&c.petTraining);
@@ -38,6 +40,6 @@ export function advanceMetricTravel(s,body,t,options={}){
 }
 // The controller already owns this body's action. No location/cargo transfer here.
 export function npcMetricGate(s,p,to,arrivalX,options={}){
- if(p.roadTransit){const crossing=p.roadTransit;if(advanceMetricTravel(s,p,crossing,options)){delete p.roadTransit;return {status:'arrived',crossing};}return {status:'crossing',crossing};}
+ if(p.roadTransit){const crossing=p.roadTransit;if(advanceMetricTravel(s,p,crossing,options)){delete p.roadTransit;return {status:crossing.air?.aborted?'unavailable':'arrived',crossing};}return {status:'crossing',crossing};}
  const crossing=startMetricTravel(s,p,to,arrivalX,options);if(!crossing)return s.edges?.[metricKey(p.area,to)]?.metric?{status:'unavailable'}:null;p.roadTransit=crossing;return {status:'crossing',crossing,started:true};
 }

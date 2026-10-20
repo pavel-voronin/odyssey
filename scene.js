@@ -33,6 +33,7 @@ import {facadeLayout} from './facades.js';
 import {sceneComposition,surfaceShadow,surfaceShadowAlpha,projectedCaster} from './composition.js';
 import {actorSkin,drawHead} from './actor-head.js';
 import {creatureTraceVisible,drawCreatureTrace} from './creature-trace-view.js';
+import {paintAirship} from './airship-view.js';
 import {paintReturnSeal} from './return-bond-view.js';
 import {drawMechanisms,drawLifts} from './mechanism-view.js';
 import {scentPlantKnown} from './modules/pet-scent-policy.js';
@@ -317,6 +318,7 @@ export class Scene {
       if(o.kind==='practicePart'){c.fillStyle='#8e704e';c.fillRect(x-7,ground-4,14,4);c.fillStyle=o.state==='demonstration'?'#bec4b9':'#b49a6e';c.fillRect(x-4,ground-7,8,3);c.fillStyle='#4f5c53';c.fillRect(x-1,ground-6,2,3);}
       paintGuardianNode(c,s,a,o,screenX,ground);paintStoneCover(c,s,o,screenX,ground);
       if (o.kind === 'relic' && !o.taken) { c.shadowBlur = 16; c.shadowColor = '#c0daaa'; c.fillStyle = '#d1dfb0'; c.beginPath(); c.moveTo(x, ground - 22); c.lineTo(x + 7, ground - 11); c.lineTo(x, ground - 4); c.lineTo(x - 7, ground - 11); c.fill(); c.shadowBlur = 0; }
+      if(o.kind==='airshipPad'){const m=s.airships?.byId[o.craft];if(m?.body.kind==='area'&&!m.flight&&m.body.area===a.id)paintAirship(c,m,x,ground);}
       if(o.kind==='returnSeal'){this.castShadow(x,ground,9,18);paintReturnSeal(c,o,x,ground);}
       if(o.kind==='burialPit'){c.fillStyle='#272323';c.beginPath();c.ellipse(x,ground-1,9,3,0,0,Math.PI*2);c.fill();c.strokeStyle='#797063';c.stroke();}
       if (o.kind === 'grave'&&(o.burial||!ownBody&&!(remains&&(beastMotion||remains.body)))) { this.castShadow(x,ground,10,17);c.fillStyle = '#8b9985'; c.fillRect(x - 5, ground - 17, 10, 17); c.fillStyle = '#394d38'; c.fillRect(x - 1, ground - 13, 2, 8); c.fillRect(x - 3, ground - 11, 6, 2); }
@@ -373,6 +375,7 @@ export class Scene {
     for(const b of Object.values(s.remains?.byId||{}))if((b.transport||b.stage==='bones')&&!b.carrier&&b.position.kind==='area'&&b.position.area===a.id&&!(!h.alive&&b.source.kind==='person'&&b.source.id===h.lineage)&&!a.objects.some(o=>o.remainsId===b.id||o.deathView?.remainsId===b.id))paintRemainsAt(this,s,b,screenX(b.position.x),ground);
     if (!h.transit&&s.merchant.area === a.id) { const look=looks({id:'merchant-sava',role:'merchant'});this.person(screenX(58), ground, look?.cloak||'#867cac', false, -1, 0,false,false,look); c.fillStyle = '#957c58'; c.fillRect(screenX(58) + 12, ground - 13, 18, 13); c.strokeStyle = '#c3a982'; c.strokeRect(screenX(58) + 12, ground - 13, 18, 13); }
     if(h.transit&&['portal','time'].includes(h.transit.mode)){c.strokeStyle=h.transit.mode==='time'?'#d2b779':'#ac93cb';c.lineWidth=4;c.beginPath();c.ellipse(hx,ground-24,24,38,0,0,7);c.stroke();}
+    if(h.transit?.air){const m=s.airships?.byId[h.transit.air.craft];if(m)paintAirship(c,m,hx,ground-18,{flying:true});}
     const mount=riddenHorse(s,h);let horseCount=0;for(const m of horses(s)){if(m===mount)continue;const at=horsePosition(s,m);if(!h.transit&&at?.area===a.id){this.horse(screenX(at.x),ground,m,{direction:1,phase});horseCount++;}}canvas.dataset.horses=String(horseCount+(mount?1:0));
     canvas.dataset.peopleCarry=h.carriedBy||s.people[h.lineage]?.bodyCarry?.stage==='carrying'?String(h.carriedBy||h.lineage):'';
     if (h.alive) {
@@ -382,7 +385,7 @@ export class Scene {
       const heroLook=withLimbLook(s.people[h.lineage],s.rules?.appearance===false?physicalActorLook(s,s.people[h.lineage],h.appearance):heroAppearance(s));
       const support=carrySupport(s,h);paintCarrySupport(this,s,h,hx,ground,actionPhase);
       if(mount)this.horse(hx,ground,mount,{direction:stance.direction,walking,phase:actionPhase});
-      this.person(hx-(support?7*stance.direction:0), ground - bob-(mount?29:support?25:0), heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, Boolean(support)||h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{supportGround:ground,kind:support?'rest':occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking:walking&&!mount&&!support,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
+      this.person(hx-(support?7*stance.direction:0), ground - bob-(h.transit?.air?25:mount?29:support?25:0), heroLook?.cloak||'#a9c686', true, stance.direction, 0, h.lastAction === 'attack' && actionPhase < .8, Boolean(support)||h.lastAction === 'rest'||Boolean(occupiedCover(s,h)), heroLook, s.rules?.lineage===false?null:race(h.race),{supportGround:ground,kind:support?'rest':occupiedCover(s,h)?'rest':h.lastAction,progress:actionPhase,walking:walking&&!mount&&!support,distance:Math.abs(this.to-this.from)*(w-48)/100,hurt:this.hurt&&actionPhase>.45&&actionPhase<.95});
       paintCarriedObserver(this,s,h,hx,ground,actionPhase);paintCarriedRemains(this,s,s.people[h.lineage],hx,ground);
       if(s.rules?.equipment!==false&&s.rules?.enchantments!==false&&h.equipment?.charm){const color=CHARM_LIGHT_COLORS[h.equipment.charm.modifier];if(color){c.fillStyle=color;c.shadowColor=color;c.shadowBlur=5;c.fillRect(hx+3,ground-24-bob,3,3);c.shadowBlur=0;}}
       if (s.rules?.companions !== false) for (let i=0;i<(h.companions?.length||0);i++) {

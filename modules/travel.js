@@ -109,7 +109,7 @@ export function beginTransit(s,next,arrivalX,ctx){
   if(grateClosed(s,h.area,next)){h.goal=null;ctx.log?.(s,'Решётка закрыла проход. Нужен местный рычаг или обход.','plan');return true;}
   if(liftBlocked(s,h.area,next)){h.goal=null;return true;}
   const lift=enabled(s,'mechanisms')&&edge?.lift,mode=lift?'lift':edge?.mode;
-  if(mode==='road'){const t=startMetricTravel(s,h,next,arrivalX);if(!t){if(edge?.metric){h.goal=null;h.lastAction='wait';return true;}return false;}h.transit={...t,savedIntent:h.intent,savedReason:h.reason};h.lastAction='travel';h.action='ДОРОГА';ctx.log(s,`Он выходит на дорожный участок: ${t.metric.distance} единиц пути. Дальний конец ещё предстоит пройти.`,'travel');return true;}
+  if(mode==='road'){const t=startMetricTravel(s,h,next,arrivalX);if(!t){if(edge?.metric){h.goal=null;h.lastAction='wait';return true;}return false;}h.transit={...t,savedIntent:h.intent,savedReason:h.reason};h.lastAction='travel';h.action=t.air?'ПОЛЁТ':'ДОРОГА';if(t.air){h.intent='Лететь: '+s.areas[next].name;h.reason='Один пилот, тот же груз; эфирный заряд расходуется на реальное расстояние.';}ctx.log(s,t.air?`Эфирный челнок поднимается над разрешённым коридором: ${t.metric.distance} единиц. Заряд расходуется на пройденный путь.`:`Он выходит на дорожный участок: ${t.metric.distance} единиц пути. Дальний конец ещё предстоит пройти.`,'travel');return true;}
   if(edge&&s.geographyFrame&&!lift&&!enabled(s,'travel')){h.goal=null;h.lastAction='wait';return true;}
   if(!edge||!enabled(s,'travel')&&!lift)return false;
   if(lift&&physicalDistance(s.areas[h.area],h.x,Number(next.slice(1))>Number(h.area.slice(1))?100:0)>1)return true;
@@ -148,6 +148,7 @@ export function transitTick(s,ctx){
     t.eventDone=true;s.chronology.visits++;s.chronology.paradox+=1;
     if(moduleRandom(s,'epochs')<.2&&enabled(s,'body'))addCondition(s,'insomnia',ctx,70);
   }
+  if(t.air?.aborted){ctx.log?.(s,'Непогода или отказ привода: аварийное возвращение к исходной площадке, повреждения аппарата и тела.','storm');if(h.hp<=0){ctx.die(s,{name:'Авария эфирного челнока'},{kind:'storm',damage:4,hpBefore:h.hp+4});h.transit=null;return true;}t.to=t.from;}
   if(t.remaining<=0){
     if(t.crew)h.gold+=2;
     if(t.mode==='sea')h.travel.voyages++;
