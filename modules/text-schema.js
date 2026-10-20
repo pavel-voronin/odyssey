@@ -1,3 +1,4 @@
+import {validateDocumentCustody} from './artifact-memory-schema.js';
 import {validatePeriodDate} from './period-date.js';
 import {validateClinicalText} from './clinical-study-schema.js';
 import {willRecord} from './will-records.js';
@@ -41,7 +42,7 @@ export function validateTexts(s,fail){
  for(const h of [s.hero,...Object.values(s.actorStates).filter(h=>h.lineage!==s.hero.lineage)])for(const c of h.companions||[])items.push(...(c.packCargo?.items||[]));
  for(const p of Object.values(s.people))for(const c of [...(p.pets||[]),...(p.petBoarding?.pet?[p.petBoarding.pet]:[])])items.push(...(c.packCargo?.items||[]));
  items.push(...(s.merchant.items||[]));for(const a of Object.values(s.areas))for(const o of a.objects)items.push(...(o.items||[]),...(o.paymentItems||[]),...((o.existingPet||o.packPetBody||o.petBody)?.packCargo?.items||[]));
- validatePaperFires(s,fail,items);
+ validateDocumentCustody(s,items,fail);validatePaperFires(s,fail,items);
  for(const item of items){
   const m=item.writingMaterial,c=item.textCopy;if(m===undefined&&c===undefined&& !['textCopy','writingPaper'].includes(item.kind))continue;
   const key='text.item.'+item.id;

@@ -416,7 +416,7 @@ export function peopleTick(s,ctx){
     if(['caseReviewRead','caseReviewReturn','caseReviewWait'].includes(p.agenda.task?.kind)&&!verdictReviewOn(s))continue;
     if(['literacyStudy','textAloud','literacySell'].includes(p.agenda.task?.kind)&&!literacyEnabled(s))continue;
     if(p.agenda.task?.kind==='literacySell'&&p.agenda.task.valueReason&&!textValuesOn(s))continue;
-    if(['spellTextWrite','spellTextStudy','spellTextGift','scholarObjectListen','scholarObjectSurvey','scholarObjectTrace','scholarCompare','scholarInspect','scholarWrite','scholarLesson','textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
+    if(['spellTextWrite','spellTextStudy','spellTextGift','scholarArtifactHear','scholarObjectListen','scholarObjectSurvey','scholarObjectTrace','scholarCompare','scholarInspect','scholarWrite','scholarLesson','textOrderRequest','textOrderWork','textOrderCollect','textPaper','textWrite','textCopy','textRead','sequenceWrite'].includes(p.agenda.task?.kind)&&!textsOn(s))continue;
     if(p.agenda.task?.dwelling&&!homeBuildingOn(s))continue;
     if(['homeBuildSupply','homeBuildWait','homeBuildWork'].includes(p.agenda.task?.kind)&&!homeBuildingOn(s))continue;
     if(p.agenda.task?.kind==='caseRecordStudy'&&!enabled(s,'verdict-knowledge'))continue;

@@ -1,3 +1,5 @@
+import {startDocumentCustody} from './document-custody.js';
+import {rememberArtifactReading} from './artifact-memory.js';
 import {dateNewDocument} from './period-date.js';
 import {rememberCastleAddress} from './castle-state.js';
 import {borrowedReading,stolenReading} from './library-state.js';
@@ -27,7 +29,7 @@ export function buyTextPaper(s,p,ctx=null){
  if(textActor(s,p.id)&&ctx?.maySpend&&!ctx.maySpend(s,'learning',2,ctx))return null;
  const raw=productionSources(s,a)?.materials;if(!raw||raw.stock<1)return null;
  const before=raw.stock;raw.stock--;raw.used++;setActorMoney(s,p,marketWallet(s,p.id)-2);a.civic.treasury+=2;
- textMemory(p).serial++;paper.writingMaterial={version:1,id:paper.id,source:raw.id,sourceArea:raw.place,area:a.id,buyer:p.id,created:s.tick,paid:2,stockBefore:before,stockAfter:raw.stock};paper.history.push({tick:s.tick,text:'Бумага приобретена из настоящего местного сырья за ◈2.'});bag(s,p).push(paper);actorItemLocation(s,paper,p.id);spend(s,p,1);return paper;
+ textMemory(p).serial++;paper.writingMaterial={version:1,id:paper.id,source:raw.id,sourceArea:raw.place,area:a.id,buyer:p.id,created:s.tick,paid:2,stockBefore:before,stockAfter:raw.stock};paper.history.push({tick:s.tick,text:'Бумага приобретена из настоящего местного сырья за ◈2.'});bag(s,p).push(paper);startDocumentCustody(s,paper,p,b);actorItemLocation(s,paper,p.id);spend(s,p,1);return paper;
 }
 export function inscribe(s,p,paper,work,sourceCopy=null){
  registerLiteracy(s,p,textActor(s,p.id),sourceCopy?'copied-text':'written-text',work.id);
@@ -75,7 +77,7 @@ export function rememberTextInformation(s,p,work,info=work.content,source=work.a
 export function rememberTextReading(s,p,item){
  const work=textWork(s,item);if(!work||item.textCopy.condition!=='intact'||p.textCraft?.readings.some(e=>e.content===work.id))return false;
  const knowledge=registerLiteracy(s,p,textActor(s,p.id),'read-text',work.id);if(knowledge)knowledge.lastActionTick=s.tick;
- textMemory(p).readings.push({content:work.id,copy:item.id,at:s.tick,author:work.author,revision:work.revision});rememberTextInformation(s,p,work);
+ textMemory(p).readings.push({content:work.id,copy:item.id,at:s.tick,author:work.author,revision:work.revision});rememberTextInformation(s,p,work);rememberArtifactReading(s,p,item,work);
  const h=textActor(s,p.id);if(h)h.lastAction='think';return true;
 }
 export function giveText(s,from,to,id){
