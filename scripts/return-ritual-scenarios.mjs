@@ -8,11 +8,11 @@ import {peopleTick} from '../modules/people.js';
 import {returnPerson} from '../modules/return-person.js';
 import {receiveItem} from '../modules/inventory.js';
 export const returnContext={log,route,knownRoute,returnPerson:(s,p,b,t,r)=>returnPerson(s,p,b,t,r,returnContext)};
-export function returnFixture({seed=9,beforeDeath=null}={}){
+export function returnFixture({seed=9,beforeDeath=null,kin=true}={}){
  const flags=['travel','remains','remains-cycle','people','npc-control','npc-knowledge','identity','lineage','containers','geography-frame','origins','birthplaces','return-ritual','equipment'],s=createWorld(seed,{rules:Object.fromEntries(MODULES.map(m=>[m.id,flags.includes(m.id)]))}),h=s.hero;
  const a=Object.values(s.areas).find(a=>a.objects.some(o=>o.kind==='relic'&&!o.taken)&&a.objects.some(o=>o.kind==='enemy'&&o.alive));
  assert.ok(a,'selected seed has a real relic and enemy in one area');a.length=100;
- const relic=a.objects.find(o=>o.kind==='relic'&&!o.taken),enemy=a.objects.find(o=>o.kind==='enemy'&&o.alive),id=createPerson(s,{name:'Хранитель обряда',race:'human',area:a.id,x:relic.x,parents:[h.lineage]},{initialJob:'healer'}),caster=s.people[id];
+ const relic=a.objects.find(o=>o.kind==='relic'&&!o.taken),enemy=a.objects.find(o=>o.kind==='enemy'&&o.alive),id=createPerson(s,{name:'Хранитель обряда',race:'human',area:a.id,x:relic.x,parents:kin?[h.lineage]:[]},{initialJob:'healer'}),caster=s.people[id];
  caster.agenda.duty=.9;caster.agenda.task=null;caster.agenda.due=1e9;caster.needs.hunger=0;caster.needs.energy=100;
  h.area=a.id;h.x=relic.x;h.race='human';s.people[h.lineage].race='human';h.hp=1;h.energy=100;h.hunger=0;h.conditions=[];h.companions=[];h.weapon=0;h.armor=0;h.gold=20;h.combat=enemy.id;h.goal={kind:'hunt',area:a.id,x:relic.x,object:enemy.id,started:s.tick};enemy.x=relic.x;enemy.attack=1000;enemy.hp=enemy.maxHp=10000;
  receiveItem(s,{...returnContext,random:()=>.1},1);h.hp=h.maxHp;h.personality.courage=1;syncActiveActor(s);beforeDeath?.({s,h,a,enemy,caster,dead:s.people[h.lineage]});step(s);assert.equal(h.alive,false);enemy.alive=false;enemy.resolved=true;

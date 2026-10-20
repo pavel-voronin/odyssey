@@ -9,6 +9,7 @@ export function npcActorProfile(s,p,makeHero,generation){
  const sandbox=structuredClone(s);Object.assign(sandbox,{seed,rng:seed,randomStreams:{},generation:1,tick:0,nextPerson:1000000+seed%1000000000,lives:[],graves:[]});
  const h=makeHero(sandbox),job=p.agenda?.job||'farmer',profile=profession('npc-'+job);
  Object.assign(h,{lineage:p.id,name:p.name,family:p.family||'',race:p.race||'human',culture:p.culture,actorMode:'npc',actorGeneration:generation,npcProfile:{version:1,job,observedAt:s.tick},area:p.area||s.society.journeys.find(j=>j.person===p.id)?.from,x:p.x??42,alive:p.alive,maxHp:p.maxHealth||100,hp:p.health,energy:p.needs?.energy??100,hunger:p.needs?.hunger??0,gold:Math.max(0,p.agenda?.wealth??p.actorLink?.wealth??0),born:p.ageOrigin?.at??s.tick,startAge:p.ageOrigin?.years??null,appearance:appearance(s.seed,p,p.appearance),origin:'Житель мира',profession:profile.id,level:1,xp:0,weapon:0,armor:0,inventory:p.actorLink?.inventory||{herbs:0,potions:0,relics:0,rations:0},bag:[],equipment:{weapon:null,armor:null,charm:null},companions:[],titles:[],quests:[],goal:null,combat:null,kills:0,distance:0,transit:null,lastAction:'idle',speech:'',intent:'Между собственными делами',reason:'Работа, нужды и дорога принадлежат этому человеку.',action:'ЖИЗНЬ'});
+ if(p.returnEpisode?.care?.inventory){h.inventory=p.returnEpisode.care.inventory;delete p.returnEpisode.care.inventory;}
  delete h.routePreferences;
  // A new observation profile is not a new birth or another starting gift.
  h.sketchbook.paper=0;h.smoking.tobacco=0;

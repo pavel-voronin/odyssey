@@ -1,3 +1,4 @@
+import {settleReturnCare,returnCareHeroAttention,returnCareHeroAction} from './modules/return-care.js';
 import {returnPerson,returnedBodyTick} from './modules/return-person.js';
 import {nativeGameHunt} from './modules/native-game-hunt.js';
 import {birthMeatKnowledge} from './modules/meat-state.js';
@@ -307,7 +308,7 @@ export function random(s) {
 const roll = (s, n) => Math.floor(random(s) * n);
 installMigrationEmployment((s,a)=>['harvest','medicine','repair','records','market'].some(job=>actualService(s,a,'employment',{job}).available));
 installPaperFireHandler((s,a,source)=>damagePaperFromSource(s,a,source,{log}));
-function context(s, stream) { return { returnPerson:(world,p,b,task,relic)=>returnPerson(world,p,b,task,relic,context(world,'return-ritual')),nativeGameHunt,expectedLoss,birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { collectForCare:collect,returnPerson:(world,p,b,task,relic)=>returnPerson(world,p,b,task,relic,context(world,'return-ritual')),nativeGameHunt,expectedLoss,birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero?.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   if(!s.hero){if(populationState(s)&&s.areas[area])populationEvent(s,{kind:type,area,actors:[],text});return;}
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
@@ -875,7 +876,7 @@ function npcVictory(s,a,enemy,p){
  if(enemy.items?.length){cacheItems(s,enemy.items,{area:a.id,x:enemy.x,leftBy:p.id,name:'Перехваченная поклажа'});enemy.items=[];}
 }
 function worldTick(s) {
-  returnedBodyTick(s,context(s,'return-ritual'));
+  returnedBodyTick(s,context(s,'return-ritual'));settleReturnCare(s);
   meatWorldTick(s);
   establishEcology(s,context(s,'local-ecology'));
   harvestFailureTick(s,context(s,'harvest-failure'));
@@ -1015,7 +1016,7 @@ export function observeExistingPerson(s,person){
  return observeDetailedActor(s,person);
 }
 function actObserved(s) {
- const h=s.hero,need=biologicalNeed(s,h);let urgent=need.critical;
+ const h=s.hero,need=biologicalNeed(s,h);let urgent=need.critical;if(!urgent)returnCareHeroAttention(s,context(s,'return-ritual'));
   if(!need.critical){musicTick(s,context(s,'camp-music'));
   petTrainingTick(s);
   if(h.petPassage?.lastActionTick===s.tick){h.lastAction='companion';return s;}
@@ -1073,14 +1074,14 @@ function actObserved(s) {
   }
   adaptLimbPlan(s,context(s,'limb-loss'));
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
-  if(woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
+  if(s.people[h.lineage].returnEpisode?.form!=='skeleton'&&woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
   if(!need.critical){if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(rivalryTurn(s,context(s,'craft-rivalry')))return s;
   noticeCaravan(s,context(s,'caravans'));
   // Healing is an autonomous choice; herbs promised to a healer are kept if possible.
-  if (h.hp < h.maxHp * .48 && h.inventory.herbs > 0 && activeQuest(h)?.kind !== 'herbs') {
+  if (!s.people[h.lineage].returnEpisode && h.hp < h.maxHp * .48 && h.inventory.herbs > 0 && activeQuest(h)?.kind !== 'herbs') {
     h.inventory.herbs--; h.hp = Math.min(h.maxHp, h.hp + 9); h.lastAction = 'heal'; log(s, 'Герой прикладывает лунную траву к ране. Знание леса помогает выжить.', 'heal'); return s;
   }
   if(materialOfferTurn(s,s.people[h.lineage],context(s,'material-delivery')))return s;
@@ -1091,7 +1092,7 @@ function actObserved(s) {
   if(!holdWoundRest(s)&&balanceIntentions(s,{...context(s,'intention-balance'),planQuest:(world,q)=>planQuest(world,q,context(world,'quests'))}))return s;
   if(!h.goal?.intention&&respondAid(s,context(s,'personal-aid')))return s;
   if(h.goal?.kind==='leisure'&&h.goal.signals!==undefined&&h.goal.signals!==quietSignals(s))h.goal=null;
-  urgent = groupNeed==='rest'||h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23;
+  urgent = groupNeed==='rest'||!s.people[h.lineage].returnEpisode&&h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23;
   if(!urgent&&h.hunger<=70)navigationToolPlan(s,context(s,'navigation-tools'));
   if(!urgent)actorMaterialDeliveryPlan(s,context(s,'material-delivery'));
   if(!h.goal||h.goal.kind==='provision')collectionPlan(s,context(s,'collections'),{urgentOnly:true});
@@ -1244,6 +1245,7 @@ function actObserved(s) {
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
   else if(g.kind.startsWith('familyPair'))execute('familyHeroAction',()=>familyHeroAction(s,g,context(s,'families')));
+  else if(g.kind.startsWith('returnCare'))execute('returnCareHeroAction',()=>returnCareHeroAction(s,g,context(s,'return-ritual')));
   else if(g.kind.startsWith('meat'))execute('meatHeroAction',()=>meatHeroAction(s,g,context(s,'game-meat')));
   else if(g.kind==='campaignDecide')execute('campaignHeroAction',()=>campaignHeroAction(s,g,context(s,'limited-campaigns')));
   else if(g.kind.startsWith('council'))execute('councilHeroAction',()=>councilHeroAction(s,g,context(s,'active-councils')));
@@ -1321,5 +1323,3 @@ export function restore(text) {
 }
 
 import {walkingEnergy,legacyArmorDefense,hasArmor} from './modules/armor.js';
-
-
