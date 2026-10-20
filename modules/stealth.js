@@ -1,3 +1,4 @@
+import {acceptedServiceRole} from './service-mask-state.js';
 import {stealthOn,stealthBody,stealthMemory,guardReady,activeGuard,guardAway,guardSense,seesGuard,walkNoise} from './stealth-state.js';
 import {physicalDistance,areaStep,areaScale} from '../geometry.js';
 import {recordPracticalStealth} from './skill-branches.js';
@@ -13,7 +14,7 @@ export function scanGuardPost(s,p){
 function rememberGuard(s,p,guard){if(!seesGuard(s,p.id,guard))return;const m=stealthMemory(p),q=guard.guardWatch;let k=m.known.find(k=>k.guard===guard.id);if(!k){k={guard:guard.id,name:guard.name,area:guard.area,x:guard.x,seen:s.tick,sawAway:false,awaySeen:null,post:q.post.id,postSerial:q.post.serial,phase:q.phase};m.known.push(k);if(m.known.length>16)m.known.shift();}if(k.post!==q.post.id)Object.assign(k,{sawAway:false,awaySeen:null,post:q.post.id,postSerial:q.post.serial});Object.assign(k,{area:guard.area,x:guard.x,seen:s.tick,phase:q.phase});if(guardAway(s,q)){k.sawAway=true;k.awaySeen=s.tick;}}
 export function noticeGuard(s,guard,id,sense,mode,x){
  const q=guard.guardWatch;if(sense.seen){let n=q.notices.find(n=>n.actor===id);if(!n){n={actor:id,area:guard.area,x,at:s.tick,kind:'seen',answered:null};q.notices.push(n);if(q.notices.length>16)q.notices.shift();}Object.assign(n,{area:guard.area,x,at:s.tick,kind:'seen'});}
- if(['quiet','wait'].includes(mode)&&(sense.seen||sense.heard)){q.call={at:s.tick,area:guard.area,x:guard.x,text:'Кто там?'};q.search={actor:sense.seen?id:null,area:guard.area,x,at:s.tick,until:s.tick+24,steps:0,kind:sense.seen?'seen':'heard'};history(q,s,'suspicion',{actor:sense.seen?id:null,x});}
+ if(!acceptedServiceRole(s,guard,id)&&['quiet','wait'].includes(mode)&&(sense.seen||sense.heard)){q.call={at:s.tick,area:guard.area,x:guard.x,text:'Кто там?'};q.search={actor:sense.seen?id:null,area:guard.area,x,at:s.tick,until:s.tick+24,steps:0,kind:sense.seen?'seen':'heard'};history(q,s,'suspicion',{actor:sense.seen?id:null,x});}
 }
 function closePass(s,p,status){const m=p.stealth,a=m?.active;if(!a)return null;const r={...a,status,tick:s.tick,area:a.area,actor:p.id};delete r.knownCaught;m.active=null;m.lastAt=s.tick;m.passes.push(r);if(status==='safe'&&r.risk&&r.quietSteps>=3)recordPracticalStealth(s,p,r);if(m.passes.length>24){const i=m.passes.findIndex(r=>!r.skillCredits?.some(c=>c.branch==='stealth'));m.passes.splice(i<0?2:i,1);}return r;}
 export function leaveStealthArea(s,id){if(!stealthOn(s))return;const p=s.people[id];if(p?.stealth?.active)closePass(s,p,'left-area');}

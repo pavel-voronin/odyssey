@@ -1,3 +1,4 @@
+import {serviceRoleHeroPlan,serviceRoleHeroAction} from './modules/service-masks.js';import {serviceSignAction} from './modules/service-sign.js';
 import {cargoInquiryHeroPlan,cargoInquiryHeroAction} from './modules/cargo-inquiries.js';
 import {hobbyHeroPlan,hobbyHeroAction} from './modules/hobby-supply.js';
 import {farmingHeroPlan,farmingHeroAction} from './modules/farming.js';
@@ -468,6 +469,7 @@ function plan(s) {
   if(offer('willHeroPlan',()=>willHeroPlan(s,context(s,'testaments'))))return planningSpent;
   if(offer('publicRepairHeroPlan',()=>publicRepairHeroPlan(s,context(s,'public-repairs'))))return planningSpent;
   if(offer('diplomacyHeroPlan',()=>diplomacyHeroPlan(s,context(s,'authority-diplomacy'))))return planningSpent;
+  if(offer('serviceRoleHeroPlan',()=>serviceRoleHeroPlan(s,context(s,'service-masks'))))return planningSpent;
   if(offer('decoyPlan',()=>decoyPlan(s,context(s,'noise-decoys'))))return planningSpent;
   if(offer('stealthLessonPlan',()=>stealthLessonPlan(s,context(s,'stealth'))))return planningSpent;
   if(offer('textRecoveryPlan',()=>textRecoveryPlan(s,context(s,'paper-fire'))))return planningSpent;
@@ -1132,6 +1134,8 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(['maskSupply','maskWork'].includes(g.kind))execute('serviceSignAction',()=>serviceSignAction(s,s.people[h.lineage],g,{...context(s,'service-masks'),workspaceAccess:world=>workspaceAccess(world,context(world,'property'))}));
+  else if(['maskPresent','maskAnswer'].includes(g.kind))execute('serviceRoleHeroAction',()=>serviceRoleHeroAction(s,g,context(s,'service-masks')));
   else if(g.kind.startsWith('cargo'))execute('cargoInquiryHeroAction',()=>cargoInquiryHeroAction(s,g,context(s,'cargo-cases')));
   else if(g.kind.startsWith('hobby'))execute('hobbyHeroAction',()=>hobbyHeroAction(s,g,context(s,'hobby-supply')));
   else if(g.kind.startsWith('farm'))execute('farmingHeroAction',()=>farmingHeroAction(s,g,context(s,'farming')));

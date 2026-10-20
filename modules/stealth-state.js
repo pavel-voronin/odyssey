@@ -1,3 +1,4 @@
+import {acceptedServiceRole} from './service-mask-state.js';
 import {enabled} from '../rules.js';
 import {calendar} from '../calendar.js';
 import {physicalDistance} from '../geometry.js';
@@ -31,6 +32,7 @@ export function stealthWalkQuote(s,id,target,{mounted=false}={}){
  const p=s.people[id],b=stealthBody(s,id);if(!stealthOn(s)||!p?.alive||!b||mounted)return {mode:'normal',factor:1,guard:null};const guard=activeGuard(s,b.area),known=guard&&p.stealth?.known.find(k=>k.guard===guard.id&&k.area===b.area&&k.post===guard.guardWatch.post.id),visible=guard&&seesGuard(s,id,guard);if(!guard||guard.id===id||!visible&&!known)return {mode:'normal',factor:1,guard:null};
  const post=guard.guardWatch.post,distance=physicalDistance(s.areas[b.area],b.x,post.x),crosses=(target-post.x)*(b.x-post.x)<0&&physicalDistance(s.areas[b.area],target,post.x)>=8;if(distance>20||!crosses&&!p.stealth?.active)return {mode:'normal',factor:1,guard:guard.id};
  const notice=guard.guardWatch.notices.find(n=>n.actor===id),courage=b.lineage?b.personality.courage:1-(p.agenda.duty||0),cautious=courage<.5,active=p.stealth?.active;
+ if(acceptedServiceRole(s,guard,id))return {mode:'normal',factor:1,guard:guard.id};
  if(visible&&notice&&!notice.answered&&physicalDistance(s.areas[b.area],b.x,guard.x)<=6)return {mode:'greet',factor:0,guard:guard.id};
  if(!cautious||active?.knownCaught)return {mode:'normal',factor:1,guard:guard.id};
  const away=visible&&guardAway(s,guard.guardWatch),quietSafe=!guardSense(s,guard,id,b.x,{quiet:true}).seen;

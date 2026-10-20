@@ -1,3 +1,4 @@
+import {validateRoleNews} from './service-masks.js';
 import {validateCargoNews} from './cargo-news.js';
 import {validateDiplomacyNews} from './diplomacy-news-schema.js';
 export function validateNews(s,fail){
@@ -5,6 +6,7 @@ export function validateNews(s,fail){
  if(registry!==undefined){
   if(registry?.version!==1||!registry.events||typeof registry.events!=='object'||Array.isArray(registry.events))fail('newsEvents');
   for(const [id,e]of Object.entries(registry.events)){
+   if(e?.kind==='role'){validateRoleNews(s,fail,id,e);continue;}
    if(e?.kind==='cargo'){validateCargoNews(s,fail,id,e);continue;}
    if(e?.kind==='diplomacy'){validateDiplomacyNews(s,fail,id,e);continue;}
    const housing=e?.kind==='housing';
