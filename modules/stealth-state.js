@@ -9,7 +9,7 @@ import {packView} from './container-state.js';
 import {stat} from './common.js';
 import {knowsPracticalMethod} from './skill-branches.js';
 export const stealthOn=s=>enabled(s,'stealth')&&enabled(s,'people');
-export function stealthBody(s,id){const h=s.hero.lineage===id?s.hero:s.actorStates?.[id];return selfDrivenActor(s,h)?h:s.people[id];}
+export function stealthBody(s,id){const h=s.hero?.lineage===id?s.hero:s.actorStates?.[id];return selfDrivenActor(s,h)?h:s.people[id];}
 export const stealthMemory=p=>p.stealth ||= {version:1,serial:0,known:[],active:null,passes:[],lesson:null,lastAt:-1,lastMode:'normal'};
 export function guardReady(s,p){return Boolean(p?.alive&&p.agenda?.job==='guard'&&['resident','wandering'].includes(p.status)&&p.area&&s.areas[p.area]&&!p.needs.sleeping&&!p.ailment&&p.needs.energy>=20&&p.health>=(p.maxHealth||100)*.6&&npcController(s,p)==='personal'&&!p.roadTransit&&!p.liftTransit&&!p.fordCrossing);}
 export function activeGuard(s,area){return Object.values(s.people).filter(p=>p.guardWatch?.post?.area===area&&p.area===area&&guardReady(s,p)&&physicalDistance(s.areas[area],p.x,p.guardWatch.post.x)<=24).sort((a,b)=>a.guardWatch.post.at-b.guardWatch.post.at||a.id.localeCompare(b.id))[0]||null;}
@@ -39,4 +39,4 @@ export function stealthWalkQuote(s,id,target,{mounted=false}={}){
  if(visible&&!away&&known?.sawAway&&knowsPracticalMethod(s,id,'stealth')&&quietSafe&&distance>=8&&(active?.waits||0)<8)return {mode:'wait',factor:0,guard:guard.id};
  return away||!visible||quietSafe||logicalLight(s,s.areas[b.area],b.x,b)==='dark'?{mode:'quiet',factor:.5,guard:guard.id}:{mode:'normal',factor:1,guard:guard.id};
 }
-export function stealthRevision(s,g){if(g.kind!=='stealthLesson')return null;return [s.rules.stealth,s.rules['skill-branches'],s.people[s.hero.lineage].stealth,s.people[s.hero.lineage].skillPractice?.stealth];}
+export function stealthRevision(s,g){if(g.kind!=='stealthLesson')return null;return [s.rules.stealth,s.rules['skill-branches'],s.people[s.hero?.lineage].stealth,s.people[s.hero?.lineage].skillPractice?.stealth];}

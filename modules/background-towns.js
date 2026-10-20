@@ -5,7 +5,7 @@ import {detailedActors,selfDrivenActor} from '../actor-projection.js';
 export function civicCandidates(s){
   return Object.values(s.areas).filter(a=>isTown(a)&&(enabled(s,'background-towns')||a.visited));
 }
-export function heroPresent(s,a){return Boolean(s.hero.alive&&!s.hero.life.ended&&s.hero.area===a.id&&!s.hero.transit);}
+export function heroPresent(s,a){return Boolean(s.hero?.alive&&!s.hero.life.ended&&s.hero?.area===a.id&&!s.hero.transit);}
 export function areaObservation(s,a,prefix='civic'){
   s.society.nextRecord ??=0;
   const detailed=detailedActors(s).filter(h=>selfDrivenActor(s,h)&&localContact(s,h.lineage,a.id)),candidates=new Set();
@@ -20,7 +20,7 @@ export function areaObservation(s,a,prefix='civic'){
 export function civicObservation(s,a){return enabled(s,'background-towns')?areaObservation(s,a):{};}
 export function knownWorldEvent(s,event){
   // Legacy entries were already exposed; do not erase previously visible history.
-  return event.knownBy===undefined||Array.isArray(event.knownBy)&&event.knownBy.includes(s.hero.lineage)||event.witnesses?.includes(s.hero.lineage);
+  return event.knownBy===undefined||Array.isArray(event.knownBy)&&event.knownBy.includes(s.hero?.lineage)||event.witnesses?.includes(s.hero?.lineage);
 }
 export function civicDestinations(s,a){
   if(!enabled(s,'background-towns'))return Object.values(s.areas).filter(b=>isTown(b)&&b.visited&&b.id!==a.id&&b.era===a.era);

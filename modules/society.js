@@ -26,12 +26,12 @@ export function civicArea(s,a){
 }
 export function initializeSociety(s,h){
   s.society ||= {events:[],journeys:[],orders:[],nextEvent:72,nextEnemy:0};s.society.orders ||= [];
-  h.civic ||= {authority:0,holdings:[],lastDecision:0};
+  if(h)h.civic ||= {authority:0,holdings:[],lastDecision:0};
 }
 function record(s,a,text,ctx,kind='world'){
   const event={tick:s.tick,area:a.id,text,kind,...civicObservation(s,a)};s.society.events.unshift(event);if(s.society.events.length>160)s.society.events.length=160;
   s.changes.push({tick:s.tick,text,...(event.knownBy?{id:event.id,area:a.id,knownBy:[...event.knownBy]}:{})});
-  if(enabled(s,'background-towns')?heroPresent(s,a):a.id===s.hero.area||s.hero.memory.places.includes(a.id)&&s.tick%144===0)ctx.log(s,text,kind);
+  if(enabled(s,'background-towns')?heroPresent(s,a):a.id===s.hero?.area||s.hero.memory.places.includes(a.id)&&s.tick%144===0)ctx.log(s,text,kind);
   return event;
 }
 function resident(s,a){return a.population?.map(id=>s.people[id]).find(p=>p?.alive&&p.status==='resident'&&p.area===a.id);}
@@ -132,7 +132,7 @@ export function societyTick(s,ctx){
     s.society.nextEvent=s.tick+72;
   }
 }
-export function civicWork(s,job,ctx,workplace=s.areas[s.hero.area]){
+export function civicWork(s,job,ctx,workplace=s.areas[s.hero?.area]){
   const a=workplace;if(!a.civic||!enabled(s,'events'))return;
   a.prosperity=clamp(a.prosperity+2,0,100);
   if(job==='medicine'){a.civic.medicine=clamp(a.civic.medicine+10,0,100);const p=resident(s,a);if(p?.ailment){const maximum=p.maxHealth||100;p.health=Math.min(maximum,p.health+20);if(p.health>=maximum*.85){p.ailment=null;a.civic.crisis=null;meetPerson(s,p.id,ctx,5);ctx.log(s,`${p.name} выздоравливает благодаря работе героя.`,'heal');}}}

@@ -32,7 +32,7 @@ export function personNeeds(s,p,ctx,adapter=null){
   }
   }
   if(p.health<=0){
-    if(!p.health){p.alive=false;p.status='dead';p.died=s.tick;p.deathCause='Голод';ctx.dropRemains?.(s,p,'носитель погиб');a=s.areas[p.area];if(adapter?.grave!==false&&p.area===a.id)a.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x||42});if(adapter?.onDeath)adapter.onDeath(a);else{s.changes.push({tick:s.tick,text:p.name+' умер от голода.'});if(s.hero.area===p.area)ctx.log(s,p.name+' не пережил голод.','loss');}recordPersonRemains(s,p);return true;}
+    if(!p.health){p.alive=false;p.status='dead';p.died=s.tick;p.deathCause='Голод';ctx.dropRemains?.(s,p,'носитель погиб');a=s.areas[p.area];if(adapter?.grave!==false&&p.area===a.id)a.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x||42});if(adapter?.onDeath)adapter.onDeath(a);else{s.changes.push({tick:s.tick,text:p.name+' умер от голода.'});if(s.hero?.area===p.area)ctx.log(s,p.name+' не пережил голод.','loss');}recordPersonRemains(s,p);return true;}
   }
   if((n.energy<25||n.sleeping)&&adapter?.sleep!==false&&!adapter?.onlyUpkeep){
     n.sleeping=true;n.energy=Math.min(100,n.energy+8);if(n.energy>=(biologicalNeed(s,p).food?16:40)){n.sleeping=false;n.sleeps++;}return true;

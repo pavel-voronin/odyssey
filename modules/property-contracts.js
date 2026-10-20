@@ -7,9 +7,9 @@ import {reservedWorkshop,workshopContract} from './workshop-contract-state.js';
 const active=s=>enabled(s,'property')&&enabled(s,'property-contracts');
 const at=(s,c)=>s.areas[c.area]?.objects.find(o=>o.id===c.property&&o.kind==='workshop');
 const present=(s,id,area)=>{const p=s.people[id];return p?.alive&&p.status==='resident'&&p.area===area?p:null;};
-export function initializePropertyContracts(s,h){s.propertyContracts ||= {};s.nextPropertyContract ??=0;s.propertyContractClock ??=s.tick;h.property.contract ??=null;h.property.claims ||= [];}
-function note(s,c,text,ctx){c.history.push({tick:s.tick,text});if(c.history.length>16)c.history.shift();if(c.buyer===s.hero.lineage)ctx.log(s,text,'property');}
-function buyerActor(s,c){return s.actorStates?.[c.buyer]||(s.hero.lineage===c.buyer?s.hero:null);}
+export function initializePropertyContracts(s,h){s.propertyContracts ||= {};s.nextPropertyContract ??=0;s.propertyContractClock ??=s.tick;if(h){h.property.contract ??=null;h.property.claims ||= [];}}
+function note(s,c,text,ctx){c.history.push({tick:s.tick,text});if(c.history.length>16)c.history.shift();if(c.buyer===s.hero?.lineage)ctx.log(s,text,'property');}
+function buyerActor(s,c){return s.actorStates?.[c.buyer]||(s.hero?.lineage===c.buyer?s.hero:null);}
 function release(s,c){const o=at(s,c);if(o?.contract===c.id)o.contract=null;const h=buyerActor(s,c);if(h?.property.contract===c.id)h.property.contract=null;}
 function claim(s,c,reason,ctx){
   c.claimAmount=Math.max(c.credit||0,c.completed?c.creditValue:0,c.materials||0);c.paidClaim ||= 0;c.status=c.claimAmount?'claim':'cancelled';c.reason=reason;c.changed=s.tick;release(s,c);
@@ -29,12 +29,12 @@ export function propertyContractsTick(s,ctx){
     if(!['active','performed','credited'].includes(c.status))continue;
     const o=at(s,c),buyer=s.people[c.buyer],seller=s.people[c.seller];
     if(!o||o.owner!==c.seller){claim(s,c,'собственник изменился',ctx);continue;}
-    if(!buyer?.alive||!seller?.alive||s.hero.lineage===c.buyer&&s.hero.life.ended||s.lives.some(l=>l.lineage===c.buyer)){claim(s,c,'история одной из сторон завершилась',ctx);continue;}
+    if(!buyer?.alive||!seller?.alive||s.hero?.lineage===c.buyer&&s.hero.life.ended||s.lives.some(l=>l.lineage===c.buyer)){claim(s,c,'история одной из сторон завершилась',ctx);continue;}
     if(c.status==='active'&&(o.state!=='burned'||o.damagedAt!==c.damageAt)){claim(s,c,'исходное повреждение изменилось',ctx);continue;}
     if(s.tick>c.deadline){claim(s,c,'срок истёк',ctx);continue;}
   }
 }
-export function propertyLifeEnded(s,ctx){for(const c of Object.values(s.propertyContracts||{}))if(c.buyer===s.hero.lineage&&['active','performed','credited'].includes(c.status))claim(s,c,'история исполнителя завершилась',ctx);}
+export function propertyLifeEnded(s,ctx){for(const c of Object.values(s.propertyContracts||{}))if(c.buyer===s.hero?.lineage&&['active','performed','credited'].includes(c.status))claim(s,c,'история исполнителя завершилась',ctx);}
 export function mayRepairProperty(s,o,actor){const c=workshopContract(s,o);return Boolean(active(s)&&c?.status==='active'&&c.buyer===actor&&c.seller===o.owner&&c.damageAt===o.damagedAt&&c.deadline>=s.tick);}
 export function repairMaterials(s,a,o,proof){const c=workshopContract(s,o);if(mayRepairProperty(s,o,proof.payer)&&c.damageAt===proof.damageAt)c.materials=proof.cost;}
 export function workshopRepaired(s,a,o,proof,ctx){

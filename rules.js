@@ -247,8 +247,8 @@ export function initializeRules(s) {
 export function enabled(s, id) { return s.rules?.[id] !== false; }
 export function setModule(s, id, value) {
   if (!MODULES.some(m => m.id === id) || typeof value !== 'boolean') throw new Error('Unknown module setting');
-  initializeRules(s);const changed=s.rules[id]!==value;s.rules[id] = value; s.hero.ruleFlags = s.rules;if(id==='goods-cycle'&&changed)goodsSettingChanged(s,value);
-  if(changed&&!value&&['weapon-styles','equipment','identity'].includes(id))for(const h of new Set([s.hero,...Object.values(s.actorStates||{})]))if(h.weaponWindup){h.weaponLast={...h.weaponWindup,status:'cancelled',ended:s.tick,reason:'Приём отключён.'};delete h.weaponWindup;}
+  initializeRules(s);const changed=s.rules[id]!==value;s.rules[id] = value;if(s.hero)s.hero.ruleFlags = s.rules;if(id==='goods-cycle'&&changed)goodsSettingChanged(s,value);
+  if(changed&&!value&&['weapon-styles','equipment','identity'].includes(id))for(const h of new Set([s.hero,...Object.values(s.actorStates||{})]))if(h?.weaponWindup){h.weaponLast={...h.weaponWindup,status:'cancelled',ended:s.tick,reason:'Приём отключён.'};delete h.weaponWindup;}
 }
 export function moduleRandom(s, id) {
   s.randomStreams ||= {};

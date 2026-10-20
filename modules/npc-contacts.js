@@ -20,11 +20,11 @@ function relativeIds(s,p){
 export function initializeNPCContacts(s,p){initializeNPCKnowledge(s,p);p.navigation.contacts ??=[];}
 export function localContact(s,id,area){
   const p=s.people[id];if(!p?.alive)return null;
-  if(p.liftTransit||p.roadTransit)return null;const aid=p.partyInjury,patientCarrier=s.hero.lineage===aid?.leader?s.hero:s.actorStates?.[aid?.leader];if(aid?.stage==='supported')return patientCarrier?.alive&&!patientCarrier.transit&&patientCarrier.area===area?{person:p,area,x:patientCarrier.x}:null;
+  if(p.liftTransit||p.roadTransit)return null;const aid=p.partyInjury,patientCarrier=s.hero?.lineage===aid?.leader?s.hero:s.actorStates?.[aid?.leader];if(aid?.stage==='supported')return patientCarrier?.alive&&!patientCarrier.transit&&patientCarrier.area===area?{person:p,area,x:patientCarrier.x}:null;
   const leader=actorPartyLeader(s,id),detailed=s.actorStates?.[id];
   if(leader)return !leader.transit&&leader.area===area?{person:p,area,x:leader.x}:null;
   if(selfDrivenActor(s,detailed))return !detailed.transit&&detailed.area===area&&p.status!=='captive'?{person:p,area,x:detailed.x}:null;
-  const heroHere=s.hero?.alive&&!s.hero.life.ended&&!s.hero.transit&&s.hero.area===area;
+  const heroHere=s.hero?.alive&&!s.hero.life.ended&&!s.hero.transit&&s.hero?.area===area;
   if(!s.actorStates?.[s.hero?.lineage]&&(s.hero?.lineage===id||s.hero?.companions?.some(c=>c.person===id)))return heroHere?{person:p,area,x:s.hero.x}:null;
   const carrier=p.status==='caravan'&&s.logistics?.convoys.some(c=>c.person===id&&(c.movement==='physical'||enabled(s,'npc-logistics')));
   const traveller=p.status==='travelling'&&s.society?.journeys.some(j=>j.person===id&&j.movement==='physical');

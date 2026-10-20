@@ -38,7 +38,7 @@ export function supplyArea(s,a){
   initializeFoodSource(s,a);
 }
 export function initializeSupply(s,h){
-  h.inventory.rations ??= 0;h.counters.forage ??= 0;h.counters.meals ??= 0;
+  if(h){h.inventory.rations ??= 0;h.counters.forage ??= 0;h.counters.meals ??= 0;}
   s.logistics ||= {convoys:[],nextConvoy:0,nextDispatch:192,deliveries:0,losses:0};
   s.logistics.history ||= [];
 }

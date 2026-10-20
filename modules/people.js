@@ -147,7 +147,7 @@ function locate(s,p,id,x){
 }
 function tell(s,p,text,ctx){
   p.agenda.knowledge.push({tick:s.tick,text});if(p.agenda.knowledge.length>8)p.agenda.knowledge.shift();
-  if(p.area===s.hero.area)ctx.log(s,text,'npc');
+  if(p.area===s.hero?.area)ctx.log(s,text,'npc');
 }
 function safePath(s,path,p=null){const blocked=new Set(p?fordBlocked(s,p):[]);return path.length>0&&!path.slice(1).some((id,i)=>blocked.has(fordKey(path[i],id)))&&path.every(id=>!s.areas[id].objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved));}
 function begin(p,kind,target,x,remaining=3,extra={}){p.agenda.task={kind,target,x,remaining,...(kind==='work'?{workMode:null}:{}),...extra};}
@@ -262,7 +262,7 @@ function finish(s,p,ctx){
   if(['maskSupply','maskWork'].includes(t.kind)){serviceSignAction(s,p,t,ctx,{inTurn:true});m.task=null;m.due=s.tick+8;return;}
   if(t.kind.startsWith('cargo')){const ok=cargoInquiryAction(s,p,t,{inTurn:true,ctx}),c=s.cargoCases?.byId[t.case];if(t.kind==='cargoTestify'&&!ok&&c?.status==='pending'&&s.tick<c.until){t.remaining=1;m.due=s.tick+8;return;}m.task=null;m.due=s.tick+8;return;}
   if(t.kind.startsWith('hobby')){hobbyAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
-  if(t.kind.startsWith('farm')){farmingAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
+  if(t.kind!=='farm'&&t.kind.startsWith('farm')){farmingAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='titleVisit'){titleVisitAction(s,p,t);m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='refugeSurvey'){const found=finishRefugeSurvey(s,p);tell(s,p,found?`${p.name} обследует участок: здесь есть родник и известное место сбора пищи.`:`${p.name} обследует участок, но надёжной воды не находит.`,ctx);m.task=t.home?{kind:'return',target:t.home,x:42,remaining:1}:null;m.due=s.tick+8;return;}
   if(['decoySupply','decoyWork','decoyRetrieve','decoyGift'].includes(t.kind)){decoyAction(s,p,t,ctx,{inTurn:true});m.task=null;m.due=s.tick+8;return;}
@@ -494,3 +494,4 @@ export function peopleTick(s,ctx){
     p.agenda.task.remaining--;if(p.agenda.task.remaining<=0)finish(s,p,ctx);
   }
 }
+

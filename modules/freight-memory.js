@@ -22,7 +22,7 @@ export function availableFreightDriver(s,p,source,{inTurn=false}={}){
   const rested=!enabled(s,'npc-needs')||!p?.needs?.sleeping&&(p?.needs?.energy??100)>=35&&(p?.needs?.hunger??0)<60;
   return Boolean(p?.alive&&canStartNPCActivity(s,p,{inTurn})&&p.area===source.id&&p.status==='resident'&&p.role!=='ребёнок'&&p.agenda&&!p.agenda.task&&p.health>=(p.maxHealth||100)*.4&&
     (p.agenda.job==='merchant'||p.agenda.duty>=.6)&&rested&&p.personalJourney?.status!=='active'&&
-    !(p.migration&&s.migrations?.[p.migration]?.status==='active')&&!s.hero.companions.some(c=>c.person===p.id)&&
+    !(p.migration&&s.migrations?.[p.migration]?.status==='active')&&!s.hero?.companions.some(c=>c.person===p.id)&&
     !s.society.orders.some(o=>o.person===p.id)&&!s.society.journeys.some(j=>j.person===p.id)&&!s.logistics.convoys.some(c=>c.person===p.id)&&
     !(enabled(s,'property')&&enabled(s,'property-damage')&&source.objects.some(o=>o.kind==='workshop'&&o.owner===p.id&&o.state==='burned')));
 }

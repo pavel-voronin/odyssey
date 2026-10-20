@@ -1,3 +1,7 @@
+import {populationState,populationSnapshot,recordPopulationStep,populationEvent,serializePopulation,restorePopulation} from './modules/population-state.js';
+export {serializePopulation,restorePopulation};
+import {observeNPCPlace} from './modules/npc-knowledge.js';
+import {observeNPCContacts} from './modules/npc-contacts.js';
 import {familyHeroPlan,familyHeroAction,familyWorldTick} from './modules/family-actions.js';
 import {ageDose} from './modules/age-state.js';
 import {councilHeroPlan,councilHeroAction} from './modules/council-actions.js';
@@ -139,7 +143,7 @@ import {countMarket} from './modules/market-metrics.js';
 import {rememberPracticalRole} from './modules/skill-branches.js';
 import {actorView,actorJournal,bindObservedJournal} from './actor-view.js';
 import {initializeSpatial,registerSpatialArea} from './modules/spatial.js';
-import {goodsTick} from './modules/goods.js';
+import {goodsTick,takeGoods} from './modules/goods.js';
 import {craftStudyPlan,craftStudyAction} from './modules/craft-practice.js';
 import {textRecoveryPlan,textRecoveryAction} from './modules/text-recovery.js';
 import {installPaperFireHandler} from './modules/paper-fire-events.js';
@@ -290,7 +294,8 @@ const roll = (s, n) => Math.floor(random(s) * n);
 installMigrationEmployment((s,a)=>['harvest','medicine','repair','records','market'].some(job=>actualService(s,a,'employment',{job}).available));
 installPaperFireHandler((s,a,source)=>damagePaperFromSource(s,a,source,{log}));
 function context(s, stream) { return { birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
-export function log(s, text, type = 'story',area=s.hero.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
+export function log(s, text, type = 'story',area=s.hero?.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
+  if(!s.hero){if(populationState(s)&&s.areas[area])populationEvent(s,{kind:type,area,actors:[],text});return;}
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
   if(observingBodyActive(s)||type==='death'||type==='retirement')rememberMoment(s,s.journal[0]);else s.journal[0].afterLife=true;
   if (s.journal.length > 250) s.journal.length = 250;
@@ -366,11 +371,15 @@ function createHero(s) {
   initializeActorAtlas(s,h);birthLiteracy(s,s.people[h.lineage],h);
   return h;
 }
-export function createWorld(seed = Date.now(), {rules={}}={}) {
+function createWorldBase(seed,rules){
   for(const [id,value] of Object.entries(rules))if(typeof value!=='boolean'||!MODULES.some(m=>m.id===id))throw new Error('Unknown initial module setting');
   const s = { version: SAVE_VERSION, schema:SAVE_SCHEMA, rng: Number(seed) >>> 0, seed: Number(seed) >>> 0, tick: 0, generation: 1, nextArea: 0, areas: {}, journal: [], graves: [], changes: [], merchant: null, hero: null, actorStates:{},observation:null,nextGeneration:1,rules:{...rules} };
   initializeRules(s);
   initializeGeography(s);
+  return s;
+}
+export function createWorld(seed = Date.now(), {rules={}}={}) {
+  const s=createWorldBase(seed,rules);
   const origin=originTemplate(s.seed);s.continents.c0.name=origin[6];
   const road = addArea(s, 'road', origin[0]);
   const town = addArea(s, origin[5], origin[1]);
@@ -387,6 +396,21 @@ export function createWorld(seed = Date.now(), {rules={}}={}) {
   log(s, `${s.hero.name} начинает путь: ${s.areas[s.hero.area].name}, ${s.continents.c0.name}.`, 'birth');
   initializeFacades(s);initializeWoodBarrier(s);syncObservedPerson(s);syncActiveActor(s);bindObservedJournal(s);initializeSpatial(s);
   return s;
+}
+export function createPopulation(seed,{rules={},stocks='seed'}={}){
+ if(!['seed','balanced','uneven'].includes(stocks))throw Error('Unknown initial population stocks');
+ const s=createWorldBase(seed,rules);Object.assign(s,{generation:0,lives:[],population:{version:1,phase:'unobserved',seed:s.seed,options:{stocks},settlements:[],serial:0,events:[]}});initializeSociety(s,null);initializeSupply(s,null);initializeMigrations(s);initializePropertyContracts(s,null);initializeDiplomacy(s);
+ const first=addArea(s,'village','Первый двор'),second=addArea(s,'port','Речной двор'),wood=addArea(s,'forest','Общий лес',1);connect(s,first,second);connect(s,first,wood);s.population.settlements=[first,second];const kin=[createPerson(s,{race:'human',role:'предок',alive:false}),createPerson(s,{race:'human',role:'предок',alive:false})],carriers=[];
+ for(const id of [first,second]){const a=s.areas[id],adults=[];a.civic.food=id===second&&(stocks==='uneven'||stocks==='seed'&&s.seed%3===1)?28:65;for(const job of ['farmer','artisan','merchant']){const p=s.people[createPerson(s,{area:id,parents:job==='merchant'?kin:[],alive:true,role:'житель',culture:a.culture},{initialJob:job})];p.agenda.due=8;p.agenda.duty=job==='merchant'?.8:.65;p.needs.hunger=job==='farmer'?45:job==='artisan'?25:15;p.needs.energy=job==='merchant'?80:job==='farmer'?70:95;if(job==='merchant')carriers.push(p);adults.push(p);a.population.push(p.id);if(job==='artisan'&&a.civic.tools>0){a.civic.tools--;p.agenda.tools=1;}}
+  const child=createPerson(s,{area:id,parents:adults.slice(0,2).map(p=>p.id),alive:true,role:'ребёнок',culture:a.culture});a.population.push(child);
+ }
+ const carrier=carriers[0],at=s.areas[second];s.areas[first].population=s.areas[first].population.filter(id=>id!==carrier.id);at.population.push(carrier.id);carrier.area=second;carrier.status='wandering';carrier.agenda.task={kind:'return',target:first,x:42,remaining:1,home:first,knownNavigation:true};const portions=takeGoods(s,at,'food',2,{flow:'exported',reason:'origin-carrier-provisions',actor:carrier.id});carrier.roadSupplies={food:portions,medicine:0};s.population.carrier=carrier.id;s.population.originTrip={person:carrier.id,home:first,area:second,kind:'return',provisions:{source:second,food:portions}};
+ for(const p of Object.values(s.people))if(p.alive&&p.area){observeNPCPlace(s,p);observeNPCContacts(s,p);observeFreightActor(s,p);}
+ for(const id of [first,second]){const a=s.areas[id];populationEvent(s,{kind:'origin',area:id,actors:[...a.population],stocks:{...a.civic},people:a.population.map(person=>({person,job:s.people[person].agenda.job,tools:s.people[person].agenda.tools}))});}s.merchant={name:'Сава',area:first,destination:null,arrival:0,nextMove:75,stock:3,serviceStock:{version:1,gear:2,medicine:1}};initializeSpatial(s);return s;
+}
+export function advancePopulation(s){
+ if(!populationState(s)||s.hero!==null||Object.keys(s.actorStates).length||s.observation!==null)throw Error('Only an unobserved population can use the world-only clock');const before=populationSnapshot(s);s.tick++;s.actorFacts={tick:s.tick,events:[]};initializeInteriors(s);initializeLodging(s);ageWorldTick(s);
+ nativeBodyTick(s);worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);invalidateNPCControl(s);noticeAuthorityDeaths(s);clinicalWorldTick(s);familyWorldTick(s);recordPopulationStep(s,before);return s;
 }
 function enter(s, id) {
   leaveStealthArea(s,s.hero.lineage);
@@ -822,7 +846,7 @@ function npcVictory(s,a,enemy,p){
 function worldTick(s) {
   harvestFailureTick(s,context(s,'harvest-failure'));
   earthquakesTick(s,context(s,'earthquakes'));
-  woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p),view=h?actorView(s,h):s.hero.lineage===p.id?s:null;if(view)log(view,kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:kind==='infected'?`${w.label}: загрязнённая рана нагноилась.`:kind==='infection-changed'?`${w.label}: состояние инфекции изменилось, тяжесть ${w.infection.severity}.`:kind==='infection-resolved'?`${w.label}: местное нагноение прошло; восстановление самой раны продолжается.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount,damage){
+  woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p),view=h?actorView(s,h):s.hero?.lineage===p.id?s:null;if(view)log(view,kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:kind==='infected'?`${w.label}: загрязнённая рана нагноилась.`:kind==='infection-changed'?`${w.label}: состояние инфекции изменилось, тяжесть ${w.infection.severity}.`:kind==='infection-resolved'?`${w.label}: местное нагноение прошло; восстановление самой раны продолжается.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount,damage){
    const infection=damage?.sources.some(r=>r.kind==='infection'),mixed=infection&&damage.sources.some(r=>r.kind==='bleeding'),cause=infection?(mixed?'Осложнения загрязнённой кровоточащей раны':'Тяжёлое нагноение раны'):'Кровопотеря из незакрывшейся раны';
    if(h){const view=actorView(s,h);h.hp=Math.max(0,h.hp-amount);if(h.hp===0)die(view,{kind:'condition',name:cause});syncActiveActor(view);return;}
    const leader=detailedActors(s).find(h=>h.alive&&h.companions.some(c=>c.person===p.id)),c=leader?.companions.find(c=>c.person===p.id);
@@ -864,7 +888,7 @@ function worldTick(s) {
       const dest = towns[roll(s, towns.length)];
       if(enabled(s,'service-access')){
         for(const h of detailedActors(s))if(selfDrivenActor(s,h)&&!h.transit&&h.area===m.area){h.memory.merchant=dest.id;log(actorView(s,h),`Сава собирает товары и уезжает в ${dest.name}.`,'world');}
-      }else if(!s.hero.transit&&s.hero.area===m.area)log(s,`Сава собирает товары и уезжает в ${dest.name}.`,'world');
+      }else if(s.hero&&!s.hero.transit&&s.hero.area===m.area)log(s,`Сава собирает товары и уезжает в ${dest.name}.`,'world');
       const travelTime = Math.max(7, routeDistance(s,route(s,m.area,dest.id))/100*18);
       m.destination = dest.id; m.area = null; m.arrival = s.tick + travelTime;
     } else m.nextMove = s.tick + 35;
@@ -891,18 +915,22 @@ function archiveNPCObservers(s){for(const h of detailedActors(s))if(h.actorMode=
  archiveLife(view,'dead',cause,{ended,recordedAt:late?s.tick:undefined,wealthBasis:late?'recorded-estate':undefined});
  openInheritance(view,h,null,context(view,'finances'));
 }}
+function nativeBodyTick(s){
+ if(s.tick%8===0)for(const p of Object.values(s.people))if(p.alive&&!selfDrivenActor(s,p.id)){personNeeds(s,p,context(s,'people'),{onlyUpkeep:true,area:actorPartyLeader(s,p.id)?.area});const enemy=personEnemy(s,p);if(enemy&&p.enemyBody.stage==='hostile'){enemy.hp=p.health;enemy.alive=p.alive;if(!p.alive){enemy.resolved=true;p.enemyBody.stage='dead';}}}
+}
 function ageWorldTick(s){
  for(const p of Object.values(s.people)){
   const dose=ageDose(s,p);if(!dose)continue;
   const h=s.actorStates[p.id],maximum=p.maxHealth||100,ceiling=Math.max(0,maximum*(100-dose.loss)/100);
   if(h&&selfDrivenActor(s,h)&&h.alive){const view=actorView(s,h),before=h.hp;h.hp=Math.min(h.hp,h.maxHp*(100-dose.loss)/100);if(h.hp<=0)die(view,{name:'Старость'},{kind:'old-age',damage:before,hpBefore:before});syncActiveActor(view);}
   else {p.health=Math.min(p.health,ceiling);const leader=actorPartyLeader(s,p.id),companion=leader?.companions.find(c=>c.person===p.id);if(companion){const target=companion.maxHp*(100-dose.loss)/100;if(companion.hp>target)hurtCompanion(actorView(s,leader),companion,companion.hp-target,context(actorView(s,leader),'age'),'old-age');}
-   if(p.health<=0&&p.alive){p.alive=false;p.health=0;p.status='dead';p.died=s.tick;p.deathCause='Старость';context(s,'age').dropRemains(s,p,'носитель умер от старости');const area=s.areas[p.area];if(area)area.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x??42});recordPersonRemains(s,p);s.changes.push({tick:s.tick,text:p.name+' умирает от старости.'});if(p.area===s.hero.area)log(s,p.name+' умирает от старости.','loss');}
+   if(p.health<=0&&p.alive){p.alive=false;p.health=0;p.status='dead';p.died=s.tick;p.deathCause='Старость';context(s,'age').dropRemains(s,p,'носитель умер от старости');const area=s.areas[p.area];if(area)area.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x??42});recordPersonRemains(s,p);s.changes.push({tick:s.tick,text:p.name+' умирает от старости.'});if(p.area===s.hero?.area)log(s,p.name+' умирает от старости.','loss');}
    const enemy=personEnemy(s,p);if(enemy&&p.enemyBody.stage==='hostile'){enemy.hp=p.health;enemy.alive=p.alive;if(!p.alive){enemy.resolved=true;p.enemyBody.stage='dead';}}
   }
  }
 }
 export function advanceWorld(s) {
+ if(populationState(s))throw new Error('Use the unobserved population clock before observation');
  if(rootWorld(s)!==s)throw new Error('Only the shared world advances time');
  syncNPCActors(s);bindObservedJournal(s);
  initializeSpatial(s);
@@ -912,7 +940,7 @@ export function advanceWorld(s) {
  for(const h of Object.values(s.actorStates)){h.speech='';if(selfDrivenActor(s,h))h.lastAction='idle';}
  ageWorldTick(s);
  for(const h of detailedActors(s))if(selfDrivenActor(s,h)&&h.alive){const view=actorView(s,h);bodyTick(view,context(view,'body'));syncActiveActor(view);}
- if(s.tick%8===0)for(const p of Object.values(s.people))if(p.alive&&!selfDrivenActor(s,p.id)){personNeeds(s,p,context(s,'people'),{onlyUpkeep:true,area:actorPartyLeader(s,p.id)?.area});const enemy=personEnemy(s,p);if(enemy&&p.enemyBody.stage==='hostile'){enemy.hp=p.health;enemy.alive=p.alive;if(!p.alive){enemy.resolved=true;p.enemyBody.stage='dead';}}}
+ nativeBodyTick(s);
  worldTick(s);settleRemainsCarriers(s,context(s,'remains-carry'));buildingControlTick(s);horseWorldTick(s);syncWagons(s);ferryWorldTick(s,context(s,'ferry'));syncEnemyPeople(s);syncNPCActors(s);archiveNPCObservers(s);invalidateNPCControl(s);
  const actors=detailedActors(s);
  for(const h of actors){
@@ -1254,3 +1282,5 @@ export function restore(text) {
 }
 
 import {walkingEnergy,legacyArmorDefense,hasArmor} from './modules/armor.js';
+
+
