@@ -1,3 +1,4 @@
+import {WARM_TICKS,LONG_HISTORY_TICKS} from './modules/preparation-state.js';
 import {startBrowserWorld,requestGeneration,generateInBrowser} from './generation-client.js';
 import {observationOriginHTML} from './observation-origin-sheet.js';
 import {clinicalHTML} from './clinical-sheet.js';
@@ -138,7 +139,7 @@ import {sceneCamera,cameraPoint} from './scene-camera.js';
 const $ = id => document.getElementById(id);
 function eventDate(e,full=false){const a=state.areas[e.area]||{type:'road',continent:'c0',era:0};return full?dateLabel(state,e.tick,a):dateStamp(state,e.tick,a);}
 let roadView='map';try{if(localStorage.getItem(SAVE_KEY+'-road-view')==='scene')roadView='scene';}catch{}
-const startup=await startBrowserWorld().catch(e=>{ $('game-shell').hidden=true;$('preparation-panel').hidden=false;$('preparation-label').textContent='Не удалось открыть мир. Исходное сохранение оставлено без изменений. '+e.message;for(const id of ['preparation-pause','preparation-resume','preparation-plain','preparation-progress'])$(id).hidden=true;throw e;});
+const startup=await startBrowserWorld().catch(e=>{ $('game-shell').hidden=true;$('preparation-panel').hidden=false;$('preparation-label').textContent='Не удалось открыть мир. Исходное сохранение оставлено без изменений. '+e.message;for(const id of ['preparation-pause','preparation-resume','preparation-plain','preparation-progress','preparation-observe','preparation-arrival'])$(id).hidden=true;throw e;});
 let state=startup.state, tab='hero',saveProblem='',audioContext,soundEnabled=false,firstVisit=startup.fresh,generating=false;
 const scene = new Scene($('scene'),{onCameraFrame:renderEffects,roadView});
 let savedClock;
@@ -578,9 +579,10 @@ $('run-until-death').addEventListener('click',()=>startFast(true));
 $('sound').addEventListener('click', () => { soundEnabled = !soundEnabled; $('sound').classList.toggle('enabled', soundEnabled); $('sound').textContent = soundEnabled ? 'Звук: вкл.' : 'Звук: выкл.'; $('sound').setAttribute('aria-label', soundEnabled ? 'Выключить звук' : 'Включить звук'); $('sound').setAttribute('aria-pressed', String(soundEnabled)); chime(); });
 $('reset').addEventListener('click', () => { $('settings-dialog').close(); $('reset-dialog').showModal(); });
 $('cancel-reset').addEventListener('click', () => $('reset-dialog').close());
+$('reset-prehistory').addEventListener('change',()=>{$('reset-history-length').disabled=!$('reset-prehistory').checked;});
 $('confirm-reset').addEventListener('click',async()=>{
  if(generating)return;releaseFast();persist();generating=true;$('reset-dialog').close();
- try{const job=requestGeneration(localStorage,Date.now(),{warm:$('reset-prehistory').checked});const result=await generateInBrowser(job);state=result.state;fastNotice='';lifeReview=false;clearSpeech(speechMemory);resetClock();render();}
+ try{const job=requestGeneration(localStorage,Date.now(),{warm:$('reset-prehistory').checked,duration:$('reset-history-length').value==='long'?LONG_HISTORY_TICKS:WARM_TICKS});const result=await generateInBrowser(job);state=result.state;fastNotice='';lifeReview=false;clearSpeech(speechMemory);resetClock();render();}
  catch(e){saveProblem=e.message;resetClock();render();}finally{generating=false;}
 });
 $('export').addEventListener('click', () => {
