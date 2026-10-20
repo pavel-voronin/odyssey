@@ -30,7 +30,7 @@ export function itemLocation(s,item,holder){
  cargoMoved(s,item,holder);
  if(item?.textCopy&&holder.kind==='person'&&!(item.libraryLoan?.version===1&&item.libraryLoan.returned===null||item.libraryTheft?.version===1&&item.libraryTheft.returned===null))item.textCopy.owner=holder.id;else if(item?.textCopy&&holder.kind==='merchant')item.textCopy.owner='merchant';
  if(!item||!originalsOn(s)&&!item.physical&&!item.durability&&!containersOn(s))return;
- let container;if(containersOn(s)){if(holder.kind==='person'){const h=s.hero.lineage===holder.id?s.hero:s.actorStates?.[holder.id];container=s.people[holder.id]?.prosthetic?.item===item?'prosthesis/'+holder.id:Object.values(h?.equipment||{}).includes(item)?'equipment/'+holder.id:'pack/'+holder.id;}else if(holder.kind==='mount')container='mount/'+holder.id;else if(holder.kind==='companion')container='pet/'+holder.id;else if(holder.kind==='cache')container='cache/'+holder.area+'/'+holder.object;else if(holder.kind==='merchant')container='merchant/'+holder.id;}item.physical={version:1,holder:{...holder,...(container?{container}:{})},movedAt:s.tick};
+ let container;if(containersOn(s)){if(holder.kind==='person'){const h=s.hero?.lineage===holder.id?s.hero:s.actorStates?.[holder.id];container=s.people[holder.id]?.prosthetic?.item===item?'prosthesis/'+holder.id:Object.values(h?.equipment||{}).includes(item)?'equipment/'+holder.id:'pack/'+holder.id;}else if(holder.kind==='mount')container='mount/'+holder.id;else if(holder.kind==='companion')container='pet/'+holder.id;else if(holder.kind==='cache')container='cache/'+holder.area+'/'+holder.object;else if(holder.kind==='merchant')container='merchant/'+holder.id;}item.physical={version:1,holder:{...holder,...(container?{container}:{})},movedAt:s.tick};
 }
 export function actorItemLocation(s,item,actor=s.hero.lineage){itemLocation(s,item,{kind:'person',id:actor});}
 export function consumeOriginal(s,item,{area,object,reason}){
@@ -39,7 +39,7 @@ export function consumeOriginal(s,item,{area,object,reason}){
 export function cacheItems(s,items,{area=s.hero.area,x=s.hero.x,leftBy=s.hero.lineage,name='Оставленная поклажа'}={}){
  if(!items.length||!s.areas[area])return null;const a=s.areas[area];
  let o=a.objects.find(o=>o.itemOriginals===1&&o.leftBy===leftBy&&o.x===x&&o.kind==='heirloom');
- if(!o){const h=s.actorStates?.[leftBy]||(s.hero.lineage===leftBy?s.hero:null),p=s.people[leftBy],source=h||p;if(!source)return null;source.nextItemCache=(source.nextItemCache||0)+1;o={id:`items-${leftBy}-${source.nextItemCache}`,kind:'heirloom',name,x,items:[],gold:0,taken:false,itemOriginals:1,leftBy};a.objects.push(o);}
+ if(!o){const h=s.actorStates?.[leftBy]||(s.hero?.lineage===leftBy?s.hero:null),p=s.people[leftBy],source=h||p;if(!source)return null;source.nextItemCache=(source.nextItemCache||0)+1;o={id:`items-${leftBy}-${source.nextItemCache}`,kind:'heirloom',name,x,items:[],gold:0,taken:false,itemOriginals:1,leftBy};a.objects.push(o);}
  for(const item of items){if(!o.items.some(i=>i.id===item.id)){o.items.push(item);itemLocation(s,item,{kind:'cache',area,object:o.id});}}
  o.taken=false;return o;
 }
@@ -68,3 +68,4 @@ export function releaseLooseItems(s,p){
  if(p.alive||!items?.length||!s.areas[p.area])return;
  const cache=cacheItems(s,items,{area:p.area,x:p.x??42,leftBy:p.id,name:`Вещи ${p.name}`});if(cache){if(p.estate&&items.some(i=>i.inheritance?.estate===p.estate.id)){cache.estate=p.estate.id;cache.inheritor=p.estate.heir;}p.looseItems=[];if(h?.actorMode==='npc'){h.bag=h.bag.filter(i=>!items.includes(i));for(const key of Object.keys(h.equipment))if(items.includes(h.equipment[key]))h.equipment[key]=null;}}
 }
+

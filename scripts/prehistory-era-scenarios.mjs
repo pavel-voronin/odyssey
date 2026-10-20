@@ -1,0 +1,17 @@
+import {createPopulation,beginPopulationPreparation,advancePreparation,serializePopulation,restorePopulation,observePreparedPopulation,serialize,restore} from '../engine.js';
+import {MODULES} from '../rules.js';
+import {createPerson} from '../modules/lineage.js';
+import {setActorMoney,syncActiveActor} from '../actor-projection.js';
+import {marketWallet} from '../modules/market.js';
+import {buyTextPaper,writeWorkNotice,copyText} from '../modules/texts.js';
+import {triggerEarthquake} from '../modules/earthquakes.js';
+import {DAY_TICKS} from '../calendar-units.js';
+const keep=['lineage','people','npc-control','npc-needs','npc-knowledge','npc-contacts','supply','goods-cycle','local-food','service-access','npc-logistics','background-towns','identity','texts','equipment','containers','earthquakes','world-eras','historical-calendar'];
+export const eraPopulationRules=()=>Object.fromEntries(MODULES.map(m=>[m.id,keep.includes(m.id)]));
+export function eraPopulationFixture(){const s=createPopulation(4,{rules:eraPopulationRules()}),a=s.areas[s.population.settlements[0]],writers=[];for(let i=0;i<2;i++){const id=createPerson(s,{area:a.id,alive:true,role:'житель',race:'human',culture:a.culture,parents:[]},{ageYears:30,initialJob:'scholar'}),p=s.people[id];a.population.push(id);Object.assign(p,{x:42,health:p.maxHealth||100,ailment:null,status:'resident'});Object.assign(p.needs,{energy:100,hunger:0,sleeping:false});p.agenda.task=null;p.agenda.due=1e9;const funded=Math.max(0,12-marketWallet(s,id));a.civic.treasury-=funded;setActorMoney(s,p,marketWallet(s,id)+funded);writers.push(p);}
+ const f={s,a,writers,actions:0},paper=eraComponent(f,()=>buyTextPaper(s,writers[0]));if(!paper)throw Error('No actual native paper');if(!eraComponent(f,()=>writeWorkNotice(s,writers[0],paper.id)))throw Error('No actual native text');f.book=paper;f.work=s.literature.works[paper.textCopy.content];const edge=Object.entries(s.edges).find(([,e])=>[e.a,e.b].includes(s.population.settlements[0])&&[e.a,e.b].includes(s.population.settlements[1]))[0];f.quake=eraComponent(f,()=>triggerEarthquake(s,'c0',{keys:[edge],ctx:{log(){}}}));if(!f.quake)throw Error('No actual world-only quake');s.tick=f.quake.at+DAY_TICKS-1;f.base=serializePopulation(s);return f;
+}
+export function eraComponent(f,fn){if(++f.actions>12)throw Error('Era component budget');f.s.tick++;return fn();}
+export function preparedEra(f,duration=2){const s=restorePopulation(f.base);beginPopulationPreparation(s,{duration});advancePreparation(s,duration);const result=observePreparedPopulation(s,{person:f.writers[0].id});if(!result.ok)throw Error(result.reason);return {s,h:s.hero,p:s.people[result.person],a:s.areas[f.a.id],q:s.people[f.writers[1].id],book:s.hero.bag.find(i=>i.id===f.book.id),work:s.literature.works[f.work.id],actions:f.actions,quake:s.seismic.events[0]};}
+export function booksAcrossEra(){const f=preparedEra(eraPopulationFixture());const fresh=eraComponent(f,()=>buyTextPaper(f.s,f.q));if(!eraComponent(f,()=>writeWorkNotice(f.s,f.q,fresh.id)))throw Error('No new-period text');f.fresh=fresh;const paper=eraComponent(f,()=>buyTextPaper(f.s,f.p));f.copy=eraComponent(f,()=>copyText(f.s,f.p,f.book.id,paper.id));if(!f.copy)throw Error('No actual copy in later period');return f;}
+export function exactEra(s){syncActiveActor(s);const raw=serialize(s);if(serialize(restore(raw))!==raw)throw Error('Era restore changed facts');return raw;}

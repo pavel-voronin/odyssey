@@ -1,0 +1,2 @@
+// A shared date does not make its cause common personal knowledge.
+export function periodCauseKnown(s,person,period){const c=period?.cause;if(!person||!c)return false;if(c.knownBy.includes(person.id)||c.witnesses.includes(person.id))return true;const cause=c.id.startsWith('world-change/')&&s.chronology.worldChanges?.causes['cause/'+c.id.slice(13)];return Boolean(cause&&Object.values(person.news?.known||{}).some(r=>r.source?.id===cause.id&&(r.source.kind==='diplomacy-action'&&r.status==='implemented'||r.source.kind==='clinical-method'&&r.status==='reproduced')));}

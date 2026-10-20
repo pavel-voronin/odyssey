@@ -1,4 +1,4 @@
-import {createWorld,createWarmPopulation,advancePreparation,observePreparedPopulation,serialize,serializePopulation,restorePopulation} from './engine.js';
+import {createWorld,createWarmPopulation,advancePreparation,observePreparedPopulation,serialize,restore,serializePopulation,restorePopulation} from './engine.js';
 import {WARM_TICKS} from './modules/preparation-state.js';
 import {MODULES} from './rules.js';
 
@@ -19,5 +19,5 @@ export async function runGeneration(j,{checkpoint=()=>{},progress=()=>{},yieldFr
   // Mutate a private copy: even a failed domain action leaves the last complete batch intact.
   const next=restorePopulation(j.checkpoint),deadline=performance.now()+12;for(let i=0;i<batch&&next.population.preparation.status!=='ready';i++){advancePreparation(next,1);if(performance.now()>=deadline)break;}s=next;save();
  }
- if(stopped())return {ok:false,paused:true};const observed=observePreparedPopulation(s);if(!observed.ok)return {...observed,unavailable:true};return {ok:true,state:s,raw:serialize(s)};
+ if(stopped())return {ok:false,paused:true};const observed=observePreparedPopulation(s);if(!observed.ok)return {...observed,unavailable:true};const raw=serialize(s);restore(raw);return {ok:true,state:s,raw};
 }

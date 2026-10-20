@@ -1,3 +1,4 @@
+import {validatePeriodDate} from './period-date.js';
 import {validateClinicalText} from './clinical-study-schema.js';
 import {willRecord} from './will-records.js';
 import {copyOrder,draftContent} from './copy-order-state.js';
@@ -9,7 +10,7 @@ export function validateTexts(s,fail){
  if(lib!==undefined){
   if(lib?.version!==1||!integer(lib.serial)||!lib.works||typeof lib.works!=='object'||Array.isArray(lib.works)||Object.keys(lib.works).length>lib.serial)fail('literature');
   for(const [id,w]of Object.entries(lib.works)){
-   const key='literature.work.'+id,n=w?.content,src=w?.source;
+   const key='literature.work.'+id,n=w?.content,src=w?.source;if(w?.dating!==undefined)validatePeriodDate(s,w.dating,w.written,fail,key+'.period');
    if(n?.kind==='testament'){const r=willRecord(s,n.will);if(!r||r.work!==id||w.version!==1||w.id!==id||w.author!==r.owner||w.editor!==r.writer||w.revision!==1||w.parent!==null||w.language!==r.language||w.written!==r.steps[0]?.at||src.kind!=='own-will-statement'||src.observer!==r.owner||src.writer!==r.writer||src.area!==r.area||src.at!==r.started||src.will!==r.id||n.item!==r.item||n.recipient!==r.recipient||n.law!==r.law.id||n.area!==r.area||n.observed!==r.started||n.name!==r.itemName||typeof n.text!=='string'||typeof w.title!=='string')fail(key+'.will');continue;}
    if(n?.kind==='scribal-draft'){const parent=lib.works[w.parent],o=copyOrder(s,src?.order);if(!parent||!o||o.draft!==id||o.content!==parent.id||w.version!==1||w.id!==id||typeof w.title!=='string'||!integer(w.written)||w.written>s.tick||!id.startsWith('text-work/'+parent.author+'/')||w.author!==parent.author||w.editor!==o.master||w.revision!==parent.revision+1||w.written!==o.history[0]?.at||w.language!==parent.language||src.kind!=='scribal-order'||src.observer!==parent.author||src.area!==parent.source.area||src.at!==w.written||src.writer!==o.master||src.item!==o.source||JSON.stringify(n)!==JSON.stringify(draftContent(parent)))fail(key+'.scribal');continue;}
    if(w?.version!==1||w.id!==id||!id.startsWith('text-work/'+w.author+'/')||!s.people[w.author]||w.editor!==w.author||(src?.kind==='checked-market-observation'?w.revision!==(lib.works[w.parent]?.revision||0)+1:w.revision!==1)||w.parent!==null&&n?.kind!=='fragment'&&src?.kind!=='checked-market-observation'||!integer(w.written)||w.written>s.tick||typeof w.language!=='string'||!w.language||typeof w.title!=='string'||src?.observer!==w.author||!s.areas[src?.area]||n?.area!==src.area||typeof n.name!=='string'||typeof n.text!=='string')fail(key);
@@ -46,6 +47,7 @@ export function validateTexts(s,fail){
   const key='text.item.'+item.id;
   if(!m||m.version!==1||m.id!==item.id||!item.id.startsWith('text-sheet/'+m.buyer+'/')||!s.people[m.buyer]||!s.areas[m.area]||!s.areas[m.sourceArea]||m.source!==s.areas[m.sourceArea].goods?.sources?.materials.id||m.paid!==2||!integer(m.created)||m.created>s.tick||!integer(m.stockBefore)||m.stockBefore<1||m.stockAfter!==m.stockBefore-1||item.slot!=='document'||item.stat!=='writing'||item.power!==0||item.rarity!==1||seen.has(item.id)||!item.physical)fail(key);seen.add(item.id);
   if(item.kind==='writingPaper'){if(c!==undefined||item.base!=='paper')fail(key+'.blank');continue;}
+  if(c?.dating!==undefined)validatePeriodDate(s,c.dating,c.written,fail,key+'.period');
   const w=lib?.works[c?.content];
   if(item.kind!=='textCopy'||item.base!=='booklet'||c?.version!==1||!w||c.revision!==w.revision||c.owner!=='merchant'&&!s.people[c.owner]||!s.people[c.writer]||!integer(c.written)||c.written<m.created||c.written<w.written||c.written>s.tick||c.sourceCopy!==null&&(typeof c.sourceCopy!=='string'||c.sourceCopy===item.id)||!['intact','damaged','draft'].includes(c.condition)||item.physical.holder.kind==='person'&&c.owner!==item.physical.holder.id&&!(item.libraryLoan?.version===1&&item.libraryLoan.returned===null||item.libraryTheft?.version===1&&item.libraryTheft.returned===null)||item.physical.holder.kind==='merchant'&&c.owner!=='merchant')fail(key+'.copy');
   if(w.content.kind==='scribal-draft'){const o=copyOrder(s,w.source.order);if(!o||o.paper!==item.id||c.writer!==o.master||c.sourceCopy!==o.source||c.condition==='intact')fail(key+'.scribal-copy');}

@@ -1,3 +1,4 @@
+import {dateNewDocument} from './period-date.js';
 import {rememberCastleAddress} from './castle-state.js';
 import {borrowedReading,stolenReading} from './library-state.js';
 import {literacyOn,registerLiteracy,readingScript,writingScript} from './literacy-state.js';
@@ -18,7 +19,7 @@ const position=(s,p)=>textActor(s,p.id)||localContact(s,p.id,p.area);
 const energy=(s,p)=>textActor(s,p.id)?.energy??p.needs.energy;
 function ready(s,p){const h=textActor(s,p?.id),b=p&&position(s,p);return textsOn(s)&&p?.alive&&b&&!h?.transit&&!h?.combat&&!p.needs.sleeping&&energy(s,p)>=30&&(p.textCraft?.lastActionTick??-1)<s.tick&&(h?h.hp>=h.maxHp*.75&&h.hunger<60:p.health>=(p.maxHealth||100)*.75&&p.needs.hunger<60)?b:null;}
 function spend(s,p,cost){const h=textActor(s,p.id);if(h){h.energy-=cost;h.lastAction='work';}else p.needs.energy-=cost;textMemory(p).lastActionTick=s.tick;}
-function bag(s,p){const h=s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];return h?h.bag:(p.looseItems ||= []);}
+function bag(s,p){const h=s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id];return h?h.bag:(p.looseItems ||= []);}
 export function buyTextPaper(s,p,ctx=null){
  const b=ready(s,p),a=b&&s.areas[b.area];if(!a?.civic||a.interior||!goodsEnabled(s)||marketWallet(s,p.id)<5||physicalDistance(a,b.x,42)>3||heldTexts(s,p.id).filter(i=>i.kind==='writingPaper').length>=2)return null;
  const paper={id:`text-sheet/${p.id}/${(p.textCraft?.serial||0)+1}`,kind:'writingPaper',base:'paper',name:'Чистый лист для записи',slot:'document',stat:'writing',power:0,rarity:1,modifier:'plain',value:0,found:s.tick,foundArea:a.id,creator:p.id,history:[],physical:{version:1,holder:{kind:'person',id:p.id},movedAt:s.tick}};
@@ -30,21 +31,21 @@ export function buyTextPaper(s,p,ctx=null){
 }
 export function inscribe(s,p,paper,work,sourceCopy=null){
  registerLiteracy(s,p,textActor(s,p.id),sourceCopy?'copied-text':'written-text',work.id);
- paper.kind='textCopy';paper.base='booklet';paper.name=work.title;paper.value=2;paper.textCopy={version:1,content:work.id,revision:work.revision,owner:p.id,writer:p.id,written:s.tick,sourceCopy,condition:'intact',damage:null};paper.history.push({tick:s.tick,text:sourceCopy?'Переписано с физического экземпляра; содержание и редакция прежние.':'Автор записал лично наблюдённые сведения.'});actorItemLocation(s,paper,p.id);spend(s,p,2);return paper;
+ paper.kind='textCopy';paper.base='booklet';paper.name=work.title;paper.value=2;paper.textCopy={version:1,content:work.id,revision:work.revision,owner:p.id,writer:p.id,written:s.tick,sourceCopy,condition:'intact',damage:null};dateNewDocument(s,paper.textCopy);paper.history.push({tick:s.tick,text:sourceCopy?'Переписано с физического экземпляра; содержание и редакция прежние.':'Автор записал лично наблюдённые сведения.'});actorItemLocation(s,paper,p.id);spend(s,p,2);return paper;
 }
 export function writeWorkNotice(s,p,paperID){
  const b=ready(s,p),a=b&&s.areas[b.area],paper=heldTexts(s,p?.id).find(i=>i.id===paperID&&i.kind==='writingPaper');
  if(!b||!canWriteText(s,p)||!paper||p.textCraft?.work||!a.civic||a.interior||physicalDistance(a,b.x,42)>3)return null;
  const library=s.literature ||= {version:1,serial:0,works:{}},id=`text-work/${p.id}/${++library.serial}`,available=a.civic.treasury>=12;
  const work={version:1,id,author:p.id,editor:p.id,revision:1,parent:null,written:s.tick,language:p.culture||a.culture||'river',title:'Датированная записка о работе · '+a.name,source:{kind:'own-market-observation',observer:p.id,area:a.id,x:42,at:s.tick},content:{kind:'employment-note',area:a.id,name:a.name,available,observed:s.tick,text:`При осмотре места найма в «${a.name}» ${available?'были средства для оплаты труда':'не хватало средств на оплату труда'}. Это сведения на дату записи, а не обещание будущего заработка.`}};
- library.works[id]=work;textMemory(p).work=id;return inscribe(s,p,paper,work);
+ library.works[id]=dateNewDocument(s,work);textMemory(p).work=id;return inscribe(s,p,paper,work);
 }
 export function writeSequenceManual(s,p,paperID,node){
  const b=ready(s,p),a=b&&s.areas[b.area],paper=heldTexts(s,p?.id).find(i=>i.id===paperID&&i.kind==='writingPaper'),n=sequenceNote(p,node);
  if(!b||!paper||!canWriteText(s,p)||!a.civic||a.interior||physicalDistance(a,b.x,42)>3||!n?.hint?.complete||p.textCraft?.sequenceWorks?.[node])return null;
  const library=s.literature ||= {version:1,serial:0,works:{}},id=`text-work/${p.id}/${++library.serial}`,order=[...n.hint.order];
  const work={version:1,id,author:p.id,editor:p.id,revision:1,parent:null,written:s.tick,language:p.culture||a.culture||'river',title:'Памятка о порядке тяги · '+n.name,source:{kind:'personal-sequence-knowledge',observer:p.id,area:n.area,x:n.x,at:n.hint.learnedAt,basis:{...n.hint.source}},content:{kind:'mechanism-sequence',node:n.node,key:n.key,area:n.area,x:n.x,name:n.name,observed:n.hint.learnedAt,order,complete:true,text:`По узнанным автором сведениям для «${n.name}» нужен порядок: ${order.map(t=>SEQUENCE_NAMES[t]).join(' → ')}. Это запись известного ему способа, не обещание исправности устройства.`}};
- library.works[id]=work;const m=textMemory(p);m.work=id;m.sequenceWorks ||= {};m.sequenceWorks[node]=id;return inscribe(s,p,paper,work);
+ library.works[id]=dateNewDocument(s,work);const m=textMemory(p);m.work=id;m.sequenceWorks ||= {};m.sequenceWorks[node]=id;return inscribe(s,p,paper,work);
 }
 export function copyText(s,p,sourceID,paperID){
  const b=ready(s,p),items=heldTexts(s,p?.id),source=items.find(i=>i.id===sourceID),paper=items.find(i=>i.id===paperID&&i.kind==='writingPaper'),work=textWork(s,source);
@@ -91,7 +92,7 @@ export function recoverText(s,p,targetID,sourceID,paperID){
  if(!enabled(s,'paper-fire')||!b||!w||!paper||c.owner!==p.id||c.condition!=='damaged'||c.damage?.kind!=='paper-fire'||c.salvaged?.cause===c.damage.cause||!canReadText(s,p,w.language)||!canWriteText(s,p,w.language)||activeLoan(target))return null;
  const full=source&&source.id!==target.id&&source.textCopy?.condition==='intact'&&source.textCopy.content===c.content&&source.textCopy.owner===p.id&&!activeLoan(source);
  if(!full&&!c.fireResidue?.info)return null;
- let work=w;if(!full){const lib=s.literature,id='text-work/'+p.id+'/'+(++lib.serial),info=structuredClone(c.fireResidue.info);work={version:1,id,author:p.id,editor:p.id,revision:1,parent:w.id,written:s.tick,language:w.language,title:'Спасённые страницы · '+w.title,source:{kind:'surviving-pages',observer:p.id,area:info.area,at:s.tick,item:target.id,cause:c.damage.cause},content:info};lib.works[id]=work;}
+ let work=w;if(!full){const lib=s.literature,id='text-work/'+p.id+'/'+(++lib.serial),info=structuredClone(c.fireResidue.info);work={version:1,id,author:p.id,editor:p.id,revision:1,parent:w.id,written:s.tick,language:w.language,title:'Спасённые страницы · '+w.title,source:{kind:'surviving-pages',observer:p.id,area:info.area,at:s.tick,item:target.id,cause:c.damage.cause},content:info};lib.works[id]=dateNewDocument(s,work);}
  const result=inscribe(s,p,paper,work,full?source.id:target.id);c.salvaged={at:s.tick,by:p.id,cause:c.damage.cause,result:result.id,source:full?source.id:target.id,mode:full?'full':'fragment'};result.history.push({tick:s.tick,text:full?'Новый экземпляр восстановлен с уцелевшей физической копии.':'Спасённые страницы перенесены на настоящую новую бумагу. Полнота исходного знания утрачена.'});return result;
 }
 function activeLoan(item){return item.libraryLoan?.returned===null||item.libraryTheft?.returned===null;}

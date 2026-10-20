@@ -21,7 +21,7 @@ export function triggerEarthquake(s,zone,{keys=quakeCandidates(s,zone),ctx=null}
   for(const [from,to]of [[e.a,e.b],[e.b,e.a]]){const a=s.areas[from],marker={id:'rupture/'+key+'/'+from,kind:'roadRupture',name:'Разрушенный участок пути',x:Number(to.slice(1))>Number(from.slice(1))?90:10,key,cause:id};const old=a.objects.findIndex(o=>o.id===marker.id);if(old<0)a.objects.push(marker);else a.objects[old]=marker;}
  }
  for(const b of buildings){const a=s.areas[b.area],p=a.facades.profiles.find(p=>p.id===b.id);if(damageStructure(s,a,p,'earthquake'))a.civic.earthquake={cause:id,at:s.tick};}
- s.graphRevision=(s.graphRevision||0)+1;if(ctx&&event.knownBy.includes(s.hero.lineage))ctx.log?.(s,event.text,'earthquake');if(record)finishWorldChange(s,id,{recordOnly:true,newState:'Реальные участки разрушены; доступ и пригодность строений изменились'});return q;
+ s.graphRevision=(s.graphRevision||0)+1;if(ctx&&event.knownBy.includes(s.hero?.lineage))ctx.log?.(s,event.text,'earthquake');if(record)finishWorldChange(s,id,{recordOnly:true,newState:'Реальные участки разрушены; доступ и пригодность строений изменились'});return q;
 }
 export function earthquakesTick(s,ctx={}){
  if(!on(s))return;const t=s.seismic ||= {version:1,created:s.tick,nextAt:s.tick+DAY_TICKS*DAYS_PER_YEAR,serial:0,events:[]};
