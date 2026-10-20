@@ -1,0 +1,11 @@
+import {enabled} from '../rules.js';
+import {boneBody,presentParts} from './anatomy-state.js';
+export const surgeryOn=s=>enabled(s,'surgery')&&enabled(s,'local-wounds');
+export function createShardStock(s,e){if(surgeryOn(s))e.positionAttack.shards={version:1,initial:4,remaining:4,spent:0};}
+export function detachPhysicalShard(s,e,last){const stock=e.positionAttack.shards;if(!stock)return true;if(!stock.remaining)return false;const n=++stock.spent;stock.remaining--;const id=e.id+'/shard/'+n,registry=s.foreignBodies ||= {version:1,byId:{}};registry.byId[id]={version:1,id,source:e.id,number:n,at:s.tick,area:last.area,from:last.from,x:last.to,target:last.actor,material:'stone',state:'spent',embedded:null,removed:null};last.fragment=id;return true;}
+export function embeddableShard(s,p,e){const f=s.foreignBodies?.byId[e.positionAttack?.last?.fragment];return surgeryOn(s)&&!boneBody(p)&&p.race!=='automaton'&&f?.state==='spent'&&f.at===s.tick&&f.target===p.id&&e.positionAttack.last.kind==='shard'?f:null;}
+export function embedShard(s,p,w,e,cause){const f=embeddableShard(s,p,e);if(!f||w.kind!=='cut'||w.loss||w.foreignBody||!presentParts(p).some(([id])=>id===w.part))return false;f.state='embedded';f.embedded={person:p.id,wound:w.id,part:w.part,cause:cause.id,at:s.tick};w.foreignBody=f.id;return true;}
+export const foreignBodyPending=(s,w)=>s.foreignBodies?.byId[w.foreignBody]?.state==='embedded';
+export function settleForeignPart(s,p,w){const f=s.foreignBodies?.byId[w.foreignBody];if(f?.state==='embedded'&&(w.loss||!presentParts(p).some(([id])=>id===w.part))){f.state='discarded';f.removed={at:s.tick,kind:'part-lost',part:w.part};w.foreignBodyRemoved={at:s.tick,kind:'part-lost'};}}
+export function birthSurgicalKnowledge(s,p){if(!surgeryOn(s)||!p.alive||['ребёнок','герой'].includes(p.role)||p.agenda?.job!=='healer')return;p.surgeryKnowledge={version:1,method:'extract-stone-fragment',origin:'initial-healer-training',at:s.tick,source:'occupation/healer',teacher:null};}
+export function recordSurgicalPractice(s,by,p,w){if(!surgeryOn(s)||by.id===p.id)return;const q=by.surgeryPractice ||= {version:1,total:0,receipts:[]};q.total++;q.receipts.push({at:s.tick,patient:p.id,wound:w.id,source:w.lastCause.id});if(q.receipts.length>3)q.receipts.shift();}

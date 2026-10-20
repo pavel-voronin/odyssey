@@ -1,3 +1,4 @@
+import {foreignBodyPending,settleForeignPart} from './foreign-body-state.js';
 import {fracturePhase,fracturePending} from './fracture-state.js';
 import {boneBody} from './anatomy-state.js';
 import {woundCareOn,goodDressing} from './wound-care-state.js';
@@ -13,6 +14,7 @@ export function woundsTick(s,{bleed,changed}={}){
   const current=activity&&s.tick-activity.tick<=(h?1:8),loaded=current&&!activity.rest,rest=current&&activity.rest&&!a?.objects.some(o=>o.kind==='enemy'&&o.alive&&!o.resolved&&Math.abs(o.x-x)*a.length/100<=15),fed=(h?.hunger??p.needs?.hunger??100)<65;
   let blood=0,drain=0;const sources=[];
   for(const w of t.active){
+   settleForeignPart(s,p,w);
    const care=woundCareOn(s),d=care&&w.dressing,load=loaded&&activity.role===w.role;
    if(d&&d.remaining>0){d.age++;const before=d.remaining;d.remaining=Math.max(0,d.remaining-(load?1:0)-(d.age%8===0?1:0));if(before>4&&d.remaining<=4)changed?.(p,w,'worn');}
    let dressed=care&&goodDressing(w);
@@ -21,10 +23,10 @@ export function woundsTick(s,{bleed,changed}={}){
    fracturePhase(s,p,w,{load,rest,fed});
    const infection=infectionPhase(s,p,w,{load,rest,fed,dressed,changed});drain+=infection.drain;if(infection.harm){blood+=infection.harm;sources.push({kind:'infection',wound:w.id,part:w.part,cause:w.lastCause.id,amount:infection.harm});}
    if(w.kind==='cut'&&w.closure<100){if(dressed)w.bleed=0;else {if(w.bleed<=0)w.bleed=8;if(--w.bleed<=0){const amount=w.severity===3?2:1;blood+=amount;sources.push({kind:'bleeding',wound:w.id,part:w.part,cause:w.lastCause.id,amount});w.bleed=8;}}w.closure=Math.min(100,w.closure+Math.max(0,Math.max(1,(fed?3:2)+(rest?2:0)+(dressed?2:0)-(loaded&&activity.role===w.role?2:0)-(w.severity-1))-infection.penalty));if(w.closure===100)w.bleed=0;}
-   else w.function=Math.min(100,w.function+Math.max(0,Math.max(1,(fed?2:1)+(rest?2:0)+(dressed?1:0)-(loaded&&activity.role===w.role?1:0)-(w.severity-1))-infection.penalty));
+   else w.function=Math.min(foreignBodyPending(s,w)?50:100,w.function+Math.max(0,Math.max(1,(fed?2:1)+(rest?2:0)+(dressed?1:0)-(loaded&&activity.role===w.role?1:0)-(w.severity-1))-infection.penalty));
   }
   if(drain){const body=h||p.needs;body.energy=Math.max(0,body.energy-drain);}
   if(blood&&bleed){const before=h?.hp??p.health;bleed(p,h,blood,{sources});const after=h?.hp??p.health;if(after<before)t.lastHarm={tick:s.tick,before,after,amount:before-after,attempted:blood,sources};}
-  const healed=t.active.filter(w=>w.closure===100&&w.function===100&&!infectionPending(w)&&!fracturePending(w));t.healed+=healed.length;t.active=t.active.filter(w=>!healed.includes(w));return p.alive&&t.active.length>0;
+  const healed=t.active.filter(w=>w.closure===100&&w.function===100&&!foreignBodyPending(s,w)&&!(p.surgeryCase?.state==='active'&&p.surgeryCase.wound===w.id)&&!infectionPending(w)&&!fracturePending(w));t.healed+=healed.length;t.active=t.active.filter(w=>!healed.includes(w));return p.alive&&t.active.length>0;
  });
 }

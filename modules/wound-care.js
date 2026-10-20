@@ -1,3 +1,4 @@
+import {recordSurgicalPractice} from './foreign-body-state.js';
 import {fracturesOn,fracturePending} from './fracture-state.js';
 import {fractureCare} from './fracture-care.js';
 import {cleanInfection,infectionNeedsCare,infectionRiskAllowed,infectionSeverity} from './wound-infection-state.js';
@@ -31,7 +32,7 @@ function applyDressing(s,p,w,by,method,kind,ctx,supply){
  const quality=kind==='herbs'?12:20;w.dressing={version:1,applied:s.tick,by:by.id,method,material:kind,units:1,quality,remaining:quality,age:0};
  w.bleed=0;const t=careState(p);t.lastActionTick=s.tick;t.treatments++;careState(by).lastActionTick=s.tick;
  const h=woundActor(s,by);if(h){h.energy=Math.max(0,h.energy-2);h.lastAction='heal';}else if(by.needs)by.needs.energy=Math.max(0,by.needs.energy-2);
- rememberCampDressing(s,p,w,by);woundActivity(s,p,'body',by.id!==p.id);ctx?.log?.(s,`${by.name}: ${kind==='herbs'?'травяной компресс':'лекарственная повязка'} — ${w.label}. Израсходована одна единица материала; закрытие и функция ещё требуют времени.`,'heal');return true;
+ rememberCampDressing(s,p,w,by);recordSurgicalPractice(s,by,p,w);woundActivity(s,p,'body',by.id!==p.id);ctx?.log?.(s,`${by.name}: ${kind==='herbs'?'травяной компресс':'лекарственная повязка'} — ${w.label}. Израсходована одна единица материала; закрытие и функция ещё требуют времени.`,'heal');return true;
 }
 function safe(s,p,h=null){const area=s.areas[h?.area||p.area],x=h?.x??p.x;return !area?.objects.some(e=>e.kind==='enemy'&&e.alive&&!e.resolved&&physicalDistance(area,e.x,x)<=15&&(!h||!coverBlocks(s,e,h)));}
 function clinic(s,p,w,ctx,payer=null){
@@ -69,3 +70,5 @@ export function woundNPCTurn(s,p,ctx){
 }
 
 export function clinicPatientCare(s,p,ctx){if(supportedPatient(s)!==p||s.hero.transit||p.partyInjury.lastActionTick===s.tick||p.woundCare?.lastActionTick===s.tick)return false;const issue=careIssue(s,p),w=issue&&(!goodDressing(issue)||infectionNeedsCare(s,p,issue))?issue:null;if(!w&&p.health>=(p.maxHealth||100)*.75)return false;return clinic(s,p,w,ctx,s.hero);}
+
+export function finishSurgicalDressing(s,p,w,by,c,ctx){if(p.surgeryCase!==c||c.stage!==2||c.doctor!==by.id||!c.material||c.material.used||!p.alive||!by.alive||!p.localWounds.active.includes(w))return false;const r=c.material;c.material.used=s.tick;return applyDressing(s,p,w,by,r.kind==='clinic'?'clinic':'companion',r.kind,ctx,{holder:by.id,area:r.area,before:r.before,after:r.after});}

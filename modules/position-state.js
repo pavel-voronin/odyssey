@@ -1,3 +1,4 @@
+import {createShardStock} from './foreign-body-state.js';
 import {race} from '../content.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
@@ -18,5 +19,5 @@ export function coverBlocks(s,e,actor=s.hero,{kind,exposed=false}={}){
 export function createPosition(s,root,room,enemy){
  if(!positionsOn(s)||root.visited||root.dungeon.layout.built!==s.tick||root.dungeon.layout.position||enemy.positionAttack)return false;
  const o={id:room.id+'/low-stone',kind:'stoneCover',name:'Низкий каменный выступ',x:40,stoneCover:{version:1,root:root.id,created:s.tick,anchors:{left:34,right:46},channel:'shard',height:28}};room.objects.push(o);enemy.x=50;enemy.name='Камнеглазый страж · '+enemy.name;
- enemy.positionAttack={version:1,root:root.id,area:room.id,cover:o.id,created:s.tick,range:9,melee:3,step:3,sourceHeight:36,phases:0,last:null,blockedBy:null};root.dungeon.layout.position={version:1,area:room.id,enemy:enemy.id,cover:o.id,created:s.tick};return o;
+ enemy.positionAttack={version:1,root:root.id,area:room.id,cover:o.id,created:s.tick,range:9,melee:3,step:3,sourceHeight:36,phases:0,last:null,blockedBy:null};createShardStock(s,enemy);root.dungeon.layout.position={version:1,area:room.id,enemy:enemy.id,cover:o.id,created:s.tick};return o;
 }
