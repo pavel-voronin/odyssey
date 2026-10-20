@@ -6,6 +6,7 @@ import {materialDeliveryEnabled,pendingMaterialContract,materialContracts} from 
 import {partyCombatOn} from './modules/party-combat-policy.js';
 // Read-only presentation of the existing NPC controller; never a second travel or work action.
 export function projectNPCView(s,h,p,leader,previous){
+ if(p.alive&&['bound','expired'].includes(p.returnEpisode?.bond?.state)){h.lastAction=p.returnEpisode.bond.lastAction===s.tick?'work':'rest';h.intent='Исполнить условие или освободиться';h.reason='Одна настоящая печать и одна зарезервированная монета. Собственные нужды и время сохраняются.';return;}
  if(p.alive&&p.returnPastActionTick===s.tick){h.lastAction='talk';h.intent='Узнать прежнего человека';h.reason='Личная встреча, собственная память и решение помочь или отступить.';return;}
  if(p.alive&&p.returnEpisode?.care?.lastAction===s.tick){h.transit=p.roadTransit?{...p.roadTransit,viewOnly:true}:null;h.lastAction=p.returnEpisode.care.activity||'rest';h.intent='Поддержать связность тела';h.reason=p.returnEpisode.care.decision?.reason||'Настоящая реликвия и личный обряд, пока есть время.';return;}
  if(p.alive&&p.returnCareActionTick===s.tick){h.lastAction='work';h.intent='Подготовить поддерживающий обряд';h.reason='Личное согласие и собственные силы, одна действительная реликвия пациента.';return;}

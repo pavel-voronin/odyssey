@@ -33,6 +33,7 @@ import {facadeLayout} from './facades.js';
 import {sceneComposition,surfaceShadow,surfaceShadowAlpha,projectedCaster} from './composition.js';
 import {actorSkin,drawHead} from './actor-head.js';
 import {creatureTraceVisible,drawCreatureTrace} from './creature-trace-view.js';
+import {paintReturnSeal} from './return-bond-view.js';
 import {drawMechanisms,drawLifts} from './mechanism-view.js';
 import {scentPlantKnown} from './modules/pet-scent-policy.js';
 import { race } from './content.js';
@@ -316,6 +317,7 @@ export class Scene {
       if(o.kind==='practicePart'){c.fillStyle='#8e704e';c.fillRect(x-7,ground-4,14,4);c.fillStyle=o.state==='demonstration'?'#bec4b9':'#b49a6e';c.fillRect(x-4,ground-7,8,3);c.fillStyle='#4f5c53';c.fillRect(x-1,ground-6,2,3);}
       paintGuardianNode(c,s,a,o,screenX,ground);paintStoneCover(c,s,o,screenX,ground);
       if (o.kind === 'relic' && !o.taken) { c.shadowBlur = 16; c.shadowColor = '#c0daaa'; c.fillStyle = '#d1dfb0'; c.beginPath(); c.moveTo(x, ground - 22); c.lineTo(x + 7, ground - 11); c.lineTo(x, ground - 4); c.lineTo(x - 7, ground - 11); c.fill(); c.shadowBlur = 0; }
+      if(o.kind==='returnSeal'){this.castShadow(x,ground,9,18);paintReturnSeal(c,o,x,ground);}
       if(o.kind==='burialPit'){c.fillStyle='#272323';c.beginPath();c.ellipse(x,ground-1,9,3,0,0,Math.PI*2);c.fill();c.strokeStyle='#797063';c.stroke();}
       if (o.kind === 'grave'&&(o.burial||!ownBody&&!(remains&&(beastMotion||remains.body)))) { this.castShadow(x,ground,10,17);c.fillStyle = '#8b9985'; c.fillRect(x - 5, ground - 17, 10, 17); c.fillStyle = '#394d38'; c.fillRect(x - 1, ground - 13, 2, 8); c.fillRect(x - 3, ground - 11, 6, 2); }
       if(o.kind==='story'&&(!o.resolved||o.sealRecord&&!o.destroyed&&o.state!=='burned')){c.fillStyle='#9caaae';c.fillRect(x-9,ground-24,18,24);c.strokeStyle='#d7c391';c.strokeRect(x-7,ground-22,14,12);if(o.sealRecord){c.beginPath();c.moveTo(x,ground-22);c.lineTo(x,ground-11);c.stroke();}c.fillStyle='#d7c391';c.font='12px monospace';c.textAlign='center';c.fillText(o.resolved?'≡':'!',x,ground-34);c.textAlign='left';}

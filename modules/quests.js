@@ -1,3 +1,4 @@
+import {activeReturnBond} from './return-bond-state.js';
 import {promiseRemembered,forgetOldPromise} from './recollection-state.js';
 import {knownArea} from '../actor-atlas.js';
 import {scentPlantKnown} from './pet-scent-policy.js';
@@ -37,7 +38,7 @@ export function questProgress(s,q){
 export function questReady(s,q){return questProgress(s,q)>=(q.required||1);}
 function livingGiver(s,a){return(a.population||[]).map(id=>s.people[id]).find(p=>p?.alive&&p.status==='resident');}
 export function availableOffers(s,a,peacefulOnly=false,{returnReview=false}={}){
-  if(!enabled(s,'quests')||!isTown(a)||!a.civic)return[];
+  if(!enabled(s,'quests')||!isTown(a)||!a.civic||activeReturnBond(s.people[s.hero.lineage]))return[];
   const giver=livingGiver(s,a);if(!giver)return[];
   if((s.hero.reputation[a.faction]||0)<-25&&(s.hero.relations[giver.id]?.trust||0)<10)return[];
   const h=s.hero,completed=a.civic.completedOffers||[],offers=[];

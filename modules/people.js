@@ -1,3 +1,4 @@
+import {activeReturnBond} from './return-bond-state.js';
 import {returnCareProviderTurn,returnCareNPCTurn} from './return-care.js';
 import {returnNPCTurn} from './return-ritual.js';
 import {meatNPCPlan,meatNPCAction,observeGameFood} from './meat-plans.js';
@@ -363,6 +364,7 @@ export function peopleTick(s,ctx){
     observeFreightActor(s,p,p.area,true);
     if(p.ropeStranded){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(p.returnEpisode&&returnCareNPCTurn(s,p,ctx))continue;
+    if(activeReturnBond(p)){if(!personNeeds(s,p,ctx))ctx.returnBondNPCTurn?.(s,p,ctx);continue;}
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;if(p.agenda.task?.kind==='meatHunt'){meatNPCAction(s,p,ctx);continue;}
     const hungry=biologicalNeed(s,p).food;

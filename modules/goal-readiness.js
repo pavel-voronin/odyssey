@@ -1,3 +1,4 @@
+import {returnBondAdmission,returnBondRevision} from './return-bond-state.js';
 import {familyRevision,familyAdmission} from './family-state.js';
 import {councilRevision,councilAdmission} from './council-state.js';
 import {needAdmission} from './need-planning.js';
@@ -41,7 +42,8 @@ import {ferryRefusal,sameFerryRefusal} from './ferry-refusals.js';
 const blocked=(reason,retryOn)=>({status:'blocked',reason,retryOn});
 // Personal records and facts at the current visible place only. No distant stock,
 // enemy body, boat position or NPC wallet participates in a retry signal.
-export function methodRevision(s,g){
+export function methodRevision(s,g,withBond=true){
+ const bond=withBond&&returnBondRevision(s);if(bond)return stateKey([methodRevision(s,g,false),bond]);
  const h=s.hero,p=s.people[h.lineage],a=s.areas[h.area];if(g.kind==='forage')return stateKey(forageContract(s,g,p,h).basis);const target=g.person&&localContact(s,g.person,h.area),visible=o=>physicalDistance(a,h.x,o.x)<=24;
  const local=a.objects.filter(o=>visible(o)&&(o.id===g.object||o.id===g.property||['dock','workshop','rest'].includes(o.kind))).map(o=>[o.id,o.kind,o.state,o.closed,o.owner,o.count,o.taken,o.alive,o.workTool?.state]);
  const f=s.ferry,boat=physicalDistance(a,h.x,50)<=24&&f?.port===h.area&&!h.transit?[f.id,f.phase,f.voyage,f.departure,Object.keys(f.passengers).length,f.hull>=25]:null;
@@ -54,6 +56,7 @@ export function goalReadiness(s,g,ctx,{memory=true}={}){
  const need=needAdmission(s,g,ctx);if(need)return need;
  if(g.kind==='forage'){const food=forageContract(s,g,s.people[h.lineage],h);if(food.status==='blocked')return food;}
  if(h.transit||h.carriedBy||h.combat)return {status:'progressing',reason:'Начатое физическое действие сохраняет контроллер.'};
+ const bond=returnBondAdmission(s,g);if(bond)return bond;
  const family=familyAdmission(s,g,s.people[h.lineage]);if(family)return family;
  const council=councilAdmission(s,g,s.people[h.lineage]);if(council)return council;
  if(!s.areas[g.area]||!Number.isFinite(g.x))return {status:'invalid',reason:'У шага нет действительного места.'};

@@ -1,3 +1,4 @@
+import {initializeReturnBond} from './return-bond.js';
 import {returnSource,returnForm,returnReason,returnsOn} from './return-state.js';
 import {actorView} from '../actor-view.js';
 import {physicalDistance} from '../geometry.js';
@@ -21,6 +22,7 @@ export function returnPerson(input,caster,b,task,relic,ctx){
   if(p.actorLink){Object.assign(p.actorLink,{health:p.health,energy:40,hunger:0,area:p.area,x:p.x});}
   ctx.log(actorView(s,h),h.name+' возвращается в том же теле. Реликвия израсходована; прежняя смерть остаётся в истории.','story');
  }
+ initializeReturnBond(s,p,caster);if(h&&p.returnEpisode.bond.state==='bound'){h.intent='Исполнить условие или освободиться';h.reason='Одна монета некроманта зарезервирована для известной печати. Срок ограничен, печать можно разрушить.';ctx.log(actorView(s,h),'Некромант связывает возвращение ограниченным условием: доставить его монету к этой печати вовремя. Можно искать освобождение.','choice');}
  s.changes.push({tick:s.tick,text:p.name+' возвращается после обряда '+caster.name+'.'});return true;
 }
 // Physical consequences continue even if new rituals are disabled. No load-time catch-up.
