@@ -36,13 +36,14 @@ export function questProgress(s,q){
 }
 export function questReady(s,q){return questProgress(s,q)>=(q.required||1);}
 function livingGiver(s,a){return(a.population||[]).map(id=>s.people[id]).find(p=>p?.alive&&p.status==='resident');}
-export function availableOffers(s,a,peacefulOnly=false){
+export function availableOffers(s,a,peacefulOnly=false,{returnReview=false}={}){
   if(!enabled(s,'quests')||!isTown(a)||!a.civic)return[];
   const giver=livingGiver(s,a);if(!giver)return[];
   if((s.hero.reputation[a.faction]||0)<-25&&(s.hero.relations[giver.id]?.trust||0)<10)return[];
   const h=s.hero,completed=a.civic.completedOffers||[],offers=[];
   const add=(kind,target,details={})=>{
     const key=`${a.id}:${kind}:${target.id}:${details.object||details.person&&details.person+'-'+(s.people[details.person]?.illSince||0)||details.targets?.join(',')||a.civic.eventSerial||0}`;
+    const episode=s.people[h.lineage]?.returnEpisode;if(!returnReview&&episode&&h.quests.some(q=>q.kind==='scout'&&q.offer===key&&q.accepted<=episode.at))return;
     if(completed.includes(key)||h.quests.some(q=>q.offer===key&&q.status!=='failed')||(h.memory.refusedOffers?.[key]||0)>s.tick)return;
     offers.push({offer:key,kind,source:a.id,target:target.id,giver:giver.id,required:1,reward:16,title:QUEST_NAMES[kind],...details});
   };
@@ -87,7 +88,14 @@ export function acceptQuest(s,ctx){
   const offers=availableOffers(s,a,Boolean(h.goal?.peaceful));
   if(!offers.length){h.goal=null;return;}
   const ranked=offers.map(q=>({q,score:score(s,q,peaceful)+moduleRandom(s,'quests')*2})).sort((a,b)=>b.score-a.score);
-  const offer=ranked[0].q,q={...offer,id:`quest-${s.generation}-${s.tick}-${h.quests.length}`,status:'active',accepted:s.tick,visited:false,cargo:false,delivered:false};
+  return acceptOfferedQuest(s,ranked[0].q.offer,ctx);
+}
+// Select a real offered affair; both the ordinary planner and focused domains
+// use the same acceptance constructor and its existing possessions/memory.
+export function acceptOfferedQuest(s,offerId,ctx){
+  const h=s.hero,a=s.areas[h.area];if(h.quests.filter(q=>q.status==='active').length>=4)return null;
+  const offer=availableOffers(s,a,Boolean(h.goal?.peaceful)).find(q=>q.offer===offerId);if(!offer)return null;
+  const q={...offer,id:`quest-${s.generation}-${s.tick}-${h.quests.length}`,status:'active',accepted:s.tick,visited:false,cargo:false,delivered:false};
   h.quests.push(q);rememberPromise(s,q);meetPerson(s,q.giver,ctx,2);
   if(q.kind==='delivery'){q.cargo=true;h.questCargo ||= {};h.questCargo[q.id]=q.payload;}
   h.memory.facts.push({tick:s.tick,text:q.cause});h.goal=null;h.lastAction='talk';
@@ -179,6 +187,10 @@ export function questAction(s,q,ctx){
 }
 export function finishQuest(s,q,ctx){
   const h=s.hero;if(!q||q.status!=='active'||!promiseRemembered(h,q)||!questReady(s,q)){h.goal=null;return;}
+  if(q.returnReview?.decision==='renewed'){
+    const giver=s.people[q.giver];if(!giver?.alive||giver.area!==h.area||h.area!==q.source||Math.abs(giver.x-h.x)*(s.areas[h.area].length||100)/100>6||s.areas[q.source].civic.completedOffers.includes(q.offer)){failQuest(s,q,ctx,'Живой адресат прежнего отчёта недоступен или дело уже оплачено.');return;}
+    q.returnReview.finished=s.tick;q.returnReview.rewarded={before:h.gold,after:h.gold+q.reward,amount:q.reward};
+  }
   if(isDungeonRescue(q)){finishDungeonRescue(s,q,ctx);return;}
   if(q.kind==='medicine'){
     const patient=s.people[q.person];

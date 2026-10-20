@@ -1,3 +1,4 @@
+import {returnServiceRefusal} from './return-past-state.js';
 import {structurallySound} from './building-condition.js';
 import {controlBlocked} from './building-control-state.js';
 import {enabled} from '../rules.js';
@@ -29,7 +30,7 @@ export function merchantCanSell(s,kind){return !on(s)||s.hero.alive&&!s.hero.tra
 export function consumeMerchantGood(s,kind){
  if(!on(s))return true;if(!merchantCanSell(s,kind))return false;const stock=merchantGoods(s);stock[kind==='potion'?'medicine':'gear']--;s.merchant.stock=stock.gear+stock.medicine;return true;
 }
-export function actualService(s,a,kind,{job=null,units=1,workshop=null}={}){
+export function actualService(s,a,kind,{job=null,units=1,workshop=null,person=null}={}){
  if(kind==='employment'&&job==='repair'&&controlBlocked(s,a,workshop))return {available:false,reason:'Мастерская занята вооружённым захватчиком. Право владельца сохранилось, но доступа нет.'};
  if(!on(s))return {available:true,reason:null};
  if(a?.interior?.kind==='workshop'&&kind==='employment'&&job==='repair'){
@@ -41,7 +42,8 @@ export function actualService(s,a,kind,{job=null,units=1,workshop=null}={}){
  if(!town(a)||!a.civic)return {available:false,reason:'Здесь нет действующей службы.'};
  if(kind==='food'&&a.foundedSettlement&&!structurallySound(a.facades?.profiles.find(p=>p.id===a.foundedSettlement.housing.building)))return {available:false,reason:'Общий дом повреждён: выдача пищи приостановлена.'};
  if(kind==='clinic'&&!a.objects.some(o=>o.kind==='rest'&&(!o.state||o.state==='intact')))return {available:false,reason:'Место лечения недоступно.'};
- const people=serviceStaff(s,a,kind),provider=people[0]?.id||null;
+ const people=serviceStaff(s,a,kind),client=person||s.hero?.lineage,eligible=kind==='clinic'?people.filter(p=>!returnServiceRefusal(s,p.id,client)):people,provider=eligible[0]?.id||null;
+ if(!provider&&people.length&&kind==='clinic')return {available:false,reason:people[0].name+' узнаёт возвращённого, но из страха отказывает ему в своей лечебнице.',provider:people[0].id};
  if(!provider)return {available:false,reason:kind==='clinic'?'Нет лекаря, который сейчас принимает.':kind==='food'?'Некому выдать еду.':kind==='warehouse'?'В кладовой нет работника.':'Некому предоставить оплачиваемую работу.'};
  if(kind==='clinic'&&enabled(s,'supply')&&!(a.civic.medicine>=units))return {available:false,reason:'В лечебнице нет нужного лекарства.',provider,stock:a.civic.medicine};
  if(kind==='food'&&(enabled(s,'supply')||units>4)&&!(a.civic.food>=Math.max(marketEnabled(s)?1:4,units)))return {available:false,reason:units>4?'Поставщик не может выделить ящик припасов.':'Кладовая с едой пуста.',provider,stock:a.civic.food};

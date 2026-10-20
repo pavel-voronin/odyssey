@@ -343,6 +343,7 @@ export function peopleTick(s,ctx){
     releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
+    if(p.returnPastActionTick===s.tick)continue;
     if(p.returnCareActionTick===s.tick||p.returnEpisode?.care?.lastAction===s.tick)continue;
     if(p.meatCraft?.lastAction>=s.tick||p.raidDefenseTick>=s.tick||p.rivalActionTick>=s.tick||p.fieldTeachTick>=s.tick||p.enemyBody?.lastActionTick>=s.tick||p.prostheticCraft?.lastActionTick>=s.tick)continue;
     if(p.npcIntentions?.lastActionTick>=s.tick||p.companionAffairs?.lastActionTick>=s.tick||materialDeliverySpent(s,p.id))continue;
@@ -367,7 +368,7 @@ export function peopleTick(s,ctx){
     const hungry=biologicalNeed(s,p).food;
     if(!adultPerson(s,p)){if(hungry){p.needObstacle='Ребёнку нужна настоящая еда и помощь; взрослый труд недоступен.';continue;}if(p.agenda.task?.kind!=='learn')p.agenda.task=null;}
     if(hungry&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit){const a=s.areas[p.area],source=localFoodChoice(s,p,null,a);if(!['farm','gather','return'].includes(p.agenda.task?.kind)){if(p.agenda.task)p.needPaused ||= p.agenda.task;if(source)begin(p,'gather',a.id,source.x,source.remaining,{foodSource:source.id,home:a.id});else if(goodsEnabled(s)&&productionSources(s,a)?.field.stock>0)begin(p,'farm',a.id,42,3);else {p.needObstacle='Нет доступной местной еды или известного способа её добыть.';continue;}}}
-    if(!hungry&&adultPerson(s,p)){if(returnCareProviderTurn(s,p,ctx))continue;if(returnNPCTurn(s,p,ctx))continue;if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}meatNPCPlan(s,p,ctx);if(familyNPCTurn(s,p,ctx))continue;if(campaignNPCTurn(s,p,ctx))continue;if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
+    if(!hungry&&adultPerson(s,p)){if(returnCareProviderTurn(s,p,ctx)||ctx.returnPastNPCTurn?.(s,p,ctx))continue;if(returnNPCTurn(s,p,ctx))continue;if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}meatNPCPlan(s,p,ctx);if(familyNPCTurn(s,p,ctx))continue;if(campaignNPCTurn(s,p,ctx))continue;if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
     if(clinicalPatientTurn(s,p))continue;
     if(clinicalNPCTurn(s,p,ctx))continue;
     if(clinicalStudyNPCTurn(s,p))continue;
@@ -503,3 +504,4 @@ export function peopleTick(s,ctx){
     p.agenda.task.remaining--;if(p.agenda.task.remaining<=0)finish(s,p,ctx);
   }
 }
+

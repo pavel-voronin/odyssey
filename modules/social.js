@@ -30,7 +30,7 @@ export function initializeSocial(s,h){
   h.memory.npcNotes ||= {};
 }
 export function meetPerson(s,id,ctx,trust=1){
-  remindPromises(s,id,ctx);
+  remindPromises(s,id,ctx);ctx.returnPastMeet?.(s,id);
   if(s.people[id]){shareEstateKnowledge(s,s.people[id],s.people[s.hero.lineage]);shareEstateKnowledge(s,s.people[s.hero.lineage],s.people[id]);}
   shareMoneyCacheAddresses(s,id,s.hero.lineage);shareMoneyCacheAddresses(s,s.hero.lineage,id);
   shareRouteMapReports(s,id,s.hero.lineage);shareRouteMapReports(s,s.hero.lineage,id);
