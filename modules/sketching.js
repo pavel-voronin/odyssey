@@ -1,3 +1,4 @@
+import {recordHobbyUse} from './hobby-stock.js';
 import {enabled} from '../rules.js';
 import {hasHabit} from './common.js';
 import {safeCampActivity,reserveCampActivity,campActivityAvailable} from './camp-session.js';
@@ -20,7 +21,7 @@ export function sketchCamp(s,ctx){
   if(!b.interest||!subject||!h.memory.places.includes(subject.id))return false;
   if(!b.pending){
     if(b.paper<=0||b.works[subject.id]||!campActivityAvailable(h))return false;
-    reserveCampActivity(h,'sketch');b.paper--;b.pending={camp:a.id,subject:subject.id,remaining:3,started:s.tick};
+    reserveCampActivity(h,'sketch');const before=b.paper;b.paper--;recordHobbyUse(s,h,'paper',before);b.pending={camp:a.id,subject:subject.id,remaining:3,started:s.tick};
     ctx.log(s,`${h.name} достаёт лист из дорожного блокнота и начинает рисовать место «${subject.name}». Спешить некуда.`,'life');
   }
   const p=b.pending;if(p.camp!==a.id)return false;

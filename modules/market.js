@@ -75,3 +75,6 @@ export function tradeGoods(s,a,id,kind,side,quantity,{trade=null}={}){
  }
  return q;
 }
+// Private finite offers use the same money/capacity boundary as market actions;
+// they never add a communal food/tools stock or another seller wallet.
+export function quotePrivateMarket({stock,price,requested=1,gold=0,reserved=0}){if(![stock,price,requested,reserved].every(n=>Number.isSafeInteger(n)&&n>=0)||!Number.isFinite(gold)||gold<0||price<1||requested<1||requested>3)return {quantity:0,total:0,reason:'request'};const quantity=Math.min(requested,Math.max(0,stock-reserved),Math.floor(gold/price));return {quantity,total:quantity*price,reason:quantity?'available':stock-reserved<=0?'stock':'money'};}

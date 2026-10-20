@@ -1,3 +1,4 @@
+import {hobbyNPCTurn,hobbyAction,observeHobbyMarket} from './hobby-supply.js';
 import {farmingNPCTurn,farmingAction} from './farming.js';
 import {titleNPCTurn,titleVisitAction} from './title-enforcement.js';
 import {probateNPCTurn} from './will-probate.js';
@@ -240,6 +241,7 @@ function moveTask(s,p,ctx){
 }
 function finish(s,p,ctx){
   const m=p.agenda,t=m.task,site=t.workshop&&workshopSite(s,p.area,t.workshop.id),a=site?.inside?site.area:s.areas[p.area],maximum=p.maxHealth||100;
+  if(t.kind.startsWith('hobby')){hobbyAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
   if(t.kind.startsWith('farm')){farmingAction(s,p,t,{inTurn:true,ctx});m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='titleVisit'){titleVisitAction(s,p,t);m.task=null;m.due=s.tick+8;return;}
   if(t.kind==='refugeSurvey'){const found=finishRefugeSurvey(s,p);tell(s,p,found?`${p.name} обследует участок: здесь есть родник и известное место сбора пищи.`:`${p.name} обследует участок, но надёжной воды не находит.`,ctx);m.task=t.home?{kind:'return',target:t.home,x:42,remaining:1}:null;m.due=s.tick+8;return;}
@@ -325,7 +327,7 @@ export function peopleTick(s,ctx){
     observeNPCPlace(s,p);observeShortcutPerson(s,p);
     observeRouteMap(s,p);
     observeBestiaryTraces(s,p,ctx);
-    observeMarket(s,p.id);
+    observeMarket(s,p.id);observeHobbyMarket(s,p);
     observeNPCContacts(s,p);
     observeMentors(s,p);
     observeFreightActor(s,p,p.area,true);
@@ -333,6 +335,7 @@ export function peopleTick(s,ctx){
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
     if(personNeeds(s,p,ctx))continue;
     if(farmingNPCTurn(s,p,ctx))continue;
+    if(hobbyNPCTurn(s,p))continue;
     if(titleNPCTurn(s,p))continue;
     if(publicRepairNPCTurn(s,p))continue;
     if(willNPCTurn(s,p))continue;
@@ -392,6 +395,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task?.kind==='socketService'&&!socketsOn(s))continue;
     if(p.agenda.task?.kind==='inheritanceClaim'&&!estateClaimsOn(s))continue;
     if(p.agenda.task?.personal&&!enabled(s,'companion-goals'))continue;
+    if(p.agenda.task?.kind?.startsWith('hobby')&&s.rules['hobby-supply']===false)continue;
     if(p.agenda.task?.kind?.startsWith('farm')&&s.rules.farming===false)continue;
     if(p.agenda.task?.kind==='titleVisit'&&s.rules['title-enforcement']===false)continue;
     if(p.agenda.task?.kind?.startsWith('will')&&s.rules.testaments===false)continue;

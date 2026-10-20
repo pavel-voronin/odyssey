@@ -1,3 +1,4 @@
+import {hobbyHeroPlan,hobbyHeroAction} from './modules/hobby-supply.js';
 import {farmingHeroPlan,farmingHeroAction} from './modules/farming.js';
 import {birthFarmKit,farmingTick} from './modules/farming-state.js';
 import {titleHeroPlan,titleHeroAction} from './modules/title-enforcement.js';
@@ -458,6 +459,7 @@ function plan(s) {
   h.goal=null;let planningSpent=false,waiting=null;
   const offer=(id,run)=>{const order=PLANNER_ORDER.get(id),used=actionProgress(s,{kind:'planning',area:h.area});const result=run(),g=h.goal;planningSpent ||= used!==actionProgress(s,{kind:'planning',area:h.area});if(planningSpent)return true;if(g){const r=goalReadiness(s,g,{knownRoute});if(r.status==='waiting'){waiting ||= g;h.goal=null;return false;}if(g.kind==='localRecovery'&&waiting){h.goal=null;return false;}if(['ready','progressing'].includes(r.status)){g.selectionOrder=order;const old=h.actionSelection?.deferred.find(e=>e.key===actionKey(g)),paused=h.actionSelection?.paused?.find(e=>actionKey(e)===actionKey(g));if(old||paused){h.goal={...(old?.step||paused),x:g.x,selectionOrder:order};if(old)h.actionSelection.deferred=h.actionSelection.deferred.filter(e=>e!==old);if(paused)h.actionSelection.paused=h.actionSelection.paused.filter(e=>e!==paused);}return true;}if(r.status==='blocked')deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;return false;}return false;};
   if(offer('cookingPlan',()=>cookingPlan(s,context(s,'hearth-food'),{lesson:false})))return planningSpent;
+  if(offer('hobbyHeroPlan',()=>hobbyHeroPlan(s,context(s,'hobby-supply'))))return planningSpent;
   if(offer('farmingHeroPlan',()=>farmingHeroPlan(s,context(s,'farming'))))return planningSpent;
   if(offer('titleHeroPlan',()=>titleHeroPlan(s,context(s,'title-enforcement'))))return planningSpent;
   if(offer('probateHeroPlan',()=>probateHeroPlan(s,context(s,'testaments'))))return planningSpent;
@@ -1128,6 +1130,7 @@ function actObserved(s) {
   else if(['literacyStudy','textAloud','literacySell'].includes(g.kind))execute('literacyAction',()=>literacyAction(s,context(s,'literacy')));
   else if(['libraryProtect','librarySteal'].includes(g.kind))execute('librarySecurityAction',()=>librarySecurityAction(s,context(s,'library-security')));
   else if(['libraryDeposit','libraryWithdraw','libraryLend','libraryBorrow','libraryReturn'].includes(g.kind))execute('libraryAction',()=>libraryAction(s,context(s,'libraries')));
+  else if(g.kind.startsWith('hobby'))execute('hobbyHeroAction',()=>hobbyHeroAction(s,g,context(s,'hobby-supply')));
   else if(g.kind.startsWith('farm'))execute('farmingHeroAction',()=>farmingHeroAction(s,g,context(s,'farming')));
   else if(['titlePetition','titleHearing'].includes(g.kind))execute('titleHeroAction',()=>titleHeroAction(s,g));
   else if(g.kind==='willProbate')execute('probateHeroAction',()=>probateHeroAction(s,g));

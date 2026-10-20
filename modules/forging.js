@@ -1,3 +1,5 @@
+import {KNIFE_RECIPE,WHISTLE_RECIPE} from './manufacture-recipes.js';
+export {KNIFE_RECIPE,WHISTLE_RECIPE} from './manufacture-recipes.js';
 import {homeWorkbenchSite,homeAdmission} from './home-place.js';
 import {fitsAcquisition,fitsPack} from './container-state.js';
 import {enabled} from '../rules.js';
@@ -17,8 +19,8 @@ import {initializeItemMemory,itemBearer} from './enchantments.js';
 import {initializeNewItemCondition,itemWorking} from './item-condition.js';
 import {knownMelody,musicInstrument,musicOn} from './camp-music-state.js';
 
-export const KNIFE_RECIPE=Object.freeze({id:'working-knife',name:'Рабочий нож',materials:['blade-blank','handle'],price:6,work:6});
-export const WHISTLE_RECIPE=Object.freeze({id:'camp-whistle',name:'Дорожная свистулька',materials:['whistle-body','mouthpiece'],price:6,work:3});
+
+
 export const forgingEnabled=s=>enabled(s,'forging')&&enabled(s,'equipment')&&enabled(s,'property')&&goodsEnabled(s);
 const body=(s,p)=>s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];
 const activeBody=(s,p)=>{const h=body(s,p);return h?.actorMode!=='npc'?h:null;};
