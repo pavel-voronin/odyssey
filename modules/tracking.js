@@ -1,3 +1,4 @@
+import {observationRadius,observeDevelopment} from './development-skills.js';
 import {physicalDistance} from '../geometry.js';
 import {trackingOn,localEdgeTraces,trailClarity} from './edge-traces.js';
 import {knowsPracticalMethod,recordPracticalTracking} from './skill-branches.js';
@@ -9,7 +10,7 @@ const ensure=p=>p.tracking ||= {version:1,notes:[],lastActionTick:-1};
 export function localTrails(s,h=s.hero){
  const a=s.areas[h.area],near=localEdgeTraces(s,h);
  if(!trackingOn(s)||h.transit)return near;
- for(const o of a.objects){const t=o.trace;if(o.kind!=='creatureTrace'||!Number.isFinite(t.direction)||t.expires<=s.tick||physicalDistance(a,h.x,o.x)>12)continue;
+ for(const o of a.objects){const t=o.trace;if(o.kind!=='creatureTrace'||!Number.isFinite(t.direction)||t.expires<=s.tick||physicalDistance(a,h.x,o.x)>observationRadius(s,h.lineage||h.id,12))continue;
   near.push({id:o.id,source:{kind:'enemy',id:t.enemy},from:a.id,to:a.id,fromX:o.x,toX:o.x,at:t.created,expires:t.expires,wet:Boolean(t.wet),x:o.x,direction:t.direction,species:t.species});}
  return near;
 }
@@ -34,7 +35,7 @@ export function trackingPlan(s,ctx){
  ctx.goal(s,teacher?'trackLesson':'trackStudy',h.area,h.x,teacher?'Разобрать настоящий след с наставником':'Изучить настоящий след','Одно отдельное действие: след не выдаёт тайный адрес своего источника.',{trace:trail.id,traceAt:trail.at,...(teacher?{teacher:teacher.id,person:teacher.id}:{})});return true;
 }
 function rememberTrail(s,p,body,trail){const quality=trailClarity(s,trail,s.areas[body.area]),direction=quality==='fresh'&&knowsPracticalMethod(s,p.id,'tracking')?(trail.passage?'passage':trail.direction||(trail.from===body.area?(trail.fromX===100?1:-1):trail.toX===5?1:-1)):null;
- const n={id:'tracking/'+trail.id+'/'+trail.at,trace:trail.id,source:{...trail.source},from:trail.from,to:trail.to,at:trail.at,area:body.area,studiedArea:body.area,studiedAt:s.tick,quality,direction};const m=ensure(p);m.notes.push(n);if(m.notes.length>8)m.notes.shift();m.lastActionTick=s.tick;
+ const n={id:'tracking/'+trail.id+'/'+trail.at,trace:trail.id,source:{...trail.source},from:trail.from,to:trail.to,at:trail.at,area:body.area,studiedArea:body.area,studiedAt:s.tick,quality,direction};observeDevelopment(s,p.id,'trail/'+trail.id+'/'+trail.at,{factKey:'trail/'+trail.id,factVersion:trail.at});const m=ensure(p);m.notes.push(n);if(m.notes.length>8)m.notes.shift();m.lastActionTick=s.tick;
  return n;
 }
 export function trackingAction(s,ctx){
@@ -62,7 +63,7 @@ export function trackingHTML(s,escape){const m=s.people[s.hero.lineage]?.trackin
 
 // Called only inside the existing personal act phase, after ordinary needs.
 export function npcTrackingTurn(s,p){
- const body={area:p.area,x:p.x,companions:p.pets||[],transit:p.roadTransit};confirmTracking(s,p,body);
+ const body={id:p.id,area:p.area,x:p.x,companions:p.pets||[],transit:p.roadTransit};confirmTracking(s,p,body);
  if(!trackingOn(s)||!p.alive||threatened(s,body)||p.needs?.sleeping||p.agenda?.task||(p.agenda?.curiosity??0)<.65||p.needs.energy<25||p.needs.hunger>60||p.health<(p.maxHealth||100)*.7||p.tracking?.lastActionTick>=s.tick||npcController(s,p)!=='personal')return false;
  const trail=localTrails(s,body).find(t=>t.source.id!==p.id&&!p.tracking?.notes.some(n=>n.trace===t.id&&n.at===t.at));if(!trail)return false;
  p.agenda.task={kind:'trackStudy',target:p.area,x:p.x,trace:trail.id,traceAt:trail.at};rememberTrail(s,p,body,trail);p.needs.energy-=2;p.agenda.task=null;p.agenda.due=s.tick+8;return true;

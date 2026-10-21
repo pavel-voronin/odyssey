@@ -1,3 +1,4 @@
+import {preciseDevelopment,commitDevelopment} from './development-skills.js';
 import {itemWearEnabled} from './item-condition.js';
 import {fieldCraftEnabled,fieldNodeAvailable} from './field-craft-state.js';
 import {collectionItems} from './collection-state.js';
@@ -31,7 +32,7 @@ export function serviceFieldKnife(s,p,item,ctx){
  const f=p.fieldCraft,b=fieldBody(s,p);if(!fieldCraftEnabled(s)||!itemWearEnabled(s)||!f?.learned||!safeFieldBody(s,p)||f.lastActionTick===s.tick||!fieldKnife(item)||!collectionItems(s,p.id).includes(item)||item.durability.current>item.durability.max*.25)return false;
  if(f.service&&f.service.item!==item.id)return false;if(!f.service&&!pack(s,p))return false;
  if(!f.service){f.kit.remaining--;f.kit.spent++;f.service={id:`field/${p.id}/${s.tick}`,item:item.id,started:s.tick,area:b.area,required:f.efficient?2:3,progress:0,steps:[],part:1,before:item.durability.current};}
- f.lastActionTick=s.tick;energy(s,p,2);f.service.steps.push({tick:s.tick,area:b.area});f.service.progress++;if(f.service.progress<f.service.required)return true;
+ const precision=preciseDevelopment(s,p.id,f.service.id+'/step/'+(f.service.progress+1));f.lastActionTick=s.tick;energy(s,p,2*(1-precision.contribution));f.service.steps.push({tick:s.tick,area:b.area});f.service.progress++;commitDevelopment(s,p.id,precision,{action:f.service.id+'/step/'+f.service.progress,source:item.id,result:true});if(f.service.progress<f.service.required)return true;
  const d=item.durability,amount=Math.min(60,d.max-d.current),receipt={...f.service,finished:s.tick,finishedArea:b.area,beforeRepair:d.current,after:d.current+amount,restored:amount};d.current+=amount;d.restored+=amount;d.repairs++;d.lastRepair={tick:s.tick,master:p.id,order:receipt.id,restored:amount,method:'field-maintenance'};
  item.history.push({tick:s.tick,text:`Дорожное обслуживание тем же владельцем: +${amount} исправности, конечная деталь, ${receipt.progress} действий. Оригинал сохранён.`});f.services.push(receipt);f.total++;if(f.services.length>8)f.services.shift();f.service=null;ctx.log?.(s,`${item.name}: походное обслуживание восстановило ${amount} исправности. Это тот же нож; деталь из набора израсходована.`,'equipment');return true;
 }

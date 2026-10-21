@@ -1,3 +1,4 @@
+import {developmentSkillsHTML} from './development-skills-sheet.js';
 import {formulaHTML} from './composed-formula-sheet.js';
 import {echoLayerHTML} from './echo-layer-sheet.js';
 import {keeperHTML} from './ecology-keeper-sheet.js';
@@ -214,7 +215,7 @@ function lifeName(life=state.hero){return life.actorMode==='npc'?'Житель �
 function detail() {
   const h = state.hero;
   $('sheet').querySelector('h2').textContent=(tab==='rules'?'Центр управления':tab==='log'?'Дневник':'Лист приключения')+' · '+calendarCaption(state);
-  if(tab==='skills'){renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape),{force:true});return;}
+  if(tab==='skills'){renderProgressionPanel($('detail-panel'),developmentSkillsHTML(state,escape)+skillBranchesHTML(state,escape),{force:true});return;}
   const npc=npcSheet(state,tab,escape);if(npc!==null){$('detail-panel').innerHTML=(tab==='map'?calendarDetailsHTML(state,escape):'')+npc+(tab==='hero'?returnHTML(state,escape):'')+(tab==='bag'?containerHTML(state)+materialCargoHTML(state,h,escape)+meatBagHTML(state,escape):tab==='map'?meatMealHTML(state,escape):'');return;}
   if (tab === 'hero') {
     const traits = [h.personality.courage > .65 ? 'Смелый' : 'Осторожный', h.personality.curiosity > .65 ? 'Любопытный' : 'Вдумчивый', h.personality.sociability > .65 ? 'Общительный' : 'Немногословный', h.personality.generosity > .6 ? 'Отзывчивый' : 'Практичный'];
@@ -425,7 +426,7 @@ function render(automatic=false,batching=false) {
     $('sheet').querySelector('h2').textContent='Лист приключения · '+calendarCaption(state);
     refreshCalendarDetails($('detail-panel'),calendarDetailsHTML(state,escape));
   } scene.update(state);renderEffects();
-  if(automatic&&$('sheet').open&&tab==='skills')renderProgressionPanel($('detail-panel'),skillBranchesHTML(state,escape));
+  if(automatic&&$('sheet').open&&tab==='skills')renderProgressionPanel($('detail-panel'),developmentSkillsHTML(state,escape)+skillBranchesHTML(state,escape));
   if(automatic&&$('sheet').open){const care=$('detail-panel').querySelector('.pet-passage-live');if(care)care.outerHTML=petPassageHTML(state,escape);const keeper=$('detail-panel').querySelector('.pet-keeper-live');if(keeper)keeper.outerHTML=petKeeperHTML(state,state.people[h.lineage],escape);}
   if(automatic&&$('sheet').open&&tab==='bag'){const petPack=$('detail-panel').querySelector('.pack-pet-live');if(petPack)petPack.outerHTML=packPetHTML(state,escape);const clothes=$('detail-panel').querySelector('.clothing-live');if(clothes)clothes.outerHTML=clothingHTML(state,escape);const memory=$('detail-panel').querySelector('.navigation-memory-live');if(memory)memory.outerHTML=navigationMemoryHTML(state,escape);const rope=$('detail-panel').querySelector('.navigation-tool-live');if(rope)rope.outerHTML=navigationToolHTML(state,escape);const wardrobe=$('detail-panel').querySelector('.spare-outfit-live');if(wardrobe)wardrobe.outerHTML=spareOutfitHTML(state,escape);const pack=$('detail-panel').querySelector('.pack-live');if(pack)pack.outerHTML=containerHTML(state);const cargo=$('delivery-cargo-live');if(cargo){const html=deliveryCargoHTML(state,state.people[h.lineage],escape);if(cargo.innerHTML!==html)cargo.innerHTML=html;}}
   $('scene').setAttribute('aria-label',scene.mode==='map'?`Карта знакомых мест: ${scene.roadMap.model.layerName}. ${scene.mapMarker?h.name:'Персонаж вне показанных мест.'}`:`${h.transit?(h.transit.unknown?'Положение неизвестно':'В пути: '+state.areas[h.transit.to].name):a.name}. ${h.name}: ${h.intent}. ${h.reason}`);

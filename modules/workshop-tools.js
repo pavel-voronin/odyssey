@@ -1,3 +1,4 @@
+import {observationRadius,observeDevelopment} from './development-skills.js';
 import {takeGoods} from './goods.js';
 import {recordPracticalToolRepair,skillBranchesEnabled,recordPracticalTrade} from './skill-branches.js';
 import {enabled} from '../rules.js';
@@ -15,9 +16,9 @@ const on=s=>enabled(s,'property')&&enabled(s,'workshop-tools');
 export function observeWorkTools(s){
  if(!on(s)||!s.hero.alive||s.hero.transit)return;
  const h=s.hero,physical=s.areas[h.area],site=workshopSite(s,physical),a=site?.inside?site.area:physical;for(const o of a.objects.filter(o=>o.kind==='workshop')){
-  const pos=workshopPosition(s,a,o);if(pos.area!==h.area||physicalDistance(physical,h.x,pos.x)>18)continue;
+  const pos=workshopPosition(s,a,o);if(pos.area!==h.area||physicalDistance(physical,h.x,pos.x)>observationRadius(s,h.lineage,18))continue;
   const m=h.workToolMemory ||= {known:{},revision:0},old=m.known[o.id],state=o.workTool?.state||'working',episode=o.workTool?.episode||0;
-  const changed=!old||old.state!==state||old.episode!==episode||old.owner!==o.owner;if(changed)m.revision++;
+  const changed=!old||old.state!==state||old.episode!==episode||old.owner!==o.owner;if(changed)m.revision++;if(o.workTool&&(!old||old.state!==state||old.episode!==episode))observeDevelopment(s,h.lineage,'tool/'+o.id+'/'+episode+'/'+state,{passive:true,factKey:'tool/'+o.id,factVersion:episode*2+(state==='working'?1:0)});
   m.known[o.id]={...(!changed?old:{}),area:a.id,property:o.id,owner:o.owner,state,episode,seen:s.tick};
   const sorted=Object.values(m.known).sort((a,b)=>a.seen-b.seen);for(const old of sorted.slice(0,Math.max(0,sorted.length-16)))delete m.known[old.property];
  }

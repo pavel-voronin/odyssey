@@ -1,3 +1,4 @@
+import {preciseDevelopment,commitDevelopment} from './development-skills.js';
 import {recordSurgicalPractice} from './foreign-body-state.js';
 import {fracturesOn,fracturePending} from './fracture-state.js';
 import {fractureCare} from './fracture-care.js';
@@ -22,17 +23,18 @@ function decision(s,p,method,reason,ctx){const t=careState(p);if(t.decision?.met
 export function dressWound(s,p,w,by,method,kind,ctx){
  if(!woundCareOn(s)||!p.alive||!by.alive||!p.localWounds?.active.includes(w)||goodDressing(w)&&!infectionNeedsCare(s,p,w)||p.woundCare?.lastActionTick===s.tick||by.woundCare?.lastActionTick===s.tick)return false;
  const h=woundActor(s,by),target=woundActor(s,p),area=target?.area||p.area,byArea=h?.area||by.area;if(by.id!==p.id&&(byArea!==area||physicalDistance(s.areas[area],target?.x??p.x,h?.x??by.x)>12))return false;
- const before=kind==='medicine'?by.roadSupplies?.medicine||0:h?.inventory.herbs||0;if(infectionNeedsCare(s,p,w)&&(h?.energy??by.needs?.energy??0)<2)return false;
+ const before=kind==='medicine'?by.roadSupplies?.medicine||0:h?.inventory.herbs||0;if(infectionNeedsCare(s,p,w)&&(h?.energy??by.needs?.energy??0)<2*(1-preciseDevelopment(s,by.id,'dressing/'+w.id).contribution))return false;
  if(kind==='medicine'){if(!consumeCarriedSupplies(by,null,'medicine',1))return false;}
  else if(kind==='herbs'&&h?.inventory.herbs>0)h.inventory.herbs--;else return false;
  return applyDressing(s,p,w,by,method,kind,ctx,{holder:by.id,area:null,before,after:before-1});
 }
 function applyDressing(s,p,w,by,method,kind,ctx,supply){
+ const precision=preciseDevelopment(s,by.id,'dressing/'+w.id),energyCost=2*(1-precision.contribution);
  cleanInfection(s,p,w,by,method,kind,supply);
  const quality=kind==='herbs'?12:20;w.dressing={version:1,applied:s.tick,by:by.id,method,material:kind,units:1,quality,remaining:quality,age:0};
  w.bleed=0;const t=careState(p);t.lastActionTick=s.tick;t.treatments++;careState(by).lastActionTick=s.tick;
- const h=woundActor(s,by);if(h){h.energy=Math.max(0,h.energy-2);h.lastAction='heal';}else if(by.needs)by.needs.energy=Math.max(0,by.needs.energy-2);
- rememberCampDressing(s,p,w,by);recordSurgicalPractice(s,by,p,w);woundActivity(s,p,'body',by.id!==p.id);ctx?.log?.(s,`${by.name}: ${kind==='herbs'?'травяной компресс':'лекарственная повязка'} — ${w.label}. Израсходована одна единица материала; закрытие и функция ещё требуют времени.`,'heal');return true;
+ const h=woundActor(s,by);if(h){h.energy=Math.max(0,h.energy-energyCost);h.lastAction='heal';}else if(by.needs)by.needs.energy=Math.max(0,by.needs.energy-energyCost);
+ commitDevelopment(s,by.id,precision,{action:'dressing/'+s.tick+'/'+w.id,source:'wound/'+p.id+'/'+w.id,result:true});rememberCampDressing(s,p,w,by);recordSurgicalPractice(s,by,p,w);woundActivity(s,p,'body',by.id!==p.id);ctx?.log?.(s,`${by.name}: ${kind==='herbs'?'травяной компресс':'лекарственная повязка'} — ${w.label}. Израсходована одна единица материала; закрытие и функция ещё требуют времени.`,'heal');return true;
 }
 function safe(s,p,h=null){const area=s.areas[h?.area||p.area],x=h?.x??p.x;return !area?.objects.some(e=>e.kind==='enemy'&&e.alive&&!e.resolved&&physicalDistance(area,e.x,x)<=15&&(!h||!coverBlocks(s,e,h)));}
 function clinic(s,p,w,ctx,payer=null){

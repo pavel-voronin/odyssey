@@ -9,15 +9,16 @@ export function newMetricRoute(a,b){
 }
 export const terrainPace=t=>({road:1,trail:.85,sand:.8,mountain:.7}[t]||1);
 export const roadPriceKey=table=>JSON.stringify(Object.entries(table).map(([id,{seen,source,...q}])=>[id,q]));
-export function routeLoad(s,body,{cargoFood=0}={}){
+export function routeLoad(s,body,{cargoFood=0,personalOnly=false}={}){
  const corpse=carriedRemains(s,body.lineage||body.id);if(corpse)return remainsCarryLoad(s,s.people[body.lineage||body.id],corpse);const passenger=carryingPerson(s,body);if(passenger)return peopleCarryLoad(s,body,passenger);
  const id=body.lineage||body.id,h=body.lineage?body:s.actorStates?.[id],p=s.people?.[id],inventory=h?.inventory||p?.actorLink?.inventory||{},items=h?.bag||p?.looseItems||[];
  const pets=body.lineage?body.companions||[]:p?.pets||[],scale=Math.max(.5,Math.min(6,(s.areas[body.area]?.length||100)/100)),petCargo=pets.reduce((n,c)=>{const b=c.packCargo?.body;return n+(c.hp>0&&b?.area===body.area&&Math.abs(b.x-body.x)*scale<=2?(c.packCargo.items?.length||0):0);},0);
- return Math.max(0,causewayCargoLoad(s,id)+(inventory.rations||0)+(inventory.herbs||0)*.1+(inventory.relics||0)*2+items.length+petCargo+Math.max(0,cargoFood)/4);
+ return Math.max(0,causewayCargoLoad(s,id)+(inventory.rations||0)+(inventory.herbs||0)*.1+(inventory.relics||0)*2+items.length+(personalOnly?0:petCargo)+Math.max(0,cargoFood)/4);
 }
-export function metricRate(metric,weather={speed:1,energy:1},load=0,stride=1){
- const burden=1+Math.min(1,Math.max(0,load)/30),terrain=terrainPace(metric.terrain);
- return {speed:metric.speed*terrain*(weather.speed??1)*Math.max(.1,stride)/burden,energy:.7*(weather.energy??1)*burden/terrain};
+export function personalRouteLoad(s,body,options={}){const id=body.lineage||body.id,p=s.people[id],base=routeLoad(s,body,{...options,personalOnly:true});return carriedRemains(s,id)||carryingPerson(s,body)?base:base+(p?.roadSupplies?.food||0)/4+(p?.roadSupplies?.medicine||0)*.1+(p?.marketCargo?.tools||0)+(p?.goodsRawCargo?.quantity||0);}
+export function metricRate(metric,weather={speed:1,energy:1},load=0,stride=1,{athletics=0,carrying=0,personalLoad=load}={}){
+ const penalty=Math.min(1,Math.max(0,load)/30),burden=1+penalty-penalty*Math.min(1,Math.max(0,personalLoad)/Math.max(.001,load))*carrying,terrain=terrainPace(metric.terrain);
+ return {speed:metric.speed*(1+athletics)*terrain*(weather.speed??1)*Math.max(.1,stride)/burden,energy:.7*(weather.energy??1)*burden/terrain*(1+athletics)*(1-.75*athletics)};
 }
 export function rememberRoadPrice(s,table,from,to){
  const edge=s.edges?.[metricKey(from,to)];if(!edge||!edge.metric&&!s.geographyFrame)return;

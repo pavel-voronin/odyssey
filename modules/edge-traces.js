@@ -1,3 +1,4 @@
+import {observationRadius} from './development-skills.js';
 import {finishBorderCrossing} from './authority-state.js';
 import {interiorPassage} from './interiors.js';
 import {enabled} from '../rules.js';
@@ -22,7 +23,7 @@ export function recordCrossingTrace(s,source,from,to){
 export function localEdgeTraces(s,h=s.hero){
  if(!trackingOn(s)||h.transit)return [];
  const a=s.areas[h.area],out=[];
- for(const to of a.links||[]){const k=key(a.id,to);for(const t of s.edges[k]?.traces||[]){const x=t.from===a.id?t.fromX:t.toX;if(t.expires>s.tick&&physicalDistance(a,h.x,x)<=12)out.push({...t,edge:k,x});}}
+ for(const to of a.links||[]){const k=key(a.id,to);for(const t of s.edges[k]?.traces||[]){const x=t.from===a.id?t.fromX:t.toX;if(t.expires>s.tick&&physicalDistance(a,h.x,x)<=observationRadius(s,h.lineage||h.id,12))out.push({...t,edge:k,x});}}
  return out;
 }
 export function trailClarity(s,t,area=s.areas[s.hero.area]){return t.wet||['rain','storm'].includes(weatherAt(s,area).id)?'washed':s.tick-t.at>80?'faded':'fresh';}

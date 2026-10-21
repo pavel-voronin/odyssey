@@ -1,3 +1,5 @@
+import {initializeDevelopment,walkedDevelopment,developmentValue,developmentOn} from './modules/development-skills.js';
+import {personalRouteLoad} from './modules/metric-route-state.js';
 import {establishEchoLayer,echoLayerPlan} from './modules/echo-layers.js';
 import {establishKeeper,keeperTick,keeperHeroTurn} from './modules/ecology-keeper.js';
 import {restoreHealth} from './modules/fresh-reply.js';
@@ -382,7 +384,7 @@ function createHero(s) {
   };
   initializeHero(s, h, () => moduleRandom(s, 'identity'));
   h.ruleFlags = s.rules;
-  initializeLineage(s,h);birthMusic(s,s.people[h.lineage],h);initializeMind(s,h);initializeMagic(s,h);initialWaterPreference(s,h);
+  initializeLineage(s,h);initializeDevelopment(s,s.people[h.lineage],{kind:'birth',profession:h.profession});birthMusic(s,s.people[h.lineage],h);initializeMind(s,h);initializeMagic(s,h);initialWaterPreference(s,h);
   initializeWeather(s,h);initializePreparation(h);initializeCommitments(h);initializeInnerLife(s,h);initializeFinances(h);initializeMigrations(s);
   initializeWork(s,h);
   initializeWorkMaterials(h);
@@ -707,7 +709,7 @@ function move(s, target) {
   const stealth=stealthWalkQuote(s,h.lineage,target,{mounted:Boolean(mount||cart)}),from=h.x;if(['wait','greet'].includes(stealth.mode)){h.energy=Math.max(0,h.energy-(stealth.mode==='greet'?1:.25));h.lastAction=stealth.mode==='greet'?'talk':'wait';h.reason=stealth.mode==='greet'?'Коротко ответить стражу и продолжить прежнее дело.':'Выждать замеченный поворот внимания; ожидание ограничено.';commitStealthStep(s,h.lineage,from,from,target,stealth);return;}stride*=stealth.factor;
   const amount=areaStep(s.areas[h.area],h.x,target,cart?Math.min(stride,6*weather.speed*Math.min(1,...h.companions.filter(c=>c.person&&s.people[c.person]?.alive).map(c=>woundStride(s,s.people[c.person])))/(1+wagonLoad(s,cart.w)/48)):stride);if(cart&&amount)wagonMoved(s,cart.w);
   if(mount&&amount){mount.energy=Math.max(0,mount.energy-rate.energy);mount.hunger=Math.min(100,mount.hunger+.12);mount.lastMove=s.tick;}
-  h.x+=amount;h.distance+=Math.abs(amount)*areaScale(s.areas[h.area]);h.energy=Math.max(0,h.energy-(mount?.rider===h.lineage ? .2 : walkingEnergy(s,weather)));h.lastAction='walk';if(stealth.mode==='quiet')h.reason='Тихий шаг мимо известного патруля; шум и видимость всё ещё могут выдать путника.';syncCoverPosition(s);commitStealthStep(s,h.lineage,from,h.x,target,stealth);
+  h.x+=amount;const footDistance=Math.abs(amount)*areaScale(s.areas[h.area]);h.distance+=footDistance;h.energy=Math.max(0,h.energy-(mount?.rider===h.lineage ? .2 : walkingEnergy(s,weather)*(developmentOn(s)?Math.min(1,footDistance/Math.max(.001,stride)):1)));if(mount?.rider!==h.lineage&&!cart&&footDistance>0)walkedDevelopment(s,h,footDistance,personalRouteLoad(s,h),'scene/'+h.area);h.lastAction='walk';if(stealth.mode==='quiet')h.reason='Тихий шаг мимо известного патруля; шум и видимость всё ещё могут выдать путника.';syncCoverPosition(s);commitStealthStep(s,h.lineage,from,h.x,target,stealth);
 }
 function gainXp(s, amount) {
   const h = s.hero; h.xp += amount;

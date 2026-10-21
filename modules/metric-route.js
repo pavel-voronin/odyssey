@@ -1,3 +1,4 @@
+import {developmentValue,developmentOn,walkedDevelopment} from './development-skills.js';
 import {availableFlight} from './airship-state.js';
 import {boardFlight,advanceFlight} from './airship-flight.js';
 import {quakeBlocked,quakeTravelLimit,quakeDamage} from './quake-state.js';
@@ -7,10 +8,10 @@ import {groupHorse,horseMotion,ridingOn} from './horse-state.js';
 import {metricMap,metricMapPoint} from './metric-map.js';
 import {weatherAt} from './weather.js';
 import {woundStride} from './wound-state.js';
-import {metricKey,metricRate,routeLoad} from './metric-route-state.js';
+import {metricKey,metricRate,routeLoad,personalRouteLoad} from './metric-route-state.js';
 import {physicalDistance} from '../geometry.js';
 const pets=b=>b.lineage?b.companions||[]:b.pets||[],petBody=c=>c.packCargo?.body||c.petCustody?.body;
-export function metricTravelRate(s,body,metric,options={}){const weather=weatherAt(s,s.areas[body.area]),foot=metricRate(metric,weather,routeLoad(s,body,options),woundStride(s,s.people[body.lineage||body.id])),mount=ridingOn(s)&&groupHorse(s,body);const groupFoot={...foot,speed:Math.min(foot.speed,...(body.companions||[]).filter(c=>c.person&&s.people[c.person]?.alive).map(c=>metricRate(metric,weather,0,woundStride(s,s.people[c.person])).speed))};const wagon=wagonRate(s,body,metric,groupFoot,weather,mount?horseMotion(s,body,mount,weather):null);if(wagon)return {...wagon,...(mount?{mount,mountEnergy:1.2*(weather.energy??1)}:{})};if(!mount)return (body.bodyCarry?.stage==='carrying'||body.remainsCarry?.stage==='carrying')?{...foot,energy:foot.energy+1}:foot;const rate=horseMotion(s,body,mount,weather,{mounted:mount.rider===(body.lineage||body.id),terrain:metric.terrain});return {speed:mount.rider?rate.speed:Math.min(foot.speed,rate.speed),energy:mount.rider ? .2 : foot.energy,mount,mountEnergy:rate.energy};}
+export function metricTravelRate(s,body,metric,options={}){const weather=weatherAt(s,s.areas[body.area]),foot=metricRate(metric,weather,routeLoad(s,body,options),woundStride(s,s.people[body.lineage||body.id]),{athletics:.2*developmentValue(s,body.lineage||body.id,'athletics'),carrying:.2*developmentValue(s,body.lineage||body.id,'carrying'),personalLoad:personalRouteLoad(s,body,options)}),mount=ridingOn(s)&&groupHorse(s,body);const groupFoot={...foot,speed:Math.min(foot.speed,...(body.companions||[]).filter(c=>c.person&&s.people[c.person]?.alive).map(c=>metricRate(metric,weather,0,woundStride(s,s.people[c.person])).speed))};const wagon=wagonRate(s,body,metric,groupFoot,weather,mount?horseMotion(s,body,mount,weather):null);if(wagon)return {...wagon,...(mount?{mount,mountEnergy:1.2*(weather.energy??1)}:{})};if(!mount)return (body.bodyCarry?.stage==='carrying'||body.remainsCarry?.stage==='carrying')?{...foot,energy:foot.energy+1}:foot;const rate=horseMotion(s,body,mount,weather,{mounted:mount.rider===(body.lineage||body.id),terrain:metric.terrain});return {speed:mount.rider?rate.speed:Math.min(foot.speed,rate.speed),energy:mount.rider ? .2 : foot.energy,mount,mountEnergy:rate.energy};}
 export function roadCampWaypoint(s,body,t,speed){
  const energy=body.lineage?body.energy:body.needs.energy;if(energy>=20||s.rules.fieldcamp===false||s.rules['camp-sites']===false)return null;
  const edge=metricKey(t.from,t.to),e=s.edges[edge],m=t.metric,near=[];
@@ -33,7 +34,7 @@ export function advanceMetricTravel(s,body,t,options={}){
  const waypoint=body.lineage||options.canCamp?roadCampWaypoint(s,body,t,rate.speed):null,next=quakeTravelLimit(s,t,waypoint??Math.min(m.distance,m.travelled+rate.speed)),walked=Math.abs(next-m.travelled);if(next===m.travelled&&quakeBlocked(s,t.from,t.to)){m.ruptureHold={cause:quakeDamage(s,t.from,t.to).cause,at:s.tick,point:m.travelled};if(body.lineage)body.lastAction='wait';return false;}m.travelled=next;t.remaining=Math.ceil(Math.max(0,m.distance-m.travelled)/rate.speed);
  if(rate.wagon)wagonMoved(s,rate.wagon);
  if(rate.mount){rate.mount.energy=Math.max(0,rate.mount.energy-rate.mountEnergy);rate.mount.hunger=Math.min(100,rate.mount.hunger+.12);rate.mount.lastMove=s.tick;}
- if(energy)energy.energy=Math.max(0,energy.energy-rate.energy);if(body.lineage)body.distance+=walked;
+ if(energy)energy.energy=Math.max(0,energy.energy-rate.energy*(developmentOn(s)?Math.min(1,walked/Math.max(.001,rate.speed)):1));if(rate.mount?.rider!==(body.lineage||body.id)&&!rate.wagon&&walked>0)walkedDevelopment(s,body,walked,personalRouteLoad(s,body,options),'road/'+metricKey(t.from,t.to));if(body.lineage)body.distance+=walked;
  if(t.remaining===0)recordCrossingTrace(s,{kind:'person',id:body.lineage||body.id},t.from,t.to);
  for(const c of group){c.petTraining.energy-=.5;if(t.remaining===0)recordCrossingTrace(s,{kind:'pet',id:c.uid,owner:body.lineage||body.id,pet:c},t.from,t.to);if(t.remaining===0){const b=petBody(c);b.area=t.to;b.x=t.arrivalX;if(c.packCargo)c.packCargo.lastKnown={area:b.area,x:b.x,at:s.tick,reason:'seen'};}}
  return t.remaining===0;

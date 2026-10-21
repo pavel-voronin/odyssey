@@ -1,10 +1,12 @@
-import {metricKey,metricRate,routeLoad} from './metric-route-state.js';
+import {developmentValue,developmentOn} from './development-skills.js';
+import {woundStride} from './wound-state.js';
+import {metricKey,metricRate,routeLoad,personalRouteLoad} from './metric-route-state.js';
 export function pricedNavigation(s){return Boolean(s.hero.atlas.roadCosts&&Object.keys(s.hero.atlas.roadCosts).length);}
 export function knownRoadEstimate(s,from,to){
  const q=s.hero.atlas.roadCosts?.[metricKey(from,to)];if(!q)return null;
  const h=s.hero,weather=h.weatherTaste?.observed?.split('/')[3],conditions={rain:{speed:.94,energy:1.12},fog:{speed:.83,energy:1},snow:{speed:.8,energy:1.2},storm:{speed:.76,energy:1.3},heat:{speed:.95,energy:1.25}}[weather]||{speed:1,energy:1};
- const rate=q.distance?metricRate(q,conditions,routeLoad(s,h)):null,movement=rate?Math.ceil(q.distance/rate.speed):Math.max(0,q.duration||0),ticks=movement+1;
- return {...q,ticks,energyCost:rate?movement*rate.energy:q.mode==='sea'?movement*.2:movement*.7,foodCost:ticks*.16/65};
+ const rate=q.distance?metricRate(q,conditions,routeLoad(s,h),woundStride(s,s.people[h.lineage]),{athletics:.2*developmentValue(s,h.lineage,'athletics'),carrying:.2*developmentValue(s,h.lineage,'carrying'),personalLoad:personalRouteLoad(s,h)}):null,movement=rate?Math.ceil(q.distance/rate.speed):Math.max(0,q.duration||0),ticks=movement+1;
+ return {...q,ticks,energyCost:rate?(developmentOn(s)?q.distance/rate.speed:movement)*rate.energy:q.mode==='sea'?movement*.2:movement*.7,foodCost:ticks*.16/65};
 }
 export function knownRoadWeight(s,from,to,target){
  const h=s.hero,q=knownRoadEstimate(s,from,to),a=s.areas[to],local=to===target?0:Math.ceil(Math.max(.5,Math.min(6,(a.length||100)/100))*95/6);
