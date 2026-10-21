@@ -11,7 +11,7 @@ function attackOption(s,e,damage,{action='attack',spell=null}={}){
  const hp=s.hero.hp+(spell||action==='windup'?0:replyRecovery(s,e,damage.min));
  const win=damage.min>=e.hp,enemyHp={min:Math.max(0,e.hp-damage.max),max:Math.max(0,e.hp-damage.min)},currentEcho=e.battle?.echo||0;
  const echo=enabled(s,'mutations')&&e.mutation==='mirror'&&spell?{min:Math.min(12,currentEcho+Math.ceil(damage.min/4)),max:Math.min(12,currentEcho+Math.ceil(damage.max/4))}:{min:currentEcho,max:currentEcho};
- return {id:spell?.id||'attack',action,spell:spell?.id,hp,damage,mana:spell?.manaCost||0,charge:spell?.waystoneCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{hp,enemyHp,echo,skip:win||spell?.kind==='time',exposed:!spell,mana:s.hero.magic.mana-(spell?.manaCost||0)})};
+ return {id:spell?.id||'attack',action,spell:spell?.id,hp,damage,mana:spell?.manaCost||0,charge:spell?.waystoneCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{hp,blessed:hasCondition(s.hero,'blessing')||spell?.kind==='composite',enemyHp,echo,skip:win||spell?.kind==='time',exposed:!spell,mana:s.hero.magic.mana-(spell?.manaCost||0)})};
 }
 export function combatOptions(s,e){
  const h=s.hero,options=[attackOption(s,e,weaponDamageRange(s,e))];
@@ -20,7 +20,7 @@ export function combatOptions(s,e){
  }
  if(h.inventory.potions>0){const hp=Math.min(h.maxHp,h.hp+19);options.push({id:'potion',action:'potion',hp,mana:0,potions:1,reply:incomingReply(s,e,{hp})});}
  for(const spell of availableCombatSpells(s)){
-  if(['damage','time'].includes(spell.kind)){options.push(attackOption(s,e,spellDamageRange(s,e,spell),{action:'spell',spell}));continue;}
+  if(['damage','time','composite'].includes(spell.kind)){options.push(attackOption(s,e,spellDamageRange(s,e,spell),{action:'spell',spell}));continue;}
   const option={id:spell.id,measured:spell.measured,action:'spell',spell:spell.id,hp:h.hp,mana:spell.manaCost,charge:spell.waystoneCost||0,potions:0};
   if(spell.kind==='heal'){option.hp=Math.min(h.maxHp,h.hp+spell.effectPower);if(option.hp<=h.hp)continue;option.reply=incomingReply(s,e,{hp:option.hp,mana:h.magic.mana-spell.manaCost});}
   else if(spell.kind==='ward'&&!hasCondition(h,'blessing')){option.reply=incomingReply(s,e,{blessed:true,mana:h.magic.mana-spell.manaCost});option.protection=true;}

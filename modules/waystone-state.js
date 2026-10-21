@@ -1,3 +1,4 @@
+import {formulaAccess} from './formula-source.js';
 import {usableWardScroll} from './spell-text-state.js';
 import {enabled} from '../rules.js';
 import {itemWorking} from './item-condition.js';
@@ -10,7 +11,7 @@ export function stoneFunding(s,h,total,{prepaid=0}={}){
  return {total,mana:total-charge,charge,item:charge?item.id:null};
 }
 export function spendSpellFunding(s,h,total,spell,{prepaid=0,scroll=null}={}){
- if(!enabled(s,'magic')||!Number.isSafeInteger(total)||total<1||!h.magic.spells.includes(spell)&&!(spell==='ward'&&scroll&&usableWardScroll(s,h,scroll)))return false;
+ if(!enabled(s,'magic')||!Number.isSafeInteger(total)||total<1||!h.magic.spells.includes(spell)&&!(spell==='ward'&&scroll&&usableWardScroll(s,h,scroll))&&!formulaAccess(s,h,spell,scroll))return false;
  if(prepaid!==0&&(prepaid!==1||spell!=='ward'||h.magic.wardChannel?.paid!==1||h.magic.wardChannel.actor!==h.lineage||h.magic.wardChannel.started+1!==s.tick||h.magic.wardChannel.area!==h.area||h.magic.wardChannel.cast!==h.magic.casts+1))return false;
  const q=stoneFunding(s,h,total,{prepaid});if(h.magic.mana<q.mana)return false;
  const item=q.item&&heldWaystones(h).find(i=>i.id===q.item),w=item?.waystone,cast=h.magic.casts+1;

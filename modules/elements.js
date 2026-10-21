@@ -9,7 +9,7 @@ export const ELEMENTS={
   arcane:{name:'Пожиратель магии',color:'#bc8fb7',rates:{fire:.6,nature:.6,time:.6,arcane:.4,physical:1.25}},
   grave:{name:'Могильный',color:'#94a49b',rates:{physical:.8,fire:1.3,time:.6,nature:.9}}
 };
-export const spellChannel=spell=>spell.kind==='time'?'time':spell.id==='roots'?'nature':['spark','bluefire'].includes(spell.id)?'fire':'arcane';
+export const spellChannel=spell=>spell.kind==='time'?'time':spell.kind==='composite'&&spell.components?.[0]==='spark'?'fire':spell.id==='roots'?'nature':['spark','bluefire'].includes(spell.id)?'fire':'arcane';
 export function initializeElement(s,a,e){if(e.element)return;const keys=Object.keys(ELEMENTS);e.element=a.id==='a2'&&!e.boss?'normal':moduleRandom(s,'elements')<.4?'normal':keys[1+Math.floor(moduleRandom(s,'elements')*(keys.length-1))];}
 export function elementRate(s,e,type){return enabled(s,'elements')?(ELEMENTS[e.element]?.rates[type]??1):1;}
 export function elementalDamage(s,e,amount,type,ctx,learn=true){
