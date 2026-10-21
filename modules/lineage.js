@@ -1,3 +1,4 @@
+import {initializeDomestic} from './domestic-state.js';
 import {initializeDevelopment} from './development-skills.js';
 import {birthSurgicalKnowledge} from './foreign-body-state.js';
 import {birthReturnKnowledge} from './return-state.js';
@@ -29,7 +30,7 @@ export function createPerson(s,record,{initialJob=null,ageYears=null}={}){
   // Consume exactly the former random agenda, then finalize the initial role
   // before any occupation-specific possessions or knowledge are granted.
   if(initialJob&&s.people[id].agenda)s.people[id].agenda.job=initialJob;
-  initializeDevelopment(s,s.people[id],{kind:'birth'});initializeFoodKit(s,s.people[id],null,{newborn:true});birthMeatKnowledge(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);birthFarmKit(s,s.people[id],null,{newborn:true});birthHobbyProducer(s,s.people[id],{newborn:true});recordCastleChild(s,s.people[id]);birthReturnKnowledge(s,s.people[id]);birthSurgicalKnowledge(s,s.people[id]);if(record.role==='ребёнок')for(const parent of record.parents)s.people[parent].lastBirth=s.tick;return id;
+  initializeDevelopment(s,s.people[id],{kind:'birth'});initializeFoodKit(s,s.people[id],null,{newborn:true});birthMeatKnowledge(s,s.people[id],null,{newborn:true});birthLiteracy(s,s.people[id]);birthMusic(s,s.people[id]);birthFarmKit(s,s.people[id],null,{newborn:true});birthHobbyProducer(s,s.people[id],{newborn:true});recordCastleChild(s,s.people[id]);birthReturnKnowledge(s,s.people[id]);birthSurgicalKnowledge(s,s.people[id]);initializeDomestic(s,s.people[id]);if(record.role==='ребёнок')for(const parent of record.parents)s.people[parent].lastBirth=s.tick;return id;
 }
 const person=createPerson;
 export function populateArea(s,a){

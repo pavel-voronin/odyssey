@@ -1,3 +1,4 @@
+import {domesticTurn} from './domestic-life.js';
 import {paidBodyLoad} from './nutrition-state.js';
 import {creditCareer} from './progression-state.js';
 import {activeReturnBond} from './return-bond-state.js';
@@ -370,7 +371,7 @@ export function peopleTick(s,ctx){
     if(activeReturnBond(p)){if(!personNeeds(s,p,ctx))ctx.returnBondNPCTurn?.(s,p,ctx);continue;}
     if(ctx.surgeryNPCTurn?.(s,p,ctx))continue;
     if(woundNPCTurn(s,p,ctx)){personNeeds(s,p,ctx,{onlyUpkeep:true});continue;}
-    if(personNeeds(s,p,ctx))continue;if(p.agenda.task?.kind==='meatHunt'){meatNPCAction(s,p,ctx);continue;}
+    if(personNeeds(s,p,ctx))continue;if(domesticTurn(s,p,ctx,{inTurn:true}))continue;if(p.agenda.task?.kind==='meatHunt'){meatNPCAction(s,p,ctx);continue;}
     const hungry=biologicalNeed(s,p).food;
     if(!adultPerson(s,p)){if(hungry){p.needObstacle='Ребёнку нужна настоящая еда и помощь; взрослый труд недоступен.';continue;}if(p.agenda.task?.kind!=='learn')p.agenda.task=null;}
     if(hungry&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit){const a=s.areas[p.area],source=localFoodChoice(s,p,null,a);if(!['farm','gather','return'].includes(p.agenda.task?.kind)){if(p.agenda.task)p.needPaused ||= p.agenda.task;if(source)begin(p,'gather',a.id,source.x,source.remaining,{foodSource:source.id,home:a.id});else if(goodsEnabled(s)&&productionSources(s,a)?.field.stock>0)begin(p,'farm',a.id,42,3);else {p.needObstacle='Нет доступной местной еды или известного способа её добыть.';continue;}}}

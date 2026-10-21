@@ -1,3 +1,4 @@
+import {childNeedTurn} from './domestic-life.js';
 import {carriedFood} from './stores.js';
 import {consumedFood,wantsFood,sleepPhase,nutritionView} from './nutrition-state.js';
 import {eatGameMeal} from './meat-cooking.js';
@@ -21,6 +22,7 @@ export function personNeeds(s,p,ctx,adapter=null){
   if(p.health<=0){
     if(!p.health){p.alive=false;p.status='dead';p.died=s.tick;p.deathCause='Голод';ctx.dropRemains?.(s,p,'носитель погиб');a=s.areas[p.area];if(adapter?.grave!==false&&p.area===a.id)a.objects.push({id:'npc-grave-'+p.id,kind:'grave',name:p.name,x:p.x||42});if(adapter?.onDeath)adapter.onDeath(a);else{s.changes.push({tick:s.tick,text:p.name+' умер от голода.'});if(s.hero?.area===p.area)ctx.log(s,p.name+' не пережил голод.','loss');}recordPersonRemains(s,p);return true;}
   }
+  if(!adapter?.onlyUpkeep&&childNeedTurn(s,p,ctx))return true;
   const personal=!adapter&&enabled(s,'npc-personal-supplies'),maximum=p.maxHealth||100,mealUnits=Math.min(2,carriedFood(p,p.actorLink?.inventory));
   if(!adapter?.onlyUpkeep){
   if(wantsFood(s,p)&&eatGameMeal(s,p,ctx,{inTurn:true,need:true}))return true;

@@ -1,7 +1,7 @@
+import {foodSourceState} from './food-source-state.js';
+import {localMethodAllowed} from './domestic-state.js';
 import {stackRoom} from './container-state.js';
 import {enabled} from '../rules.js';
-import {worldDate} from '../calendar.js';
-import {weatherAt} from './weather.js';
 import {areaScale} from '../geometry.js';
 import {foodStores,LOCAL_FOODS} from './food-stores.js';
 import {collectionItems} from './collection-state.js';
@@ -25,20 +25,17 @@ export function initializeFoodKit(s,p,h=null,{newborn=false}={}){
  q.methods[kind] ||= {id:d.method,source:h?'profession/'+h.profession:'occupation/'+p.agenda.job,recordedAt:s.tick};
  q.tools[d.tool] ||= {id:p.id+'/food-'+d.tool,kind:d.tool,name:d.tool==='knife'?'Нож грибника':'Ручная леска с крючком',state:'working',owner:p.id,origin:h?'initial-life':'initial-resident'};
 }
-export function foodSourceState(s,a){
- const f=a?.forage,node=f?.localFood;if(!node)return null;
- const d=worldDate(s,s.tick,a),weather=weatherAt(s,a),closed=node.kind==='mushroom'?['winter','dry'].includes(d.season):d.season==='winter'||weather.id==='storm';
- return{...node,name:LOCAL_FOODS[node.kind].name,stock:f.stock,max:f.max,x:f.x,open:!closed,available:!closed&&f.stock>0,condition:closed?(node.kind==='mushroom'?'В этот сезон грибы не собирают.':'Ловля закрыта: лёд или гроза.'):f.stock<=0?'Источник истощён.':'Сейчас добыча доступна.'};
-}
-export function foodCapability(s,p,kind,h=null){
- const d=LOCAL_FOODS[kind],q=p?.localFood;if(!d)return{allowed:false,code:'product',reason:'Неизвестный продукт.'};
+export {foodSourceState} from './food-source-state.js';
+export function foodCapability(s,p,kind,h=null,area=null){
+ area ||= s.areas[h?.area||p?.area];const d=LOCAL_FOODS[kind],q=p?.localFood;if(!d)return{allowed:false,code:'product',reason:'Неизвестный продукт.'};
  if(!q?.methods[kind]&&methodKind(p,h)!==kind)return{allowed:false,code:'method',reason:kind==='mushroom'?'Не умеет отличать съедобные грибы. Нужен совет знатока.':'Не знает способа ловли на леску.'};
+ if(!localMethodAllowed(s,p,area,kind))return{allowed:false,code:'method',reason:'Этот местный источник ещё не знаком: нужен местный урок или иной известный канал еды.'};
  const kit=q?.tools[d.tool],knives=d.tool==='knife'?collectionItems(s,p.id).filter(i=>i.toolKind==='knife'&&itemWorking(i)):[],precise=knives.find(i=>i.refit?.mode==='precision'),tool=precise||(kit?.owner===p.id&&kit.state==='working'&&itemWorking(kit)?kit:knives[0]);if(!tool)return{allowed:false,code:'tool',reason:kind==='mushroom'?'Нет собственного ножа для сбора.':'Нет собственной лески с крючком.'};
  return{allowed:true,tool:tool.id,method:d.method,...(precise?{turns:Math.max(2,d.turns-1)}:{})};
 }
 export function localFoodChoice(s,p,h,a){
- if(!localFoodEnabled(s))return null;const source=foodSourceState(s,a);if(!source?.available||!foodCapability(s,p,source.kind,h).allowed)return null;
- return{...source,remaining:foodCapability(s,p,source.kind,h).turns??LOCAL_FOODS[source.kind].turns};
+ if(!localFoodEnabled(s))return null;const source=foodSourceState(s,a);if(!source?.available||!foodCapability(s,p,source.kind,h,a).allowed)return null;
+ return{...source,remaining:foodCapability(s,p,source.kind,h,a).turns??LOCAL_FOODS[source.kind].turns};
 }
 export function forageGrowth(s,a,amount){
  const f=a.forage;if(!f)return;const before=f.stock;
@@ -50,7 +47,7 @@ function harvestLocalFood(s,p,a,h=null){
  if(!localFoodEnabled(s)||!p?.alive||h?.transit||h?.combat||p.needs?.sleeping)return null;
  const source=foodSourceState(s,a),area=h?.area||p.area,x=h?.x??p.x;
  if(!source?.available||area!==a.id||Math.abs(x-source.x)*areaScale(a)>=2)return null;
- const capability=foodCapability(s,p,source.kind,h);if(!capability.allowed||p.localFood?.lastHarvest===s.tick)return null;
+ const capability=foodCapability(s,p,source.kind,h,a);if(!capability.allowed||p.localFood?.lastHarvest===s.tick)return null;
  const quantity=takeForage(a,stackRoom(s,p.id,source.kind,Math.min(3,source.stock)));if(!quantity)return null;
  const q=foodStores(p);q.stock[source.kind]=(q.stock[source.kind]||0)+quantity;q.obtained[source.kind]=(q.obtained[source.kind]||0)+quantity;q.lastHarvest=s.tick;
  q.methods[source.kind] ||= {id:capability.method,source:h?'profession/'+h.profession:'occupation/'+p.agenda.job,recordedAt:s.tick};
@@ -62,8 +59,8 @@ export function localFoodWork(s,p,a,task,h=null,ctx=null){
  const choice=localFoodChoice(s,p,h,a),x=h?.x??p.x,energy=h||p.needs;
  if(!choice||task.foodSource!==choice.id||(h?.area||p.area)!==a.id||Math.abs(x-choice.x)*areaScale(a)>=2||!p.alive||h&&!h.alive||p.needs?.sleeping||h?.transit||h?.combat||!Number.isFinite(energy?.energy)||energy.energy<1)return{finished:true,reason:'Добыча сейчас недоступна: нет запаса, способа, средства или подходящих условий.'};
  const store=foodStores(p);if(store.lastFoodWork>=s.tick)return{finished:false};store.lastFoodWork=s.tick;
- const work=task.foodWork ||= {source:choice.id,kind:choice.kind,tool:foodCapability(s,p,choice.kind,h).tool,turns:0,lastTick:-1};
- const tool=collectionItems(s,p.id).find(i=>i.id===foodCapability(s,p,choice.kind,h).tool),wear=()=>wearOwnedItem(s,tool,p.id,'gather',choice.id,ctx);
+ const work=task.foodWork ||= {source:choice.id,kind:choice.kind,tool:foodCapability(s,p,choice.kind,h,a).tool,turns:0,lastTick:-1};
+ const tool=collectionItems(s,p.id).find(i=>i.id===foodCapability(s,p,choice.kind,h,a).tool),wear=()=>wearOwnedItem(s,tool,p.id,'gather',choice.id,ctx);
  if(work.lastTick>=s.tick)return{finished:false};work.lastTick=s.tick;work.turns++;energy.energy=Math.max(0,energy.energy-LOCAL_FOODS[choice.kind].energy);task.remaining=Math.max(0,choice.remaining-work.turns);
  if(task.remaining>0){wear();return{finished:false};}const receipt=harvestLocalFood(s,p,a,h);wear();
  if(receipt&&!h&&task.home)p.localFood.homeCargo={area:task.home,kind:receipt.kind,quantity:receipt.quantity,source:receipt.source};

@@ -1,3 +1,6 @@
+import {addCondition} from './modules/body.js';
+import {domesticTurn} from './modules/domestic-life.js';
+import {initializeDomestic,beginDomesticConstruction,endDomesticConstruction} from './modules/domestic-state.js';
 import {paidBodyLoad,nutritionView,sleepPhase,restSatisfied,wantsFood} from './modules/nutrition-state.js';
 import {heroLevel,creditGeneral} from './modules/progression-state.js';
 import {initializeDevelopment,walkedDevelopment,developmentValue,developmentOn} from './modules/development-skills.js';
@@ -39,7 +42,7 @@ import {actorPartyLeader} from './actor-projection.js';
 import {personEnemy} from './modules/enemy-person-state.js';
 import {personNeeds} from './modules/needs.js';
 import {biologicalNeed} from './modules/biology.js';
-import {planBiologicalNeed,needBasis} from './modules/need-planning.js';
+import {planBiologicalNeed,needBasis,needCandidates} from './modules/need-planning.js';
 import {clinicalStudyHeroPlan,clinicalStudyAction} from './modules/clinical-study.js';import {clinicalWorldTick} from './modules/clinical-world.js';
 import {initializeClinicalPractitioner,initializeClinicalApprentice} from './modules/clinical-create.js';import {clinicalHeroPlan,clinicalHeroAction} from './modules/clinical-actions.js';
 import {noticeAuthorityDeaths,administrationHeroPlan,administrationHeroAction} from './modules/administration-actions.js';
@@ -323,7 +326,7 @@ export function random(s) {
 const roll = (s, n) => Math.floor(random(s) * n);
 installMigrationEmployment((s,a)=>['harvest','medicine','repair','records','market'].some(job=>actualService(s,a,'employment',{job}).available));
 installPaperFireHandler((s,a,source)=>damagePaperFromSource(s,a,source,{log}));
-function context(s, stream) { return { surgeryNPCTurn,airshipPilotTurn,returnBondNPCTurn,returnPastNPCTurn,returnPastMeet:(world,id)=>returnPastMeet(world,world.people[world.hero.lineage],world.people[id],context(world,'return-ritual')),collectForCare:collect,returnPerson:(world,p,b,task,relic)=>returnPerson(world,p,b,task,relic,context(world,'return-ritual')),nativeGameHunt,expectedLoss,birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
+function context(s, stream) { return { domesticPoison:world=>addCondition(world,'poison',context(world,'body'),16),domesticCanFeed:(world,p)=>world.hero?.lineage===p.id&&world.hero.actorMode!=='npc'?needCandidates(world,{knownRoute,route}).length>0:p.domestic?.ways.some(w=>w.kind!=='forage'&&w.kind!=='carried'&&w.area!==p.area&&world.tick-p.domestic.origin.at<240), surgeryNPCTurn,airshipPilotTurn,returnBondNPCTurn,returnPastNPCTurn,returnPastMeet:(world,id)=>returnPastMeet(world,world.people[world.hero.lineage],world.people[id],context(world,'return-ritual')),collectForCare:collect,returnPerson:(world,p,b,task,relic)=>returnPerson(world,p,b,task,relic,context(world,'return-ritual')),nativeGameHunt,expectedLoss,birthPerson:createPerson,methodRevision, recoverHeirloom, dropRemains:(world,p,reason)=>putDownRemains(world,p,context(world,'remains-carry'),reason), stopPeopleCarry:(world,reason)=>endPeopleCarry(world,context(world,'people-carry'),reason), wantsRoadShop:world=>{const h=world.hero;return h.inventory.relics>0||enabled(world,'equipment')&&h.bag.length>7||(enabled(world,'finances')?Boolean(nextPurchase(world,context(world,'finances'),h.area)):h.weapon<3&&h.gold>=equipmentPrice(world,'weapon')||!hasArmor(h)&&h.gold>=22||!h.inventory.potions&&h.gold>=7);},planFieldCamp,meetPerson, spareNeedsMoney:(world,ctx)=>{const b=moneyBudget(world,ctx);return b.targetNeed>0||world.hero.gold<b.reserve||spareNeedsMoney(world);}, fordAvoided:(world,id)=>areaAvoided(world,id), random: () => moduleRandom(s, stream), hallConversation, receiveItem, maySpend, recoverRoomParty:world=>{magicRest(world);partyRest(world);}, log, gainXp, die, closest, goal, defeatEnemy,addArea,connect,enter,route,knownRoute,observeProperty,mayRepairProperty:(world,o,person)=>mayRepairProperty(world,o,person)||serviceRepairAllowed(world,o,person),repairFunding:fundServiceRepair,hasRepairTool:hasServiceTool,repairMaterials,workshopRepaired:(world,a,o,proof)=>{workshopRepaired(world,a,o,proof,{log});finishServiceRepair(world,a,o,proof,context(world,'work-orders'));},propertyLifeEnded:world=>propertyLifeEnded(world,{log}),spawnEnemy,npcVictory,releaseParty,teachSpell,enemySpawned:registerReinforcement }; }
 export function log(s, text, type = 'story',area=s.hero?.area,{relay=true,tick=s.tick,recordedAt,meaning}={}) {
   if(!s.hero){if(populationState(s)&&s.areas[area])populationEvent(s,{kind:type,area,actors:[],text});return;}
   s.journal.unshift({ tick, text, type, life: s.generation,area,...(recordedAt===undefined?{}:{recordedAt}),...(meaning?{meaning}:{} ) });
@@ -421,19 +424,20 @@ function createOriginTopology(s){
   return {road,town,forest,ruins,camp};
 }
 export function createWorld(seed = Date.now(), {rules={}}={}) {
-  const s=createWorldBase(seed,rules);
+  const s=createWorldBase(seed,rules);beginDomesticConstruction(s);
   const {town}=createOriginTopology(s);
   s.merchant = { name: 'Сава', area: town, destination: null, arrival: 0, nextMove: 75, stock: 3,serviceStock:{version:1,gear:2,medicine:1} };
   initializeAuthorities(s);initializeRoyalHouse(s);initializeCurrencyOffice(s);initializeClinicalPractitioner(s);initializeClinicalApprentice(s);
-  s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});
+  s.hero = createHero(s);initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});initializeDomestic(s,s.people[s.hero.lineage],s.hero);
   enter(s, s.hero.area);
   log(s, `${s.hero.name} начинает путь: ${s.areas[s.hero.area].name}, ${s.continents.c0.name}.`, 'birth');
   initializeFacades(s);initializeWoodBarrier(s);syncObservedPerson(s);syncActiveActor(s);bindObservedJournal(s);initializeSpatial(s);
+  endDomesticConstruction(s);
   return s;
 }
 export function createPopulation(seed,{rules={},stocks='seed'}={}){
  if(!['seed','balanced','uneven'].includes(stocks))throw Error('Unknown initial population stocks');
- const s=createWorldBase(seed,rules);Object.assign(s,{generation:0,lives:[],population:{version:1,phase:'unobserved',seed:s.seed,options:{stocks},settlements:[],serial:0,events:[]}});initializeSociety(s,null);initializeSupply(s,null);initializeMigrations(s);initializePropertyContracts(s,null);initializeDiplomacy(s);
+ const s=createWorldBase(seed,rules);beginDomesticConstruction(s);Object.assign(s,{generation:0,lives:[],population:{version:1,phase:'unobserved',seed:s.seed,options:{stocks},settlements:[],serial:0,events:[]}});initializeSociety(s,null);initializeSupply(s,null);initializeMigrations(s);initializePropertyContracts(s,null);initializeDiplomacy(s);
  let first,second;if(enabled(s,'geography-frame')){const base=createOriginTopology(s);first=base.town;second=s.geographyFrame.sites['port-west'].area;}else{first=addArea(s,'village','Первый двор');second=addArea(s,'port','Речной двор');const wood=addArea(s,'forest','Общий лес',1);connect(s,first,second);connect(s,first,wood);}s.population.settlements=[first,second];const kin=[createPerson(s,{race:'human',role:'предок',alive:false}),createPerson(s,{race:'human',role:'предок',alive:false})],carriers=[];
  for(const id of [first,second]){const a=s.areas[id],adults=[];const initialFood=id===second&&(stocks==='uneven'||stocks==='seed'&&s.seed%3===1)?28:65;if(a.goods)a.goods.ledger.food.initial+=initialFood-a.civic.food;a.civic.food=initialFood;for(const job of ['farmer','artisan','merchant']){const p=s.people[createPerson(s,{area:id,parents:job==='merchant'?kin:[],alive:true,role:'житель',culture:a.culture},{initialJob:job})];p.agenda.due=8;p.agenda.duty=job==='merchant'?.8:.65;p.needs.hunger=job==='farmer'?45:job==='artisan'?25:15;p.needs.energy=job==='merchant'?80:job==='farmer'?70:95;if(job==='merchant')carriers.push(p);adults.push(p);a.population.push(p.id);if(job==='artisan'&&a.civic.tools>0){p.agenda.tools=takeGoods(s,a,'tools',1,{flow:'exported',reason:'origin-artisan-tools',actor:p.id});}}
   const child=createPerson(s,{area:id,parents:adults.slice(0,2).map(p=>p.id),alive:true,role:'ребёнок',culture:a.culture});a.population.push(child);
@@ -441,7 +445,7 @@ export function createPopulation(seed,{rules={},stocks='seed'}={}){
  const carrier=carriers[0],at=s.areas[second];s.areas[first].population=s.areas[first].population.filter(id=>id!==carrier.id);at.population.push(carrier.id);carrier.area=second;carrier.status='wandering';carrier.agenda.task={kind:'return',target:first,x:42,remaining:1,home:first,knownNavigation:true};const portions=takeGoods(s,at,'food',2,{flow:'exported',reason:'origin-carrier-provisions',actor:carrier.id});carrier.roadSupplies={food:portions,medicine:0};s.population.carrier=carrier.id;s.population.originTrip={person:carrier.id,home:first,area:second,kind:'return',provisions:{source:second,food:portions}};
  initializeAuthorities(s);initializeRoyalHouse(s);initializeCurrencyOffice(s);initializeClinicalPractitioner(s);initializeClinicalApprentice(s);
  for(const p of Object.values(s.people))if(p.alive&&p.area){observeNPCPlace(s,p);observeNPCContacts(s,p);observeFreightActor(s,p);}
- for(const id of [first,second]){const a=s.areas[id];populationEvent(s,{kind:'origin',area:id,actors:[...a.population],stocks:{...a.civic},people:a.population.map(person=>({person,job:s.people[person].agenda.job,tools:s.people[person].agenda.tools}))});}s.merchant={name:'Сава',area:first,destination:null,arrival:0,nextMove:75,stock:3,serviceStock:{version:1,gear:2,medicine:1}};initializeSpatial(s);return s;
+ for(const id of [first,second]){const a=s.areas[id];populationEvent(s,{kind:'origin',area:id,actors:[...a.population],stocks:{...a.civic},people:a.population.map(person=>({person,job:s.people[person].agenda.job,tools:s.people[person].agenda.tools}))});}s.merchant={name:'Сава',area:first,destination:null,arrival:0,nextMove:75,stock:3,serviceStock:{version:1,gear:2,medicine:1}};initializeSpatial(s);endDomesticConstruction(s);return s;
 }
 export function createWarmPopulation(seed,{duration=WARM_TICKS,...options}={}){const s=createPopulation(seed,options);beginPreparationState(s,duration,populationSnapshot(s));return s;}
 export function beginPopulationPreparation(s,{duration=WARM_TICKS}={}){if(!populationState(s))throw Error('Preparation requires an unobserved population');beginPreparationState(s,duration,populationSnapshot(s));return s;}
@@ -1018,7 +1022,7 @@ export function createNextStory(s,{allowLiving=false}={}){
  bindObservedJournal(s);s.nextGeneration=Math.max(s.nextGeneration,s.generation)+1;s.generation=s.nextGeneration;s.hero=createHero(s);
  s.hero.actorJournal=[];s.journal=s.hero.actorJournal;
  s.observation={person:s.hero.lineage,sequence:(s.observation.sequence||s.generation-1)+1,started:s.tick};
- initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});enter(s,s.hero.area);syncObservedPerson(s);syncActiveActor(s);
+ initializeObservation(s);prepareBirthplace(s,s.hero,{openSettlement,addArea,connect});initializeDomestic(s,s.people[s.hero.lineage],s.hero);enter(s,s.hero.area);syncObservedPerson(s);syncActiveActor(s);
  log(s,s.hero.name+' начинает новую историю в том же мире.','birth');return true;
 }
 export function observeRemains(s,person=s.hero.lineage){const h=s.actorStates?.[person],b=h&&!h.alive&&bodyRemains(s,h);if(s.rules.remains===false||!b||!remainsLocation(s,b))return false;bindObservedJournal(s);s.hero=h;s.generation=h.actorGeneration;s.journal=actorJournal(s,h);s.observation={version:1,person,sequence:(s.observation.sequence||1)+1,started:s.tick};initializeObservation(s);return focusOwnRemains(s);}
@@ -1095,6 +1099,7 @@ function actObserved(s) {
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(s.people[h.lineage].returnEpisode?.form!=='skeleton'&&woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
+  if(domesticTurn(s,s.people[h.lineage],context(s,'supply'),{inTurn:true}))return s;
   if(!need.critical){if(echoLayerPlan(s,context(s,'mechanisms')))return s;if(keeperHeroTurn(s,context(s,'local-ecology')))return s;if(handProstheticTurn(s,context(s,'prosthetics')))return s;if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(rivalryTurn(s,context(s,'craft-rivalry')))return s;
