@@ -1,3 +1,4 @@
+import {validateMasteryNews} from './progression-news.js';
 import {validateCouncilNews} from './council-reports.js';
 import {validateClinicalNews} from './clinical-news.js';
 import {validateAdministrationNews} from './administration-news.js';
@@ -9,6 +10,7 @@ export function validateNews(s,fail){
  if(registry!==undefined){
   if(registry?.version!==1||!registry.events||typeof registry.events!=='object'||Array.isArray(registry.events))fail('newsEvents');
   for(const [id,e]of Object.entries(registry.events)){
+   if(e?.kind==='mastery'){validateMasteryNews(s,fail,id,e);continue;}
    if(e?.kind==='role'){validateRoleNews(s,fail,id,e);continue;}
    if(e?.kind==='cargo'){validateCargoNews(s,fail,id,e);continue;}
    if(e?.kind==='diplomacy'){validateDiplomacyNews(s,fail,id,e);continue;}
@@ -33,6 +35,7 @@ export function validateNews(s,fail){
    if(!f||r.id!==id||!['witness','reported'].includes(r.mode)||r.status!==f.status||r.occurred!==f.occurred||r.area!==f.area||r.actor?.id!==f.actor.id||r.actor?.name!==f.actor.name||r.patient?.id!==f.patient.id||r.patient?.name!==f.patient.name||r.source?.id!==f.source.id||r.source?.kind!==f.source.kind||!tick(r.heardAt)||r.heardAt<f.occurred||!r.origin||!f.witnesses.includes(r.origin.person)||r.origin.at!==f.occurred||!Array.isArray(r.via)||r.via.length>6)fail(key+'.report');
    if(r.mode==='witness'&&(r.via.length||r.origin.person!==p.id||r.heardAt!==f.occurred)||r.mode==='reported'&&(!r.via.length||r.via.at(-1).to!==p.id||r.heardAt!==r.via.at(-1).tick))fail(key+'.origin');
    for(const [i,hop]of r.via.entries())if(!s.people[hop.from]||!s.people[hop.to]||hop.from===hop.to||!s.areas[hop.area]||!tick(hop.tick)||hop.tick<(r.via[i-1]?.tick??f.occurred)||hop.from!==(r.via[i-1]?.to??r.origin.person))fail(key+'.path');
+   if(JSON.stringify(f.mastery)!==JSON.stringify(r.mastery))fail(key+'.mastery');
    if(JSON.stringify(f.council)!==JSON.stringify(r.council))fail(key+'.council');
    if(JSON.stringify(f.clinical)!==JSON.stringify(r.clinical))fail(key+'.clinical');
    if(JSON.stringify(f.administration)!==JSON.stringify(r.administration))fail(key+'.administration');

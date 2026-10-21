@@ -61,7 +61,7 @@ export function afterVictory(s, enemy, ctx) {
   const h = s.hero;
   if(enemy.items?.length){cacheItems(s,enemy.items,{area:h.area,x:enemy.x,leftBy:h.lineage,name:'Перехваченная поклажа'});enemy.items=[];}
   if (enemy.stolen) { h.gold += enemy.stolen; enemy.stolen = 0; }
-  advanceCareer(s,3,ctx);
+  advanceCareer(s,1,ctx,{family:h.lastAction==='cast'?'combat-magic':'combat-melee',cause:'victory/'+h.area+'/'+enemy.id});
   enchantedVictory(s,enemy,ctx);
   if (enabled(s, 'equipment') && (ctx.random(s) < .38 || hasHabit(h, 'collector'))) receiveItem(s, ctx);
 }

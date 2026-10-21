@@ -1,3 +1,4 @@
+import {heroLevel} from './progression-state.js';
 import {socketReduction} from './socket-state.js';
 import {weaponBody} from './limb-state.js';
 import {woundForce} from './wound-state.js';
@@ -48,7 +49,7 @@ export function partyDamageRange(s,e,options={}){
  return total;
 }
 export function weaponDamageRange(s,e,style=null){
- const h=s.hero,p=profile(h);let min=4+weaponBody(s,h).weapon*3+Math.floor(h.level/2)+p.attack+itemBonus(weaponBody(s,h),'attack')+(enabled(s,'identity')?Math.floor(stat(weaponBody(s,h),'might')/3):0);
+ const h=s.hero,p=profile(h);let min=4+weaponBody(s,h).weapon*3+Math.floor(heroLevel(h)/2)+p.attack+itemBonus(weaponBody(s,h),'attack')+(enabled(s,'identity')?Math.floor(stat(weaponBody(s,h),'might')/3):0);
  if(p.skill==='magic')min+=Math.floor(stat(h,'wit')/2)+itemBonus(h,'magic');
  if(p.skill==='beast'&&e.tags?.includes('beast'))min+=3;
  if(p.skill==='spirit'&&e.tags?.includes('spirit'))min+=4;

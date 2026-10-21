@@ -1,3 +1,4 @@
+import {heroLevel} from './progression-state.js';
 import {enabled,moduleRandom} from '../rules.js';
 export function areaDanger(s,a,metadata={}){
   if(a.danger!==undefined)return;
@@ -6,4 +7,4 @@ export function areaDanger(s,a,metadata={}){
   a.danger=metadata.danger??(wild?base+Math.floor(a.depth/4)+(a.depth>4&&moduleRandom(s,'danger')<.12?8:0):0);
 }
 export function dangerMultiplier(s,a){return enabled(s,'danger')?1+Math.max(0,(a.danger||0)-3)*.28:1;}
-export function dangerAvoidance(s,a){return enabled(s,'danger')?Math.max(0,(a.danger||0)-Math.max(2,s.hero.level*.65))*(3+(1-s.hero.personality.courage)*10):0;}
+export function dangerAvoidance(s,a){return enabled(s,'danger')?Math.max(0,(a.danger||0)-Math.max(2,heroLevel(s.hero)*.65))*(3+(1-s.hero.personality.courage)*10):0;}

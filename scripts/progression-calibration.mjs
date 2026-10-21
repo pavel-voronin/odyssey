@@ -1,0 +1,7 @@
+import {readFile} from 'node:fs/promises';
+import {DEVELOPMENT_REFERENCE,developmentThreshold,effortRank} from '../modules/progression-state.js';
+// Read at most twelve already completed lives. Never run or extend a life.
+const files=process.argv.slice(2).slice(0,12),seen=new Set(),closed=[];let censored=0,oldSchema=0;
+for(const file of files){const s=JSON.parse(await readFile(file,'utf8'));if(s.schema!=='click-odyssey/144'){oldSchema++;continue;}if(s.hero?.alive)censored++;for(const life of s.lives||[]){if(closed.length===12)break;const key=s.seed+'/'+life.lineage+'/'+life.ended;if(seen.has(key))continue;seen.add(key);if(life.outcome==='dead')closed.push(life);}}
+const compatible=closed.filter(l=>{const q=l.developmentScale?.effort;return q?.started<=l.born&&q.general?.anchor.rank===1&&q.general.anchor.xp===0&&q.general.base===0&&Object.values(q.careers).every(c=>c.anchor.rank===1&&c.anchor.xp===0&&c.base===0);});
+console.log(JSON.stringify({completedRead:closed.length,compatibleWeightedLives:compatible.length,livingCensored:censored,oldSchema,reference:DEVELOPMENT_REFERENCE,status:'provisional',reason:compatible.length<8?'Недостаточно полных жизней с учётом взвешенного вклада от рождения. Медиана не измерена.':'Готовые данные доступны для отдельной оценки; параметры автоматически не меняются.',analytic:Object.fromEntries(['general','career'].map(kind=>[kind,{ordinaryBudgetRank:effortRank(DEVELOPMENT_REFERENCE[kind],kind),grandmasterBudget:developmentThreshold(12,kind),ratio:developmentThreshold(12,kind)/DEVELOPMENT_REFERENCE[kind]}]))}));

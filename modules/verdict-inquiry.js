@@ -1,3 +1,4 @@
+import {heroLevel} from './progression-state.js';
 import {knownArea} from '../actor-atlas.js';
 import {stat} from './common.js';
 import {caseMemory,verdictKnowledgeOn,recordReading,considerKnownVerdicts} from './verdict-evidence.js';
@@ -6,7 +7,7 @@ function reachable(s,ref,ctx){
  if(!ref||!knownArea(s,ref.area))return false;
  const path=ctx.knownRoute(s,s.hero.area,ref.area);
  // Known topography and remembered hazards guide a plan; unseen source state does not.
- return path.length>0&&path.length<=4&&path.every(id=>(s.areas[id].danger||0)<=Math.max(2,s.hero.level*.65)&&!(s.hero.memory.threats&&Object.values(s.hero.memory.threats).some(t=>t.area===id&&t.alive)))&&s.hero.energy>=30+path.length*5;
+ return path.length>0&&path.length<=4&&path.every(id=>(s.areas[id].danger||0)<=Math.max(2,heroLevel(s.hero)*.65)&&!(s.hero.memory.threats&&Object.values(s.hero.memory.threats).some(t=>t.area===id&&t.alive)))&&s.hero.energy>=30+path.length*5;
 }
 export function verdictInquiryPlan(s,ctx){
  const h=s.hero;if(!verdictKnowledgeOn(s)||!h.alive||h.goal||h.combat||h.transit)return false;

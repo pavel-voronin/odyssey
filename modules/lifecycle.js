@@ -1,3 +1,4 @@
+import {careerRank,effectiveLevel,heroLevel} from './progression-state.js';
 import {portraitModel} from '../portrait.js';
 import {knownArea,revealArea} from '../actor-atlas.js';
 import {takeLegacyMoney,takeLegacyItem,syncActiveActor} from '../actor-projection.js';
@@ -32,7 +33,7 @@ export function archiveLife(s,outcome,cause,{ended=s.tick,recordedAt,wealthBasis
   if(outcome!=='dead'||h.alive)throw new Error('Архив финала создаётся только после смерти тела');
   if(s.lives.some(l=>l.lineage===h.lineage&&l.outcome===outcome&&l.ended===ended))return;
   s.lives.push(copy({generation:s.generation,lineage:h.lineage,name:h.name,family:h.family,race:h.race,profession:h.profession,appearance:h.appearance,birthOrigin:h.birthOrigin,born:h.born,originTick:h.originTick,residentExperience:h.residentExperience,startAge:h.startAge,ageOrigin:h.ageOrigin,ended,recordedAt,wealthBasis,deathDateKnown:h.life.deathDateKnown,outcome,cause,area:h.actorMode==='npc'?(s.people[h.lineage]?.area??null):h.area,deathJourney:h.actorMode==='npc'?s.people[h.lineage]?.deathJourney:undefined,level:h.level,kills:h.kills,wealth:h.gold,actorMode:h.actorMode,npcProfile:h.npcProfile,destiny:h.destiny,titles:h.titles,counters:h.counters,travel:h.travel,places:h.memory.places,quests:h.quests,commitments:h.commitments,rejected:h.memory.rejected,storyRarity:h.storyRarity,innerLife:h.innerLife,money:h.money,campLife:h.campLife,sketchbook:h.sketchbook,smoking:h.smoking,property:h.property,stories:(s.storyCases||[]).filter(c=>c.owner===h.lineage),companions:h.companions,items:[...h.bag,...Object.values(h.equipment).filter(Boolean)],milestones:h.biography}));
-  const archived=s.lives.at(-1);archived.career=copy(h.career);archived.affiliation=copy(h.affiliation||{});
+  const archived=s.lives.at(-1);archived.career=copy(h.career);archived.developmentScale={level:heroLevel(h),careerRank:careerRank(h),cap:12,basicSkillCap:100,effort:copy(s.people[h.lineage].professionalDevelopment||null)};archived.affiliation=copy(h.affiliation||{});
   if(h.remainsId)archived.remainsId=h.remainsId;
   if(enabled(s,'outfit-appearance')&&enabled(s,'appearance'))archived.outfitSnapshot=copy(heroAppearance(s));
   if(enabled(s,'appearance'))archived.portraitSnapshot={version:1,race:enabled(s,'lineage')?h.race:null,alive:h.alive,look:copy(portraitModel(s).look)};
@@ -61,7 +62,7 @@ export function settlementAssessment(s,home){
   if(h.social.lostCompanions>=2)roots+=18;
   if(enabled(s,'psychology'))roots+=Math.min(18,h.mind.stress*.18);
   let road=18+h.personality.curiosity*30;
-  const learning=enabled(s,'identity')&&enabled(s,'work')&&l.nextMastery?.profession===h.profession&&h.career.rank<l.nextMastery.rank;
+  const learning=enabled(s,'identity')&&enabled(s,'work')&&l.nextMastery?.profession===h.profession&&careerRank(h)<effectiveLevel(l.nextMastery.rank);
   const personal=enabled(s,'commitments')&&h.commitments?.personal?.status==='active'||enabled(s,'property')&&enabled(s,'property-contracts')&&['active','performed','credited'].includes(s.propertyContracts?.[h.property?.contract]?.status);
   const story=enabled(s,'stories')&&(s.storyCases||[]).some(c=>c.owner===h.lineage&&c.status==='active');
   const companion=enabled(s,'companion-goals')&&h.companions.some(c=>s.people[c.person]?.personalJourney?.status==='active');
@@ -72,7 +73,7 @@ export function settlementAssessment(s,home){
   if(s.tick-h.career.lastChange<2400)road+=10;
   const ready=roots>=road;
   const key=ready?'settle':personal?'personal':story?'story':companion?'companion':learning?'learning':'horizons';
-  const reason=ready?motive:personal?'Достаток уже есть, но после отступления осталось собственное незавершённое дело.':story?'Своё место уже можно найти, но начатая личная история ещё требует ответа.':companion?'Путь спутника ещё не закончен. Вместе хочется пройти дальше.':learning?`Мастерство уже кормит, но хочется освоить следующую ступень ремесла: ${l.nextMastery.rank}.`:'Дом уже возможен, но любопытство пока сильнее желания остаться. Прожитый путь и новые связи могут это изменить.';
+  const reason=ready?motive:personal?'Достаток уже есть, но после отступления осталось собственное незавершённое дело.':story?'Своё место уже можно найти, но начатая личная история ещё требует ответа.':companion?'Путь спутника ещё не закончен. Вместе хочется пройти дальше.':learning?`Мастерство уже кормит, но хочется освоить следующую ступень ремесла: ${effectiveLevel(l.nextMastery.rank)}.`:'Дом уже возможен, но любопытство пока сильнее желания остаться. Прожитый путь и новые связи могут это изменить.';
   return {ready,motive,roots,road,reason,key};
 }
 export function lifePlan(s,ctx){
@@ -84,7 +85,7 @@ export function lifePlan(s,ctx){
   if(!l.motive){
     if(s.tick<l.reflectAfter)return false;
     const home=ctx.closest(s,a=>knownArea(s,a)&&isTown(a)&&(!a.civic?.crisis||a.civic.food>30));
-    l.nextMastery ??= {profession:h.profession,rank:h.career.rank+2};
+    l.nextMastery ??= {profession:h.profession,rank:Math.min(12,careerRank(h)+2)};
     const assessment=settlementAssessment(s,home);
     l.reflection={tick:s.tick,...assessment};
     if(!assessment.ready){

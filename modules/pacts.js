@@ -1,3 +1,4 @@
+import {heroLevel} from './progression-state.js';
 import {areaOffset} from '../geometry.js';
 import {itemLocation} from './item-originals.js';
 import {itemWorth} from './item-condition.js';
@@ -73,7 +74,7 @@ export function tick(s,c,ctx){
   }
   if(c.stage!=='owed'||s.tick<c.due||s.hero.transit)return;
   const h=s.hero,a=s.areas[h.area],o=ctx.spawnEnemy(s,a,{requestedSpecies:'ghost',boss:true,x:Math.max(areaOffset(a,8),Math.min(100-areaOffset(a,8),h.x+areaOffset(a,8)))});
-  o.baseName='Сборщик невыплаченных мгновений';o.name=o.baseName+' · печать договора';o.attack=14+h.level*2;o.maxHp=70+h.level*8;o.hp=o.maxHp;o.powers=['hex','vampire'];o.story=c.id;
+  o.baseName='Сборщик невыплаченных мгновений';o.name=o.baseName+' · печать договора';o.attack=14+heroLevel(h)*2;o.maxHp=70+heroLevel(h)*8;o.hp=o.maxHp;o.powers=['hex','vampire'];o.story=c.id;
   c.collector={area:a.id,id:o.id};c.stage='collection';h.goal=null;
   narrativeChange(s,c,`Просроченный договор привёл сборщика в место «${a.name}».`);ctx.log(s,'Песок в часах кончился. На дороге появляется сборщик: долг превратился в опасность, которую нельзя стереть сменой области.','story');
 }

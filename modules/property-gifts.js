@@ -1,3 +1,4 @@
+import {careerRank} from './progression-state.js';
 import {areaScale} from '../geometry.js';
 import {enabled} from '../rules.js';
 import {profile} from './common.js';
@@ -5,7 +6,7 @@ import {maySpend} from './finances.js';
 import {observeProperty,transferProperty,wantsWorkshop} from './property.js';
 import {reservedWorkshop} from './workshop-contract-state.js';
 const active=s=>enabled(s,'property')&&enabled(s,'property-gifts');
-const capable=h=>h.career.rank>=2&&['craft','time'].includes(profile(h).skill);
+const capable=h=>careerRank(h)>=2&&['craft','time'].includes(profile(h).skill);
 function familiar(s,p){
   const h=s.hero,r=h.relations[p.id],self=s.people[h.lineage];
   const kin=self.parents.includes(p.id)||p.parents.includes(h.lineage)||self.parents.some(id=>p.parents.includes(id));

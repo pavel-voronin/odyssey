@@ -52,7 +52,7 @@ export function encounter(s, o, ctx) {
     } else ctx.log(s, 'Герой проходит мимо игры в кости. Сегодня ему нужны надёжные монеты.', 'choice');
   } else if (kind === 'burial') {
     if (skill === 'spirit' || h.personality.generosity > .6) {
-      moral(s, 4); repute(s, 'lantern', 2); ctx.gainXp(s, 5); addCondition(s, 'blessing', ctx);
+      moral(s, 4); repute(s, 'lantern', 2); ctx.gainXp(s, 5,'encounter/'+h.area+'/'+o.id); addCondition(s, 'blessing', ctx);
       ctx.log(s, 'Герой даёт безымянной могиле имя. Ночью никто не станет идти за ним.', 'choice');
     } else if (hasHabit(h, 'hoarder') || h.alignment < -10) {
       if (enabled(s, 'equipment')) receiveItem(s, ctx, 2); moral(s, -7); addCondition(s, 'insomnia', ctx); ctx.log(s, 'Герой раскапывает могилу ради находки. Заснуть после этого будет труднее.', 'choice');
@@ -65,7 +65,7 @@ export function encounter(s, o, ctx) {
     const unknown = Object.values(s.areas).filter(a => !h.memory.places.includes(a.id));
     for (const a of unknown.slice(0, 3)) revealArea(s,a);
     h.memory.facts.push({ tick: s.tick, text: `Картограф отметил ${unknown.length ? unknown.slice(0, 3).map(a => a.name).join(', ') : 'уже знакомые дороги'}.` });
-    ctx.gainXp(s, skill === 'relic' ? 8 : 3); ctx.log(s, 'Картограф дорисовывает тропы на карте. Теперь можно выбирать между несколькими неизвестностями.', 'talk');
+    ctx.gainXp(s, skill === 'relic' ? 8 : 3,'encounter/'+h.area+'/'+o.id); ctx.log(s, 'Картограф дорисовывает тропы на карте. Теперь можно выбирать между несколькими неизвестностями.', 'talk');
   }
   h.goal = null;
   return true;
@@ -78,7 +78,7 @@ export function tryParley(s, enemy, ctx) {
   enemy.parleyAttempted = true;
   if (stat(h,'spirit') + stat(h,'guile') + ctx.random(s) * 8 > 10) {
     const linked=enemyPerson(s,enemy);if(linked&&!releaseEnemyPerson(s,enemy,'parley',ctx))return false;
-    enemy.pacified = true; enemy.resolved = true; moral(s, 5); if(!linked)repute(s, enemy.faction, 2); ctx.gainXp(s, 6);
+    enemy.pacified = true; enemy.resolved = true; moral(s, 5); if(!linked)repute(s, enemy.faction, 2); ctx.gainXp(s, 6,'parley/'+h.area+'/'+enemy.id);
     h.goal = null; h.lastAction = 'talk'; ctx.log(s, `${enemy.baseName} принимает разговор вместо боя. Дорога становится безопасной без новой могилы.`, 'choice'); return true;
   }
   ctx.log(s, 'Предложение мира отвергнуто. Спокойные слова не всегда меняют чужие планы.', 'talk'); return true;

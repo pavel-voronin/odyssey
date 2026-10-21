@@ -1,3 +1,4 @@
+import {heroLevel} from './progression-state.js';
 import {launchShip} from './ship-launch.js';
 import {rememberShipFailure} from './ship-recovery-state.js';
 import {revealArea} from '../actor-atlas.js';
@@ -42,7 +43,7 @@ export function act(s,c,ctx){
     if(enabled(s,'magic'))h.magic.maxMana+=3;
     chronicleChoice(s,c,'Вывел резервную копию в мир.');narrativeChange(s,c,`Копия ${h.name} стала самостоятельным жителем. У неё другое прошлое, но то же лицо.`);ctx.storyFinish(s,c,ctx,'done','Из комнаты выходит второй герой. Он отказывается идти следом: «В прошлой версии я уже был главным». В мире остаётся самостоятельное эхо.');
   }else if(h.alignment< -15||hasHabit(h,'reckless')){
-    const enemy=ctx.spawnEnemy(s,a,{boss:true,requestedSpecies:'automaton',x:75});enemy.name='Администратор несанкционированных реальностей';enemy.attack=12+h.level*2;enemy.story=c.id;
+    const enemy=ctx.spawnEnemy(s,a,{boss:true,requestedSpecies:'automaton',x:75});enemy.name='Администратор несанкционированных реальностей';enemy.attack=12+heroLevel(h)*2;enemy.story=c.id;
     h.gold+=30;chronicleChoice(s,c,'Сломал ограничения системы.');narrativeChange(s,c,'Взлом выпустил опасного администратора в мир.');ctx.storyFinish(s,c,ctx,'failed','Герой ломает ограничитель и забирает ◈30. Система выпускает администратора: теперь это живая опасность у пульта.');
   }else {moral(s,3);h.energy=100;chronicleChoice(s,c,'Не стал менять чужие жизни.');ctx.storyFinish(s,c,ctx,'done','Герой закрывает пульт: «Даже если мы вычисление, людям завтра нужна еда». Машина остаётся тихой, чужие жизни продолжаются.');}
 }

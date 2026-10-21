@@ -1,3 +1,4 @@
+import {careerRank} from './progression-state.js';
 import {rememberCampRepair} from './camp-topic-memory.js';
 import {controlBlocked} from './building-control-state.js';
 import {confirmWord} from './word-custom.js';
@@ -39,7 +40,7 @@ export function workOrdersTick(s,ctx){
 export function commissionRepair(s,p,o){
  initializeWorkOrders(s);
  if(!active(s)||!p?.alive||selfDrivenActor(s,p.id)||npcController(s,p)!=='personal'||p.status!=='resident'||!s.areas[p.area]?.objects.includes(o)||o.owner!==p.id||o.state!=='burned'||o.repair?.materials||reservedWorkshop(s,o)||p.agenda.wealth<30||(p.workCommissionAfter||0)>s.tick||p.agenda.duty>.75)return false;
- const h=detailedActors(s).find(h=>selfDrivenActor(s,h)&&h.area===p.area&&!h.transit&&!h.combat&&h.career.rank>=2&&['craft','time'].includes(profile(h).skill)&&knownCraftsperson(s,p,h)&&Math.abs(h.x-p.x)*areaScale(s.areas[h.area])<=30&&!Object.values(s.workOrders).some(c=>c.helper===h.lineage&&open.has(c.status)));
+ const h=detailedActors(s).find(h=>selfDrivenActor(s,h)&&h.area===p.area&&!h.transit&&!h.combat&&careerRank(h)>=2&&['craft','time'].includes(profile(h).skill)&&knownCraftsperson(s,p,h)&&Math.abs(h.x-p.x)*areaScale(s.areas[h.area])<=30&&!Object.values(s.workOrders).some(c=>c.helper===h.lineage&&open.has(c.status)));
  if(!h)return false;
  const id='service-'+s.nextWorkOrder++;s.workOrders[id]={id,client:p.id,helper:h.lineage,area:p.area,property:o.id,damageAt:o.damagedAt,status:'visiting',offered:s.tick,deadline:s.tick+240,currency:'gold',price:24,materialCost:18,fee:6,escrow:0};
  if(craftRespect(s,p.id,h.lineage)>=6)s.workOrders[id].basis={kind:'witnessed-craft',respect:craftRespect(s,p.id,h.lineage),event:p.craftRelations[h.lineage].lastWork.id,trust:p.agenda.bonds?.[h.lineage]||0};
@@ -126,7 +127,7 @@ export function finishServiceRepair(s,a,o,proof,ctx){
  const c=s.workOrders?.[o.service];if(!c||c.status!=='active'||!active(s)||o.state!=='intact'||a.id!==c.area||o.id!==c.property||proof.actor!==c.helper||proof.payer!==c.client||proof.damageAt!==c.damageAt||c.materialsPaid!==18||c.escrow!==c.fee)return;
  const h=s.actorStates[c.helper],p=s.people[c.client];if(!h?.alive||!p?.alive)return;
  setActorMoney(s,s.people[h.lineage],h.gold+c.fee);c.escrow=0;c.paid=c.fee;c.status='done';c.ended=s.tick;o.service=null;if(h.life.residence?.service===c.id)h.life.residence.service=null;
- rememberCampRepair(s,a,o,c,proof);h.counters.customerWork=(h.counters.customerWork||0)+1;h.counters.peacefulWork=(h.counters.peacefulWork||0)+1;advanceCareer(s,5,ctx);ctx.gainXp(s,5);
+ rememberCampRepair(s,a,o,c,proof);h.counters.customerWork=(h.counters.customerWork||0)+1;h.counters.peacefulWork=(h.counters.peacefulWork||0)+1;ctx.gainXp(s,5,'repair-result/'+c.id);
  (p.agenda.bonds ||= {})[h.lineage]=clamp((p.agenda.bonds[h.lineage]||0)+2,-100,100);
  const relation=h.relations[p.id];if(relation&&enabled(s,'relationships')){relation.trust=clamp(relation.trust+2,-100,100);relation.helped++;}
  tell(s,c,`${h.name} восстанавливает мастерскую для ${p.name} и получает ◈${c.fee}. Заказчик снова может работать в своём помещении.`,ctx);

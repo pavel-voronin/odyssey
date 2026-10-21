@@ -202,7 +202,7 @@ export function finishQuest(s,q,ctx){
       return;
     }
   }
-  q.status='done';q.completed=s.tick;h.gold+=q.reward;ctx.gainXp(s,12);h.lastAction='talk';
+  q.status='done';q.completed=s.tick;h.gold+=q.reward;ctx.gainXp(s,12,'quest/'+q.id);h.lastAction='talk';
   if(['herbs','medicine'].includes(q.kind))h.inventory.herbs=Math.max(0,h.inventory.herbs-q.required);
   if(q.kind==='relic')h.inventory.relics=Math.max(0,h.inventory.relics-q.required);
   const source=s.areas[q.source],c=source.civic;

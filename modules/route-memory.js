@@ -1,3 +1,4 @@
+import {heroLevel} from './progression-state.js';
 import {partyAvailable} from './party-needs.js';
 import {enabled} from '../rules.js';
 import {legacyArmorDefense,armorExtra} from './armor.js';
@@ -7,7 +8,7 @@ export function expectedLoss(s,enemy){
   const h=s.hero,active=enabled(s,'route-memory'),help=active&&enabled(s,'companions')?h.companions.filter(c=>partyAvailable(s,c)).reduce((n,c)=>n+Math.max(0,c.attack||0),0):0;
   const physical=enabled(s,'armor-balance')&&enabled(s,'equipment')?Object.values(h.equipment||{}).reduce((n,i)=>n+(i?.stat==='defense'?i.power:0),0)+armorExtra(h):0;
   const hit=enemy.attack+1-legacyArmorDefense(h)-physical;
-  return Math.ceil(enemy.hp/(5.5+h.weapon*3+h.level/2+help))*(active?Math.max(1,hit):hit);
+  return Math.ceil(enemy.hp/(5.5+h.weapon*3+heroLevel(h)/2+help))*(active?Math.max(1,hit):hit);
 }
 export function areaAvoided(s,id){
   const h=s.hero,known=enabled(s,'route-memory')&&h.memory.rejected?.[id];

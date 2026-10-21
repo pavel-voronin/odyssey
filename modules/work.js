@@ -1,3 +1,4 @@
+import {careerRank,effectiveLevel} from './progression-state.js';
 import {restoreHealth} from './fresh-reply.js';
 import {ordinaryRecovery} from './biology.js';
 import {limbWorkAllows} from './limb-state.js';
@@ -33,7 +34,7 @@ export function workMotive(s,ctx){
  const aim=destiny(h.destiny.id);if(enabled(s,'identity')&&!h.destiny.completed&&aim.counter==='gold'&&aim.target>target){target=aim.target;reason='Заработок приближает собственную цель: '+aim.name+'.';}
  if(h.gold<target)return {kind:'income',target,reason};
  const learning=h.life.nextMastery;
- if(enabled(s,'identity')&&learning?.profession===h.profession&&h.career.rank<learning.rank)return {kind:'learning',target:learning.rank,reason:'Практикой освоить намеченную ступень ремесла: '+learning.rank+'.'};
+ if(enabled(s,'identity')&&learning?.profession===h.profession&&careerRank(h)<effectiveLevel(learning.rank))return {kind:'learning',target:effectiveLevel(learning.rank),reason:'Практикой освоить намеченную ступень ремесла: '+effectiveLevel(learning.rank)+'.'};
  const a=s.areas[h.area],job=JOBS.find(j=>j.skills.includes(profile(h).skill));
  if(enabled(s,'events')&&a.civic&&(job?.id==='dock'||job?.id==='market')&&a.civic.food<35)return {kind:'need',reason:'Помочь пополнить действительные местные запасы еды.'};
  if(enabled(s,'events')&&job?.id==='medicine'&&a.civic?.medicine<15)return {kind:'need',reason:'Пополнить запас лекарств, которого сейчас не хватает поселению.'};
@@ -77,13 +78,13 @@ export function workTick(s,ctx){
   if(denyService(s,ctx,'employment',{job:job.id})){h.goal=null;h.workAfter=s.tick+48;return;}
   rememberWorkplace(s,g);
   if(goodsEnabled(s)&&job.id==='harvest')goodsWorkReceipt(s,s.people[h.lineage],g,job.duration);
-  g.remaining--;h.energy=Math.max(0,h.energy-2/woundForce(s));h.lastAction='work';woundActivity(s,s.people[h.lineage],'arm');h.speech=job.name+'…';
+  g.remaining--;advanceCareer(s,1,ctx,{family:job.id,cause:'work/'+s.tick});h.energy=Math.max(0,h.energy-2/woundForce(s));h.lastAction='work';woundActivity(s,s.people[h.lineage],'arm');h.speech=job.name+'…';
   if(g.remaining<=0){
     const site=job.id==='repair'?workshopSite(s,h.area):null,workArea=site?.area||s.areas[h.area],employer=workArea.civic,harvest=goodsEnabled(s)&&job.id==='harvest'?completeGoodsWork(s,s.areas[h.area],g.goodsWork,{units:8}):null;
     const pay=goodsEnabled(s)?harvest&&!harvest.quantity?0:Math.min(job.pay,Math.max(0,employer?.treasury||0)):job.pay;
     if(goodsEnabled(s)||enabled(s,'service-access')){if(employer)employer.treasury-=pay;}
     if(pay<=0&&!harvest?.quantity){h.goal=null;h.reason='Работа не дала оплаты или настоящего продукта; нужен другой способ получить еду.';ctx.log(s,h.reason,'work');return;}
-    h.gold+=pay;advanceCareer(s,5,ctx);ctx.gainXp(s,5);h.workAfter=s.tick+(h.career.path==='peaceful'?18:120);h.goal=null;
+    h.gold+=pay;ctx.gainXp(s,5,'work-result/'+s.tick);h.workAfter=s.tick+(h.career.path==='peaceful'?18:120);h.goal=null;
     witnessRepairWork(s,job);
     if(job.id==='repair'){const a=workArea,o=site?.object;if(o)recordToolUse(s,a,o,h.lineage,ctx);observeWorkTools(s);}
     causalWork(s,g,job);
@@ -95,7 +96,7 @@ export function workTick(s,ctx){
   }
 }
 export function leisureTick(s,ctx){
-  const h=s.hero,g=h.goal;g.remaining--;h.energy=Math.min(100,h.energy+8);restoreHealth(s,ordinaryRecovery(s,h,2));h.lastAction='rest';h.mind.stress=Math.max(0,h.mind.stress-3);
+  const h=s.hero,g=h.goal;g.remaining--;advanceCareer(s,1,ctx,{family:job.id,cause:'work/'+s.tick});h.energy=Math.min(100,h.energy+8);restoreHealth(s,ordinaryRecovery(s,h,2));h.lastAction='rest';h.mind.stress=Math.max(0,h.mind.stress-3);
   if(g.remaining<=0){
     if(g.signals!==undefined){h.goal=null;return;} // Quiet reconsideration is not an invented neighbour event every twelve ticks.
     const ordinary=['Герой отдыхает и обдумывает следующее дело.','После короткой передышки герой снова смотрит на знакомые дороги.'];

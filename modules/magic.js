@@ -1,3 +1,4 @@
+import {heroLevel} from './progression-state.js';
 import {availableFormulas} from './formula-invoice.js';
 import {finishFormulaScroll} from './composed-formulas.js';
 import {restoreHealth} from './fresh-reply.js';
@@ -28,7 +29,7 @@ export function initializeMagic(s,h){
   h.magic={mana:18,maxMana:18+stat(h,'wit')*2,spells:skill==='magic'?['spark','mend']:skill==='spirit'?['ward']:skill==='time'?['borrow']:[],cooldowns:{},casts:0};
 }
 export function learnSpell(s,ctx){
-  const h=s.hero;if(!enabled(s,'magic')||h.level%2)return;
+  const h=s.hero;if(!enabled(s,'magic')||heroLevel(h)%2)return;
   const choices=SPELLS.filter(x=>!h.magic.spells.includes(x.id));if(!choices.length)return;
   if(!h.magic.spells.length&&stat(h,'wit')<4&&moduleRandom(s,'magic')>.25)return;
   const spell=choices[Math.floor(moduleRandom(s,'magic')*choices.length)];teachSpell(s,spell.id,ctx,'Опыт');
@@ -66,7 +67,7 @@ export function castInCombat(s,enemy,ctx,requestedSpellId=null,requestedForm=nul
   else if(spell.kind==='ward'){addCondition(s,'blessing',ctx,18);stampWardEffect(s,enemy,{paid:spell.totalManaCost,form:spell.measured?'measured':'normal'});ctx.log(s,'Слово укрытия ложится между героем и чужими когтями.','magic');}
   else if(spell.kind==='composite'){addCondition(s,'blessing',ctx,18);stampWardEffect(s,enemy,{paid:spell.totalManaCost,form:'normal'});const damage=enemyDamage(s,enemy,power,'fire',ctx);enemy.hp=Math.max(0,enemy.hp-damage);if(damage>0)actorFact(s,'hurt',enemy.id,'hero',damage);ctx.log(s,'Составленная формула: '+damage+' урона искрой и обычное укрытие; оплачены обе части.','magic');if(enemy.hp<=0)ctx.defeatEnemy(s,enemy);}
   else if(spell.kind==='pacify'){
-    if(moduleRandom(s,'magic')<.45){releaseEnemyPerson(s,enemy,'sleep',ctx);enemy.resolved=true;enemy.pacified=true;h.combat=null;h.goal=null;ctx.gainXp(s,7);ctx.log(s,'Колыбельная превращает угрозу в спящее существо. Герой проходит без убийства.','magic');}
+    if(moduleRandom(s,'magic')<.45){releaseEnemyPerson(s,enemy,'sleep',ctx);enemy.resolved=true;enemy.pacified=true;h.combat=null;h.goal=null;ctx.gainXp(s,7,'sleep/'+h.area+'/'+enemy.id);ctx.log(s,'Колыбельная превращает угрозу в спящее существо. Герой проходит без убийства.','magic');}
     else ctx.log(s,'Колыбельная звучит. Противник недоволен музыкальным жанром.','magic');
   }else{const force=spell.id==='roots'&&enemy.tags?.includes('construct')?Math.round(power*1.25):power;const damage=enemyDamage(s,enemy,force,spellChannel(spell),ctx);enemy.hp=Math.max(0,enemy.hp-damage);if(damage>0)actorFact(s,'hurt',enemy.id,'hero',damage);ctx.log(s,`«${spell.name}»: ${damage} магического урона.${spell.kind==='time'?' Ответный удар не успевает случиться.':''}`,'magic');if(enemy.hp<=0)ctx.defeatEnemy(s,enemy);}
   if(spell.formulaScroll)finishFormulaScroll(s,h,spell,{before:manaBefore,after:manaAfterFunding});

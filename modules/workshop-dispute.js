@@ -1,3 +1,4 @@
+import {careerRank} from './progression-state.js';
 import {enabled} from '../rules.js';
 import {physicalDistance} from '../geometry.js';
 import {detailedActors,selfDrivenActor} from '../actor-projection.js';
@@ -52,7 +53,7 @@ export function npcDisputePlan(s,p,o,ctx){
 }
 function together(s,r){return r.people.every(id=>{const p=own(s,id),body=localContact(s,id,r.area);return viable(s,p)&&body&&physicalDistance(s.areas[r.area],body.x,r.x)<=9;});}
 function makeQuote(s,p,r){
- const helpers=detailedActors(s).filter(h=>selfDrivenActor(s,h)&&h.area===r.area&&!h.transit&&!h.combat&&physicalDistance(s.areas[r.area],h.x,r.x)<=18&&h.career.rank>=2&&['craft','time'].includes(profile(h).skill)&&craftRespect(s,p.id,h.lineage)>=6).map(h=>h.lineage);
+ const helpers=detailedActors(s).filter(h=>selfDrivenActor(s,h)&&h.area===r.area&&!h.transit&&!h.combat&&physicalDistance(s.areas[r.area],h.x,r.x)<=18&&careerRank(h)>=2&&['craft','time'].includes(profile(h).skill)&&craftRespect(s,p.id,h.lineage)>=6).map(h=>h.lineage);
  return {at:s.tick,price:18,deadline:s.tick+(p.agenda.duty>=.75||p.agenda.wealth<24?56:160),canHire:p.agenda.wealth>=30&&p.agenda.duty<=.75,helpers};
 }
 function acceptQueue(s,p,r){

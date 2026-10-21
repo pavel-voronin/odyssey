@@ -1,3 +1,4 @@
+import {careerRank} from './progression-state.js';
 import {controlBlocked,controllingThreat,buildingControlOn} from './building-control-state.js';
 import {homeWorkbenchSite,homeAdmission} from './home-place.js';
 import {areaScale} from '../geometry.js';
@@ -67,7 +68,7 @@ function propertySeller(s,a,o){
  const site=workshopInteriorsOn(s)&&workshopSite(s,a,o.id),p=s.people[o.owner];
  return site?.room&&p?.alive&&['resident','wandering'].includes(p.status)&&[a.id,site.room.id].includes(p.area)?p:availableSeller(s,a,o);
 }
-export function wantsWorkshop(h){return h.career.path==='peaceful'&&h.career.rank>=2&&['craft','time'].includes(profile(h).skill)&&(h.personality.curiosity<.75||hasHabit(h,'homebody')||hasHabit(h,'hoarder'));}
+export function wantsWorkshop(h){return h.career.path==='peaceful'&&careerRank(h)>=2&&['craft','time'].includes(profile(h).skill)&&(h.personality.curiosity<.75||hasHabit(h,'homebody')||hasHabit(h,'hoarder'));}
 export function transferProperty(s,ctx,{id,seller,price,cash=price,credit=0,contract=null,basis='purchase',gift=null,recipient=null,aid=null}){
   if(!enabled(s,'property')||![price,cash,credit].every(Number.isInteger)||cash<0||credit<0||cash+credit!==price)return null;
   const h=s.hero,found=find(s,id),o=found?.object,donation=basis==='gift',p=o&&(donation?s.people[o.owner]:propertySeller(s,found.area,o));
@@ -93,7 +94,7 @@ export function transferProperty(s,ctx,{id,seller,price,cash=price,credit=0,cont
 export function propertyPlan(s,ctx){
   if(!enabled(s,'property'))return false;
   const h=s.hero;initializeProperty(h);
-  if(h.property.nextAttempt>s.tick||h.career.path!=='peaceful'||h.career.rank<2||!['craft','time'].includes(profile(h).skill)||h.personality.curiosity>=.75&&!hasHabit(h,'homebody')&&!hasHabit(h,'hoarder'))return false;
+  if(h.property.nextAttempt>s.tick||h.career.path!=='peaceful'||careerRank(h)<2||!['craft','time'].includes(profile(h).skill)||h.personality.curiosity>=.75&&!hasHabit(h,'homebody')&&!hasHabit(h,'hoarder'))return false;
   if(Object.values(s.areas).some(a=>a.objects.some(o=>o.kind==='workshop'&&o.owner===h.lineage)))return false;
   for(const [id,known]of Object.entries(h.property.known)){
     if(h.life.residence?.away?.cause==='food'&&h.life.residence.away.from===known.area&&h.area!==known.area)continue;

@@ -1,3 +1,4 @@
+import {careerRank} from './progression-state.js';
 import {shipRecoveryChoices,startShipRecovery} from './ship-recovery.js';
 import {navigationReturnChoices,startNavigationReturn,pauseNavigationReturn} from './navigation-memory.js';
 import {enabled} from '../rules.js';
@@ -29,7 +30,7 @@ export function repertoireChoices(s,ctx,q=null){
  if(q&&(!meaning.family||meaning.ready||meaning.urgency>=52))return [];
  const choices=[],job=JOBS.find(j=>j.skills.includes(profile(h).skill));
  const motive=enabled(s,'work')?workMotive(s,ctx):null,place=job&&enabled(s,'work')&&(h.workAfter??0)<=s.tick?craftPlace(s,ctx,job):null;
- if(place){const score=20+Math.min(20,h.career.rank*4)+(1-h.personality.curiosity)*25+(motive?.kind==='income'?(h.gold<8?70:18):motive?.kind==='learning'?16:0)+(hasHabit(h,'homebody')?12:0);
+ if(place){const score=20+Math.min(20,careerRank(h)*4)+(1-h.personality.curiosity)*25+(motive?.kind==='income'?(h.gold<8?70:18):motive?.kind==='learning'?16:0)+(hasHabit(h,'homebody')?12:0);
   choices.push({line:'craft',id:job.id,area:place.id,score,reason:motive?.reason||'Хочется вернуться к знакомому ремеслу и поработать руками.'});}
  if(q&&questChoiceAvailable(s,q)&&route(s,ctx,q.target).length)choices.push({line:'family',id:q.id,area:q.target,score:25+h.personality.generosity*35+Math.min(24,Math.max(0,s.tick-(q.accepted??s.tick))/24)+Math.max(-8,Math.min(12,(h.relations[q.giver]?.trust||0)*.2)),reason:'Это обещание дано близкому человеку. Он хочет уделить ему время.'});
  const quiet=(h.life.residence?.since!==undefined||hasHabit(h,'homebody'))&&h.personality.curiosity<.6;

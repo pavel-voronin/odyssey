@@ -14,7 +14,7 @@ export function caravanPlan(s,ctx){
       const result=s.logistics.history.find(r=>r.id===job.id);
       if(result?.outcome==='delivered'&&h.area===job.to){
         const treasury=s.areas[job.to].civic,pay=Math.min(job.role==='lead'?12:8,treasury.treasury);treasury.treasury-=pay;h.gold+=pay;
-        h.counters.caravans=(h.counters.caravans||0)+1;repute(s,s.areas[job.to].faction,5);ctx.gainXp(s,10);ctx.log(s,`Караван доведён до цели. ${job.role==='lead'?'Караванщик':'Охранник'} получает ◈${pay} из казны получателя.`,'reward');
+        h.counters.caravans=(h.counters.caravans||0)+1;repute(s,s.areas[job.to].faction,5);ctx.gainXp(s,10,'caravan/'+job.id);ctx.log(s,`Караван доведён до цели. ${job.role==='lead'?'Караванщик':'Охранник'} получает ◈${pay} из казны получателя.`,'reward');
       }else ctx.log(s,'Караванная служба закончилась без выплаты. Груз и люди могли не дойти.','choice');
       h.caravanJob=null;h.memory.caravanAfter=s.tick+240;return false;
     }

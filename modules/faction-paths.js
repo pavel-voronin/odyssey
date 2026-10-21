@@ -67,7 +67,7 @@ export function factionDuty(s,ctx){
     h.counters.research=(h.counters.research||0)+1;
     if(p.rank>=2&&h.counters.research%5===0){const spell=SPELLS.find(sp=>!h.magic.spells.includes(sp.id));if(spell)ctx.teachSpell?.(s,spell.id,ctx,'Закрытый архив');learnWardCourse(s,g,p,ctx);}
   }
-  const pay=output&&!output.quantity?0:Math.min(2,c.treasury);c.treasury-=pay;h.gold+=pay;p.duties++;repute(s,g.faction,3);ctx.gainXp(s,4);h.goal=null;
+  const pay=output&&!output.quantity?0:Math.min(2,c.treasury);c.treasury-=pay;h.gold+=pay;p.duties++;repute(s,g.faction,3);ctx.gainXp(s,4,'faction-duty/'+g.faction+'/'+p.duties);h.goal=null;
   if(output&&!output.quantity)ctx.log(s,output.reason==='exhausted-field'?'Сейчас нечего собирать. Угодьям нужно восстановиться; плата за выпуск не начислена.':'Выпуск не состоялся: нужны сырьё и доступная исправная мастерская. Плата не начислена.','work');
   ctx.log(s,`${p.branchName}: служба окончена. Выплата ◈${pay} из местной казны; репутация меняется и у союзников, и у противников.`,'career');
 }

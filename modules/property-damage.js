@@ -1,3 +1,4 @@
+import {advanceCareer} from './identity.js';
 import {publicRepairMaterial,depositPublicRepairMaterial} from './public-repair-state.js';
 import {controlBlocked} from './building-control-state.js';
 import {damageStructure,structureFor} from './building-condition.js';
@@ -58,7 +59,7 @@ export function repairProperty(s,ctx){
     ctx.log(s,funding?.toolProvided?`Материалы ремонта стоят ◈18: ◈${funding.advance} уже получил поставщик, ◈${funding.cost} — местная кладовая. Привезённый инструмент пошёл в дело.`:'На восстановление мастерской ушли ◈18 и один инструмент из запаса поселения. Материал оставлен в помещении.','repair');return true;
   }
   if(fitWorkingPart(s,a,o))ctx.log(s,'Мастер подгоняет рабочую деталь из уже оплаченного материала. Приём сокращает восстановление; новый инструмент или новая оплата не требуются.','repair');
-  o.repair.remaining--;h.energy=Math.max(0,h.energy-2);h.lastAction='work';
+  o.repair.remaining--;advanceCareer(s,1,ctx,{family:'repair-building',cause:'building/'+s.tick});h.energy=Math.max(0,h.energy-2);h.lastAction='work';
   if(o.repair.remaining<=0){restoreWorkshop(s,a,o,ctx);h.goal=null;}
   return true;
 }

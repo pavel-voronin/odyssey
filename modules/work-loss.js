@@ -1,3 +1,4 @@
+import {careerRank} from './progression-state.js';
 import {enabled} from '../rules.js';
 import {knownArea} from '../actor-atlas.js';
 import {JOBS} from '../content.js';
@@ -39,7 +40,7 @@ export function reconsiderWorkLoss(s,ctx,currentQuest){
  }).sort((a,b)=>b.value-a.value||String(a.q.id).localeCompare(String(b.q.id))):[];
  // The knowledge-map key is authoritative, including for legacy entries.
  const workspaces=Object.entries(h.property.known).filter(([id,k])=>id!==loss.id&&k.state==='intact'&&knownArea(s,k.area)&&knownServiceAllows(s,s.areas[k.area],'employment',{job:'repair'})&&route(k.area).length&&(k.owner===h.lineage||h.gold>=2)).map(([id,k])=>({...k,id})).sort((a,b)=>route(a.area).length-route(b.area).length||a.id.localeCompare(b.id));
- const craft=20+h.career.rank*7+Math.min(18,(h.counters.peacefulWork||0)/3)+(h.career.path==='peaceful'?12:0),chosen=quests[0];
+ const craft=20+careerRank(h)*7+Math.min(18,(h.counters.peacefulWork||0)/3)+(h.career.path==='peaceful'?12:0),chosen=quests[0];
  if(chosen&&(!workspaces.length||chosen.value>craft)){
   ctx.planQuest(s,chosen.q);if(h.goal?.quest===chosen.q.id){loss.status='family';loss.decided=s.tick;loss.quest=chosen.q.id;h.reason='Прежнее рабочее место закрыто. Теперь он может уделить время уже данному семейному обещанию. '+chosen.reason;ctx.log(s,`${h.name} после потери работы возвращается к семейному делу «${chosen.q.title||chosen.q.kind}».`,'plan');return true;}
  }

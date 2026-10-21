@@ -1,3 +1,4 @@
+import {validateProgression} from './modules/progression-state.js';
 import {validateDevelopment} from './modules/development-skills.js';
 import {validateFormulas} from './modules/formula-schema.js';
 import {validateEchoLayers} from './modules/echo-layers.js';
@@ -237,7 +238,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateEcology(s,fail);validateKeepers(s,fail);validateEchoLayers(s,fail);validateGameMeat(s,fail);validateReturns(s,fail);validateReturnCare(s,fail);validateReturnPast(s,fail);validateReturnBonds(s,fail);validateAirships(s,fail);validateSurgery(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateFormulas(s,fail);validateDevelopment(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
+ validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateEcology(s,fail);validateKeepers(s,fail);validateEchoLayers(s,fail);validateGameMeat(s,fail);validateReturns(s,fail);validateReturnCare(s,fail);validateReturnPast(s,fail);validateReturnBonds(s,fail);validateAirships(s,fail);validateSurgery(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateFormulas(s,fail);validateDevelopment(s,fail);validateProgression(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateTracking(s,fail);

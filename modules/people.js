@@ -1,3 +1,4 @@
+import {creditCareer} from './progression-state.js';
 import {activeReturnBond} from './return-bond-state.js';
 import {returnCareProviderTurn,returnCareNPCTurn} from './return-care.js';
 import {returnNPCTurn} from './return-ritual.js';
@@ -504,7 +505,7 @@ export function peopleTick(s,ctx){
     if(p.agenda.task.kind==='patrol'&&enabled(s,'npc-watch-needs')&&enabled(s,'npc-needs'))p.needs.energy=Math.max(0,p.needs.energy-2);
     woundActivity(s,p,['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind)?'arm':'body',p.agenda.task.kind==='rest');
     if(['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind))p.needs.energy=Math.max(0,p.needs.energy-2*(1/woundForce(s,p)-1));
-    p.agenda.task.remaining--;if(p.agenda.task.remaining<=0)finish(s,p,ctx);
+    p.agenda.task.remaining--;if(['work','farm','medicine','patrol','rawGather'].includes(p.agenda.task.kind))creditCareer(s,p.id,p.agenda.task.kind==='farm'?'harvest':p.agenda.task.kind==='work'?p.agenda.job==='artisan'?'repair':'dock':p.agenda.task.kind,{cause:'native-work/'+s.tick});if(p.agenda.task.remaining<=0)finish(s,p,ctx);
   }
 }
 

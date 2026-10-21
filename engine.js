@@ -1,3 +1,4 @@
+import {heroLevel,creditGeneral} from './modules/progression-state.js';
 import {initializeDevelopment,walkedDevelopment,developmentValue,developmentOn} from './modules/development-skills.js';
 import {personalRouteLoad} from './modules/metric-route-state.js';
 import {establishEchoLayer,echoLayerPlan} from './modules/echo-layers.js';
@@ -467,8 +468,8 @@ function enter(s, id) {
   const firstVisit=!visitedArea(s,a);h.area = id;syncCoverPosition(s);petPassageEntered(s);recordAreaVisit(s,a);originProperty(s,a,context(s,'property'));observeRejected(s,a);observeProperty(s,a,context(s,'property'));
   observePlaceRule(s,context(s,'place-rules'));
   if(a.temporaryCamp||a.routeSite||a.boatDeck)return;
-  if (firstVisit) { gainXp(s, 3 + (hasHabit(h, 'diary') ? 2 : 0)); log(s, `Открыто место: ${a.name}.`, 'discover'); }
-  if (!h.memory.places.includes(id)) {const bonus=enchantedDiscovery(s,a,context(s,'enchantments'));if(bonus)gainXp(s,bonus);h.memory.places.push(id);}
+  if (firstVisit) { gainXp(s, 3 + (hasHabit(h, 'diary') ? 2 : 0), 'discover/'+id); log(s, `Открыто место: ${a.name}.`, 'discover'); }
+  if (!h.memory.places.includes(id)) {const bonus=enchantedDiscovery(s,a,context(s,'enchantments'));if(bonus)gainXp(s,bonus,'enchanted-discover/'+id);h.memory.places.push(id);}
   for (const link of a.links) if(!s.areas[link]?.temporaryCamp)revealArea(s,link);
   if (isTown(a) && s.merchant.area&&!enabled(s,'service-access')) h.memory.merchant = s.merchant.area;
   for(const id of a.population||[])if(s.people[id]?.alive&&s.people[id].status==='resident')meetPerson(s,id,context(s,'relationships'));
@@ -711,12 +712,12 @@ function move(s, target) {
   if(mount&&amount){mount.energy=Math.max(0,mount.energy-rate.energy);mount.hunger=Math.min(100,mount.hunger+.12);mount.lastMove=s.tick;}
   h.x+=amount;const footDistance=Math.abs(amount)*areaScale(s.areas[h.area]);h.distance+=footDistance;h.energy=Math.max(0,h.energy-(mount?.rider===h.lineage ? .2 : walkingEnergy(s,weather)*(developmentOn(s)?Math.min(1,footDistance/Math.max(.001,stride)):1)));if(mount?.rider!==h.lineage&&!cart&&footDistance>0)walkedDevelopment(s,h,footDistance,personalRouteLoad(s,h),'scene/'+h.area);h.lastAction='walk';if(stealth.mode==='quiet')h.reason='Тихий шаг мимо известного патруля; шум и видимость всё ещё могут выдать путника.';syncCoverPosition(s);commitStealthStep(s,h.lineage,from,h.x,target,stealth);
 }
-function gainXp(s, amount) {
-  const h = s.hero; h.xp += amount;
-  if (h.xp >= h.level * 24) {
-    h.xp -= h.level * 24; h.level++; h.maxHp += 5; restoreHealth(s,8);
-    h.personality.courage = Math.min(.94, h.personality.courage + .02);
-    if (s.journal) log(s, `${h.name} становится опытнее: уровень ${h.level}. Теперь он лучше оценивает опасность.`, 'level');
+export function gainXp(s, amount, cause) {
+  const h=s.hero,result=creditGeneral(s,amount,cause);if(!result)return;
+  for(let level=result.before+1;level<=result.rank;level++){
+    h.level=level;h.maxHp+=5;restoreHealth(s,8);
+    h.personality.courage=Math.min(.94,h.personality.courage+.02);
+    if(s.journal)log(s,`${h.name} становится опытнее: общий уровень ${level} из 12.`, 'level');
     learnSpell(s,context(s,'magic'));
   }
 }
@@ -748,7 +749,7 @@ function collect(s, object) {
   if (object.kind === 'herb' && object.count > 0&&stackRoom(s,h.lineage,'herbs',1)>0&&scentPlantKnown(s,h,a,object)&&physicalDistance(a,h.x,object.x)<=9) { object.count--; h.inventory.herbs++; log(s, 'Лунная трава найдена. Её можно отдать лекарю или приложить к ране.', 'loot'); }
   if (object.kind === 'loot' && !object.taken) { object.taken = true; h.gold += object.gold; log(s, `В забытом кошеле ${object.gold} монет. На дороге стало чуть меньше тайн.`, 'loot'); }
   if(object.kind==='heirloom'&&!object.taken)recoverHeirloom(s,object,context(s,'loot')); 
-  if (object.kind === 'relic' && !object.taken) { object.taken = true; h.inventory.relics++; h.counters.relics++; gainXp(s, 10); log(s, 'Найден осколок древнего света.', 'loot'); if (enabled(s, 'equipment')&&!findWaystone(s,object,context(s,'loot'))) receiveItem(s, context(s, 'loot'), 2); }
+  if (object.kind === 'relic' && !object.taken) { object.taken = true; h.inventory.relics++; h.counters.relics++; gainXp(s, 10, 'relic/'+h.area+'/'+object.id); log(s, 'Найден осколок древнего света.', 'loot'); if (enabled(s, 'equipment')&&!findWaystone(s,object,context(s,'loot'))) receiveItem(s, context(s, 'loot'), 2); }
   h.lastAction = 'collect'; h.goal = null;
   if(!wasTaken&&object.taken)recordLayoutCollection(s,object);
   temporalCollection(s,object,context(s,'epochs'));
@@ -824,7 +825,7 @@ function fight(s, enemy) {
   if(technique?.id==='windup'&&beginWeapon(s,enemy,context(s,'combat'))){resolveCombatChoice(s,'windup',{energySpent:2,reason:technique.reason});enemyResponse(s,enemy);return;}
   const style=technique&&finishWeapon(s,enemy,technique.id==='release'?'heavy':technique.id)?technique.id==='release'?'heavy':technique.id:null;
   if(!style)cancelWeapon(s,'Выбран обычный удар.');
-  const raw = 4 + weaponBody(s,h).weapon * 3 + Math.floor(h.level / 2) + roll(s, 4);
+  const raw = 4 + weaponBody(s,h).weapon * 3 + Math.floor(heroLevel(h) / 2) + roll(s, 4);
   const damage = combatAttack(s, enemy, raw, context(s, 'combat'),style);
   const energy=style?WEAPON_STYLES[style].energy:3;
   const enemyBefore=enemy.hp;enemy.hp -= damage; h.energy = Math.max(0, h.energy - energy); h.lastAction = 'attack';
@@ -870,7 +871,7 @@ function enemyResponse(s,enemy){
 function defeatEnemy(s,enemy,killer=s.hero.lineage){
   if(!enemy.alive)return;
   markActorDeath(s,enemy,enemy.id,enemyShape(enemy));
-  const h=s.hero;const physicalGame=Boolean(enemy.ecology);enemy.hp=0;enemy.alive=false;killEnemyPerson(s,enemy,killer);dropRescuePurse(s,s.areas[h.area],enemy);h.combat=null;h.kills++;if(!physicalGame)h.gold+=2+roll(s,4);gainXp(s,9);
+  const h=s.hero;const physicalGame=Boolean(enemy.ecology);enemy.hp=0;enemy.alive=false;killEnemyPerson(s,enemy,killer);dropRescuePurse(s,s.areas[h.area],enemy);h.combat=null;h.kills++;if(!physicalGame)h.gold+=2+roll(s,4);gainXp(s,9,'victory/'+h.area+'/'+enemy.id);
   if(killer!==h.lineage)enemy.defeatedBy=killer;
   recordRemains(s,enemy,{kind:'enemy',id:enemy.id,area:h.area,x:enemy.x,shape:enemyShape(enemy),cause:{person:killer},facing:h.x<enemy.x?-1:1});
   observeRejected(s,s.areas[h.area]);

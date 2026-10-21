@@ -57,9 +57,9 @@ export function songAction(s,ctx){
  if(!r||r.id!==g.performance||r.status!=='active'||r.performer!==h.lineage){h.goal=null;return;}
  if(r.actionAt===s.tick)return;
  if(!validPerformance(s,door,r)){cancel(s,door,r,ctx);return;}
- r.actionAt=s.tick;h.energy=Math.max(0,h.energy-2);h.lastAction='talk';h.speech='Песня звучит над столами…';r.remaining--;g.remaining=r.remaining;
+ r.actionAt=s.tick;h.energy=Math.max(0,h.energy-2);h.lastAction='talk';h.speech='Песня звучит над столами…';r.remaining--;g.remaining=r.remaining;advanceCareer(s,1,ctx,{family:'song',cause:'song/'+r.id+'/'+r.remaining});
  if(r.remaining>0)return;
- const pay=r.held;r.held=0;r.paid=pay;r.status='done';r.ended=s.tick;h.gold+=pay;h.goal=null;h.workAfter=s.tick+120;advanceCareer(s,5,ctx);ctx.gainXp(s,5);h.counters.peacefulWork=(h.counters.peacefulWork||0)+1;
+ const pay=r.held;r.held=0;r.paid=pay;r.status='done';r.ended=s.tick;h.gold+=pay;h.goal=null;h.workAfter=s.tick+120;ctx.gainXp(s,5,'song-result/'+r.id);h.counters.peacefulWork=(h.counters.peacefulWork||0)+1;
  for(const id of r.audience)if(willingListener(s,s.people[id],h,a.id))meetPerson(s,id,ctx,1);
  ctx.log(s,`${h.name} заканчивает песню и получает обещанные ◈${pay}. ${s.people[r.payer].name} благодарит за выступление.`,'work');
 }

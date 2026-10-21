@@ -1,3 +1,4 @@
+import {careerRank,effectiveLevel} from './progression-state.js';
 import {branchPactsOn,assessPactAid,rememberPactChoice,performedPactAid} from './branch-pact-state.js';
 import {publishAidNews} from './witness-news.js';
 import {confirmWord} from './word-custom.js';
@@ -23,7 +24,7 @@ export function medicalKnowledge(s,h){
  const known=[];
  if(knowsPracticalMethod(s,h.lineage,'aid'))known.push({id:'field-dressing',name:'Полевая повязка',rank:1,former:false,origin:practicalSkill(s,h.lineage,'aid').method.origin});
  for(const p of PROFESSIONS)if(['healing','spirit'].includes(p.skill)){
-  const current=p.id===h.profession,record=h.career.records?.[p.id],rank=current?h.career.rank:record?.rank;
+  const current=p.id===h.profession,record=h.career.records?.[p.id],rank=current?careerRank(h):record?effectiveLevel(record.rank):undefined;
   if(current&&rank>=1||!current&&rank>=2)known.push({id:p.id,name:p.name,rank,former:!current});
  }
  return known.sort((a,b)=>b.rank-a.rank||Number(a.id==='field-dressing')-Number(b.id==='field-dressing')||a.id.localeCompare(b.id))[0]||null;
@@ -93,7 +94,7 @@ export function performAid(s,ctx){
  const r=p.aidRequest,method=aidMethod(s,h),maximum=p.maxHealth||100;
  if(!method||p.health>=maximum*.85){r.status=method?'unneeded':'unable';h.goal=null;h.lastAction='talk';tell(s,h,p,method?'Состояние просившего уже улучшилось. Дополнительные припасы не понадобились.':`${h.name} не смог помочь: подходящего лекарства больше не осталось.`,'choice',ctx);return false;}
  h.inventory[method.resource]--;h.energy=Math.max(0,h.energy-AID_POLICY.energy);const before=p.health;p.health=Math.min(maximum,p.health+Math.max(1,Math.round(maximum*method.fraction)));
- r.status='helped';r.finished=s.tick;r.resource=method.resource;r.recovered=p.health-before;r.knowledge=method.knowledge?.id||null;performedPactAid(s,h,p);publishAidNews(s,p);h.goal=null;h.lastAction='heal';h.speech='Прижми повязку.';moral(s,2);ctx.gainXp(s,3);
+ r.status='helped';r.finished=s.tick;r.resource=method.resource;r.recovered=p.health-before;r.knowledge=method.knowledge?.id||null;performedPactAid(s,h,p);publishAidNews(s,p);h.goal=null;h.lastAction='heal';h.speech='Прижми повязку.';moral(s,2);ctx.gainXp(s,3,'aid/'+p.id+'/'+r.id);
  if(skillBranchesEnabled(s))recordPracticalAid(s,Object.assign(r,{tick:s.tick,actor:h.lineage,patient:p.id,before,after:p.health,spent:1}));
  (p.agenda.bonds ||= {})[h.lineage]=Math.min(100,(p.agenda.bonds[h.lineage]||0)+4);
  if(enabled(s,'relationships')){const relation=h.relations[p.id] ||= {trust:0,met:s.tick,lastSeen:s.tick,helped:0};relation.trust=Math.min(100,relation.trust+4);relation.helped++;relation.lastSeen=s.tick;}

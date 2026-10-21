@@ -1,3 +1,4 @@
+import {creditCareer} from './progression-state.js';
 import {registerLiteracy} from './literacy-state.js';
 import { PROFESSIONS, DESTINIES, HABITS, CONDITIONS, ENEMY_SPECIES, ENEMY_POWERS, ITEM_BASES, ITEM_ORIGINS, ITEM_EPITHETS, ENCOUNTERS, PETS, FACTIONS, profession, destiny } from '../content.js';
 import { enabled } from '../rules.js';
@@ -26,20 +27,18 @@ export function destinyTick(s, ctx) {
   const value = ({ places: h.memory.places.length, gold: h.gold, quests: h.quests.filter(q => q.status === 'done').length, kills: h.kills, relics: h.counters.relics, companions: h.counters.companions, kindness: h.counters.kindness, mischief: h.counters.mischief, age: s.tick - h.born })[d.counter] || 0;
   h.destiny.progress = Math.min(d.target, value);
   if (enabled(s, 'identity') && !h.destiny.completed && value >= d.target) {
-    h.destiny.completed = true; h.titles.push(d.reward.replace('Звание: ', '')); ctx.gainXp(s, 20);
+    h.destiny.completed = true; h.titles.push(d.reward.replace('Звание: ', '')); ctx.gainXp(s, 20, 'destiny/'+d.id);
     ctx.log(s, `Предназначение «${d.name}» исполнено. ${d.reward}.`, 'destiny');
   }
   return false;
 }
 
-export function advanceCareer(s,amount,ctx){
-  if(!enabled(s,'identity'))return;const h=s.hero;h.career.xp+=amount;
-  while(h.career.xp>=h.career.rank*18){
-    h.career.xp-=h.career.rank*18;h.career.rank++;
-    const p=profile(h),key=['might','wit','guile','luck','spirit'][p.stats.indexOf(Math.max(...p.stats))];
-    h.stats[key]++;ctx.log(s,`${p.name}: мастерство ${h.career.rank}. ${p.talent} становится надёжнее.`,'career');
+export function advanceCareer(s,amount,ctx,proof){
+  const h=s.hero,result=proof&&creditCareer(s,h.lineage,proof.family,{cause:proof.cause,budget:Math.min(1,amount)});if(!result)return null;
+  for(let rank=result.before+1;rank<=result.rank;rank++){
+    const p=profile(h);ctx.log(s,`${p.name}: мастерство ${rank} из 12. ${p.talent} становится надёжнее.`,'career');
   }
-  h.career.records ||= {};h.career.records[h.profession]={xp:h.career.xp,rank:h.career.rank};
+  h.career.records ||= {};h.career.records[h.profession]={xp:h.career.xp,rank:h.career.rank};return result;
 }
 export function changeProfession(s,id,ctx,reason){
   const h=s.hero,next=PROFESSIONS.find(p=>p.id===id);if(!next||h.profession===id||h.combat||!enabled(s,'identity'))return false;

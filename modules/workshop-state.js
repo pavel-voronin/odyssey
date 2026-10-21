@@ -1,3 +1,4 @@
+import {creditCareer} from './progression-state.js';
 import {publicRepairMaterial,depositPublicRepairMaterial,publicCase} from './public-repair-state.js';
 import {recordPatronRepair} from './patronage-state.js';
 import {controlBlocked} from './building-control-state.js';
@@ -62,7 +63,7 @@ export function npcRepairAction(s,p,t,ctx){
   const event={id:`${o.id}/own-material/${o.damagedAt}`,tick:s.tick,actor:p.id,area:a.id,kind:'tools',side:'buy',quantity:1,total:18};o.repair.purchase=event;recordPracticalTrade(s,event);
   t.remaining=o.repair.remaining;p.needs.energy=Math.max(0,p.needs.energy-2);return true;
  }
- o.repair.remaining=Math.min(o.repair.remaining,t.remaining);fitWorkingPart(s,a,o,p.id);o.repair.remaining--;t.remaining=o.repair.remaining;p.needs.energy=Math.max(0,p.needs.energy-2);
+ o.repair.remaining=Math.min(o.repair.remaining,t.remaining);fitWorkingPart(s,a,o,p.id);o.repair.remaining--;creditCareer(s,p.id,'repair-building',{cause:'building/'+s.tick});t.remaining=o.repair.remaining;p.needs.energy=Math.max(0,p.needs.energy-2);
  if(t.remaining<=0){restoreWorkshop(s,a,o,ctx,p.id);p.agenda.task=null;p.agenda.due=s.tick+48;}return true;
 }
 export function damagedWorkplace(s,p){return enabled(s,'property')&&s.areas[p.area]?.objects.some(o=>o.kind==='workshop'&&o.owner===p.id&&o.state==='burned');}
