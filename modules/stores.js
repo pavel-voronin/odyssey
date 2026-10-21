@@ -25,8 +25,8 @@ export function consumeCarriedSupplies(person,cargo,kind,amount){
 }
 export function carriedFood(person,inventory){return Math.max(0,person?.roadSupplies?.food||0)+Math.max(0,inventory?.rations||0)*4+productFood(person);}
 // Existing sealed meals keep their four-serving semantics. Already opened food is spent first.
-export function consumeTravelMeal(person,inventory,portions=1){
+export function consumeTravelMeal(person,inventory,portions=1,{small=false}={}){
  const opened=Math.max(0,person?.roadSupplies?.food||0);
  if(opened||productFood(person)){const available=opened+productFood(person)+(person.actorLink?.inventory===inventory?Math.max(0,inventory.rations||0)*4:0),amount=Math.min(Math.max(1,Math.min(4,portions)),available);return consumeCarriedSupplies(person,null,'food',amount)?amount:0;}
- if(inventory?.rations>0){inventory.rations--;return 4;}return 0;
+ if(inventory?.rations>0){inventory.rations--;const eaten=small?Math.max(1,Math.min(4,portions)):4;if(eaten<4){person.roadSupplies ||= {food:0,medicine:0};person.roadSupplies.food=(person.roadSupplies.food||0)+4-eaten;}return eaten;}return 0;
 }

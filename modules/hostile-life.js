@@ -1,3 +1,5 @@
+import {biologicalDose} from './biology.js';
+import {consumedFood,sleepPhase,nutritionView,paidBodyLoad,wantsFood} from './nutrition-state.js';
 import {leaveCargoOriginal} from './cargo-inquiries.js';
 import {assetRaidTurn} from './asset-raids.js';
 import {strikeRaidGuard} from './raid-guard.js';
@@ -35,7 +37,7 @@ function observe(s,p,e,contacts){
 function choose(s,p,e){
  const q=p.hostileLife,n=p.needs,a=s.areas[p.area],food=carriedFood(p,p.actorLink?.inventory),danger=q.known.danger,unsafe=danger&&s.tick-danger.seen<=64&&physicalDistance(a,p.x,danger.x)<15;
  if(unsafe&&n.hunger<90&&(p.agenda.duty>=.5||e.hp<e.maxHp*.9))return physicalDistance(a,q.camp.x,danger.x)>=18?{kind:'camp',x:q.camp.x}:{kind:'relocate',x:danger.x<50?80:20};
- if((n.energy<25||e.hp<e.maxHp*.35)&&n.hunger<90){
+ if((nutritionView(s,p).sleep||p.nutrition?.sleep.active||n.energy<25||e.hp<e.maxHp*.35)&&n.hunger<90){
   if(unsafe&&physicalDistance(a,q.camp.x,danger.x)<18)return {kind:'relocate',x:danger.x<50?80:20};return {kind:'camp',x:q.camp.x};
  }
  if(n.hunger>=65&&!food){
@@ -66,7 +68,7 @@ function raid(s,p,e,g,ctx,contacts){
 }
 function act(s,p,e,ctx,contacts){
  const q=p.hostileLife,n=p.needs,a=s.areas[p.area];observe(s,p,e,contacts);if(n.sleeping&&n.hunger>=65)n.sleeping=false;
- if(n.hunger>=65&&carriedFood(p,p.actorLink?.inventory)>=1){if(!claimHostileAction(s,p,'eat'))return;consumeCarriedSupplies(p,null,'food',1);n.hunger=Math.max(0,n.hunger-48);n.meals++;q.supplies.eaten++;record(s,p,'meal');ownMessage(s,p,ctx,p.name+' съедает порцию из собственной поклажи. Запас уменьшается.');q.goal=null;return;}
+ if(wantsFood(s,p)&&carriedFood(p,p.actorLink?.inventory)>=1){if(!claimHostileAction(s,p,'eat'))return;consumeCarriedSupplies(p,null,'food',1);consumedFood(s,p,{source:'hostile-meal'});n.meals++;q.supplies.eaten++;record(s,p,'meal');ownMessage(s,p,ctx,p.name+' съедает порцию из собственной поклажи. Запас уменьшается.');q.goal=null;return;}
  const burden=(p.looseItems||[]).find(i=>i.cargoOrigin&&i.cargoOrigin.owner!==p.id);if(n.energy<30&&burden&&leaveCargoOriginal(s,p,burden.id)){record(s,p,'cargo-left',{item:burden.id});q.goal=null;return;}
  if(assetRaidTurn(s,p,e,ctx,contacts))return;
  if(!q.goal||q.goal.kind==='camp'&&n.hunger>=65&&!carriedFood(p,p.actorLink?.inventory)||q.goal.kind==='forage'&&(!q.known.forage?.available||q.known.forage.stock===0))q.goal=choose(s,p,e);
@@ -80,7 +82,7 @@ function act(s,p,e,ctx,contacts){
   else{const before=a.forage?.stock||0,quantity=takeForage(a,1);p.roadSupplies.food+=quantity;q.supplies.gathered+=quantity;record(s,p,'gathered',{source:a.id+'/forage',quantity,portions:quantity,before,after:a.forage?.stock||0});if(quantity)ownMessage(s,p,ctx,p.name+' находит порцию еды. На этом участке её стало меньше.');q.goal=null;}return;
  }
  if(g.kind==='raid'){if(claimHostileAction(s,p,'raid'))raid(s,p,e,g,ctx,contacts);return;}
- if(!claimHostileAction(s,p,'rest'))return;n.sleeping=n.energy<80;n.energy=Math.min(100,n.energy+8);woundActivity(s,p,'body',true);if(n.hunger<65&&e.hp<e.maxHp){e.hp=Math.min(e.maxHp,e.hp+1);p.health=e.hp;}if(n.energy>=80)n.sleeping=false;q.goal=null;
+ if(!claimHostileAction(s,p,'rest'))return;if(nutritionView(s,p).sleep||p.nutrition?.sleep.active){sleepPhase(s,p,{native:true});q.goal=null;return;}n.sleeping=n.energy<80;n.energy=Math.min(100,n.energy+8);woundActivity(s,p,'body',true);if(n.hunger<65&&e.hp<e.maxHp){e.hp=Math.min(e.maxHp,e.hp+1);p.health=e.hp;}if(n.energy>=80)n.sleeping=false;q.goal=null;
 }
 export function hostileLifeTick(s,ctx){
  if(!hostileLifeOn(s)||s.tick%8!==0)return;
@@ -89,7 +91,7 @@ export function hostileLifeTick(s,ctx){
  const fights=new Set(detailedActors(s).filter(h=>selfDrivenActor(s,h)&&h.combat&&!h.transit).map(h=>JSON.stringify([h.area,h.combat])));
  for(const p of Object.values(s.people)){const q=p.hostileLife,e=personEnemy(s,p);if(q?.stage!=='active'||p.enemyBody?.stage!=='hostile'||!e?.alive||!p.alive||q.lastTick===s.tick)continue;
   q.lastTick=s.tick;p.area=p.enemyBody.origin;p.x=e.x;p.health=e.hp;const n=p.needs;n.energy=Math.max(0,n.energy-1);
-  if(n.hunger>=95&&!carriedFood(p,p.actorLink?.inventory)){const before=e.hp;e.hp=Math.max(0,e.hp-1);p.health=e.hp;record(s,p,'hunger',{before,after:e.hp});if(!e.hp){ownMessage(s,p,ctx,p.name+' не пережил голод на дороге.');killEnemyPerson(s,e,null,'Голод на дороге');continue;}}
-  if(fights.has(JSON.stringify([p.area,e.id]))||q.lastActionTick===s.tick)continue;act(s,p,e,ctx,contacts.get(p.area)||[]);
+  const dose=biologicalDose(s,p,{native:true});if(dose.fresh){e.hp=Math.max(0,Math.min(e.hp-dose.damage,dose.ceiling??e.maxHp));p.health=e.hp;}if(!e.hp){ownMessage(s,p,ctx,p.name+' не пережил недоедание на дороге.');killEnemyPerson(s,e,null,'Недоедание');continue;}
+  if(fights.has(JSON.stringify([p.area,e.id]))||q.lastActionTick===s.tick)continue;const beforeEnergy=n.energy,beforeX=p.x;act(s,p,e,ctx,contacts.get(p.area)||[]);paidBodyLoad(s,p,beforeEnergy-n.energy,p.x!==beforeX?'walk':'work');
  }
 }

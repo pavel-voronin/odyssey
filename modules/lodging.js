@@ -1,3 +1,4 @@
+import {sleepPhase,nutritionView,restSatisfied} from './nutrition-state.js';
 import {restoreHealth} from './fresh-reply.js';
 import {ordinaryRecovery} from './biology.js';
 import {partyRoomConsent} from './lodging-consent.js';
@@ -74,8 +75,9 @@ export function lodgingRest(s,ctx,continueRest=false){
  const h=s.hero,a=s.areas[h.area];if(!a.lodging)return false;
  if(!roomAdmission(s,a,h.lineage)||h.hunger>75){h.goal=null;return true;}
  const booking=activeBooking(s,a,h.lineage);h.reason=a.residence?'Отдых по праву на свой дом. Вместимость '+a.residence.occupants.length+'/'+a.residence.capacity:`Бронь: ещё ${elapsedLabel(booking.until-s.tick)} · места ${booking.occupants.length}/${a.lodging.capacity}`;
+ if(h.goal.sleep||nutritionView(s,h).sleep||s.people[h.lineage].nutrition?.sleep.active){const phase=sleepPhase(s,h);if(phase?.done){h.goal=null;h.lodgingAfter=s.tick+120;}return true;}
  h.lastAction='rest';h.energy=Math.min(100,h.energy+10);restoreHealth(s,ordinaryRecovery(s,h,1));ctx.recoverRoomParty?.(s);
- if(!continueRest&&h.energy>=95&&h.hp>=h.maxHp*.85){h.goal=null;h.lodgingAfter=s.tick+120;ctx.log(s,'Ночлег окончен. Можно вернуться к делам.','rest');}
+ if(!continueRest&&restSatisfied(s,h)){h.goal=null;h.lodgingAfter=s.tick+120;ctx.log(s,'Ночлег окончен. Можно вернуться к делам.','rest');}
  return true;
 }
 export function npcLodgingPlan(s,p){
@@ -99,6 +101,7 @@ export function npcBookRoom(s,p,ctx){
 export function npcRoomRest(s,p){
  const a=s.areas[p.area],t=p.agenda.task;if(t?.kind!=='roomSleep')return false;
  if(!roomAdmission(s,a,p.id)){p.agenda.task=null;return true;}
+ if(nutritionView(s,p).sleep||p.nutrition?.sleep.active){const phase=sleepPhase(s,p,{native:true});if(phase?.done){p.agenda.task=null;p.agenda.due=s.tick;p.status='resident';}return true;}
  p.needs.energy=Math.min(100,p.needs.energy+10);if(p.needs.hunger<60&&!p.ailment)p.health=Math.min(p.maxHealth||100,p.health+1);
  if(p.needs.energy>=90){p.agenda.task=null;p.agenda.due=s.tick;p.status='resident';}else t.remaining=1;return true;
 }

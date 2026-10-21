@@ -1,3 +1,4 @@
+import {paidBodyLoad} from './nutrition-state.js';
 import {creditCareer} from './progression-state.js';
 import {activeReturnBond} from './return-bond-state.js';
 import {returnCareProviderTurn,returnCareNPCTurn} from './return-care.js';
@@ -342,6 +343,7 @@ function finish(s,p,ctx){
 export function peopleTick(s,ctx){
   if(!enabled(s,'people')||s.tick%8!==0)return;
   for(const p of Object.values(s.people)){
+    const energyBefore=p.needs?.energy,oldX=p.x,oldArea=p.area,oldTask=p.agenda?.task?.kind;try{
     releaseLooseItems(s,p);releaseDeadFreightCustody(s,p);creditStatus(s,p,ctx);
     endDeadMentorJourney(s,p);
     if(!p.alive||selfDrivenActor(s,p.id)||!p.area||!s.areas[p.area])continue;
@@ -506,6 +508,7 @@ export function peopleTick(s,ctx){
     woundActivity(s,p,['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind)?'arm':'body',p.agenda.task.kind==='rest');
     if(['work','farm','toolMend','medicine','rawGather'].includes(p.agenda.task.kind))p.needs.energy=Math.max(0,p.needs.energy-2*(1/woundForce(s,p)-1));
     p.agenda.task.remaining--;if(['work','farm','medicine','patrol','rawGather'].includes(p.agenda.task.kind))creditCareer(s,p.id,p.agenda.task.kind==='farm'?'harvest':p.agenda.task.kind==='work'?p.agenda.job==='artisan'?'repair':'dock':p.agenda.task.kind,{cause:'native-work/'+s.tick});if(p.agenda.task.remaining<=0)finish(s,p,ctx);
+    }finally{const moved=p.area!==oldArea||p.x!==oldX;paidBodyLoad(s,p,(energyBefore??p.needs?.energy)-p.needs?.energy,moved||p.roadTransit?'walk':oldTask||p.agenda?.task?'work':null);}
   }
 }
 

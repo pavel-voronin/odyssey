@@ -1,3 +1,4 @@
+import {consumedFood,wantsFood,nutritionView,restSatisfied} from './nutrition-state.js';
 import {forageContract} from './food-contract.js';
 import {harvestFactor} from './harvest-failure-state.js';
 import {physicalDistance} from '../geometry.js';
@@ -73,9 +74,9 @@ export function foodPlan(s,ctx,{reserve=false}={}){
 }
 export function eat(s,ctx){
   const h=s.hero;if(!enabled(s,'supply')){h.goal=null;return;}
-  const opened=(s.people[h.lineage]?.roadSupplies?.food||0)>0,portions=consumeTravelMeal(s.people[h.lineage],h.inventory,partyMealSize(s));if(!portions){h.goal=null;return;}
-  h.hunger=Math.max(0,h.hunger-65);h.lastAction='eat';h.goal=null;h.counters.meals++;feedParty(s,portions-1);
-  const fed=new Set(humanParty(s).slice(0,portions-1).map(c=>c.person));for(const c of h.companions)if(!opened||!c.person||fed.has(c.person))c.loyalty=Math.min(100,c.loyalty+3);
+  const opened=(s.people[h.lineage]?.roadSupplies?.food||0)>0,portions=consumeTravelMeal(s.people[h.lineage],h.inventory,Math.min(4,partyMealSize(s)+1),{small:true});if(!portions){h.goal=null;return;}
+  consumedFood(s,h,{portions:Math.min(2,portions),source:'travel-meal'});h.lastAction='eat';h.goal=null;h.counters.meals++;feedParty(s,Math.max(0,portions-2));
+  const fed=new Set(humanParty(s).slice(0,Math.max(0,portions-2)).map(c=>c.person));for(const c of h.companions)if(!opened||!c.person||fed.has(c.person))c.loyalty=Math.min(100,c.loyalty+3);
   ctx.log(s,opened?`Герой расходует открытые припасы: порций ${portions}. Остаток остаётся в сумке.`:'Герой делит дорожный паёк с отрядом. В сумке на один запас меньше.','food');
 }
 export function buyFood(s,ctx){
@@ -83,19 +84,19 @@ export function buyFood(s,ctx){
   const h=s.hero,a=s.areas[h.area],price=foodPrice(s);
   if(denyService(s,ctx,'food')){h.goal=null;h.memory.foodAfter=s.tick+96;return true;}
   if(marketEnabled(s)){
-    if(containersOn(s)&&!stackRoom(s,h.lineage,'food',1)&&!h.transit&&physicalDistance(a,h.x,42)<=1){const q=quoteMarket(s,a,'food','buy',partyMealSize(s),{trade:canBargain(s,h.lineage,profile(h).skill==='trade'),gold:h.gold});if(q.quantity&&takeGoods(s,a,'food',q.quantity,{flow:'consumed',reason:'hero-on-site-meal',actor:h.lineage})===q.quantity){h.gold-=q.total;a.civic.treasury=(a.civic.treasury||0)+q.total;h.hunger=Math.max(5,h.hunger-65);h.counters.meals++;h.lastAction='eat';h.goal=null;feedParty(s,q.quantity-1);ctx.log(s,'Рюкзак заполнен: герой покупает еду и ест на месте, не выбрасывая поклажу.','food');return true;}}
-    const deal=tradeGoods(s,a,h.lineage,'food','buy',4,{trade:canBargain(s,h.lineage,profile(h).skill==='trade')});
+    if(containersOn(s)&&!stackRoom(s,h.lineage,'food',1)&&!h.transit&&physicalDistance(a,h.x,42)<=1){const q=quoteMarket(s,a,'food','buy',partyMealSize(s),{trade:canBargain(s,h.lineage,profile(h).skill==='trade'),gold:h.gold});if(q.quantity&&takeGoods(s,a,'food',q.quantity,{flow:'consumed',reason:'hero-on-site-meal',actor:h.lineage})===q.quantity){h.gold-=q.total;a.civic.treasury=(a.civic.treasury||0)+q.total;consumedFood(s,h,{portions:1,source:'market-on-site'});h.counters.meals++;h.lastAction='eat';h.goal=null;feedParty(s,q.quantity-1);ctx.log(s,'Рюкзак заполнен: герой покупает еду и ест на месте, не выбрасывая поклажу.','food');return true;}}
+    const deal=tradeGoods(s,a,h.lineage,'food','buy',Math.max(4,8-carriedFood(s.people[h.lineage],h.inventory)),{trade:canBargain(s,h.lineage,profile(h).skill==='trade')});
     h.goal=null;
     if(!deal.quantity){h.memory.foodAfter=s.tick+24;ctx.log(s,deal.reason==='capacity'?'В рюкзаке нет места для новой еды. Нужно освободить поклажу.':deal.reason==='money'?'На еду не хватает монет. Нужен заработок или съедобные растения.':'Поселение бережёт последний запас. Герою нужен другой источник еды.','food');return true;}
-    const portions=consumeTravelMeal(s.people[h.lineage],h.inventory,partyMealSize(s));
-    h.hunger=Math.max(5,h.hunger-65);h.counters.meals++;h.lastAction='eat';feedParty(s,portions-1);
+    const portions=consumeTravelMeal(s.people[h.lineage],h.inventory,Math.min(4,partyMealSize(s)+1),{small:true});
+    consumedFood(s,h,{portions:Math.min(2,portions),source:'market-meal'});h.counters.meals++;h.lastAction='eat';feedParty(s,Math.max(0,portions-2));
     ctx.log(s,`Куплено ${deal.quantity} порц. за ◈${deal.total}; съедено ${portions}. Остаток остаётся в сумке.`,'food');return true;
   }
   if(!a.civic||a.civic.food<4){h.goal=null;h.memory.foodAfter=s.tick+96;ctx.log(s,'Кладовая пуста. За деньги или работу здесь сейчас нельзя получить еду.','food');return true;}
   takeGoods(s,a,'food',4,{flow:goodsEnabled(s)?'exported':'consumed',reason:'hero-meal',actor:h.lineage});
   if(h.gold>=price){h.gold-=price;if(goodsEnabled(s)||enabled(s,'service-access'))a.civic.treasury=(Number.isFinite(a.civic.treasury)?a.civic.treasury:0)+price;}else {h.energy=Math.max(0,h.energy-5);moral(s,1);}
-  h.hunger=5;h.counters.meals++;h.lastAction='eat';h.goal=null;
-  if(goodsEnabled(s)){const p=s.people[h.lineage];p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food=(p.roadSupplies.food||0)+4;const portions=consumeTravelMeal(p,h.inventory,partyMealSize(s));feedParty(s,portions-1);}else feedParty(s);
+  h.counters.meals++;h.lastAction='eat';h.goal=null;
+  if(goodsEnabled(s)){const p=s.people[h.lineage];p.roadSupplies ||= {food:0,medicine:0};p.roadSupplies.food=(p.roadSupplies.food||0)+4;const portions=consumeTravelMeal(p,h.inventory,Math.min(4,partyMealSize(s)+1),{small:true});consumedFood(s,h,{portions:Math.min(2,portions),source:'civic-meal'});feedParty(s,Math.max(0,portions-2));}else{consumedFood(s,h,{portions:2,source:'civic-meal'});feedParty(s,2);}
   if(a.civic.food>=8&&h.gold>=price&&stackRoom(s,h.lineage,'rations',1)>=1){h.gold-=price;if(goodsEnabled(s)||enabled(s,'service-access'))a.civic.treasury=(Number.isFinite(a.civic.treasury)?a.civic.treasury:0)+price;takeGoods(s,a,'food',4,{flow:'exported',reason:'hero-ration',actor:h.lineage});h.inventory.rations++;}
   ctx.log(s,`Герой получает еду из кладовой. Запас поселения: ${a.civic.food} / 100; дорожных пайков: ${h.inventory.rations}.`,'food');return true;
 }

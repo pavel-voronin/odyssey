@@ -1,3 +1,4 @@
+import {paidBodyLoad,nutritionView,sleepPhase,restSatisfied,wantsFood} from './modules/nutrition-state.js';
 import {heroLevel,creditGeneral} from './modules/progression-state.js';
 import {initializeDevelopment,walkedDevelopment,developmentValue,developmentOn} from './modules/development-skills.js';
 import {personalRouteLoad} from './modules/metric-route-state.js';
@@ -535,7 +536,7 @@ function delveContext(s){
 function verifyTarget(s,id,run){const h=s.hero,g=h.goal;if(!g)return run();const before=actionProgress(s,g),ok=run();if(!ok&&(h.goal===g||!h.goal)&&before===actionProgress(s,g)&&goalReadiness(s,g,{knownRoute},{memory:false}).status!=='done'){const r={status:'blocked',reason:'Проверка '+id+' не подтверждает исполнимый шаг.',retryOn:'target-or-resources'};deferMethod(h,g,r,methodRevision(s,g),s.tick);h.goal=null;}return ok;}
 function availableQuestStep(s,q){const h=s.hero,area=questReady(s,q)?q.source:q.target;if(!questChoiceAvailable(s,q)||!s.areas[area]||!knownRoute(s,h.area,area).length)return false;return !h.actionSelection?.deferred.some(e=>e.step.quest===q.id&&e.signature===methodRevision(s,e.step)&&goalReadiness(s,e.step,{knownRoute},{memory:false}).status==='blocked');}
 function reconsiderKnownQuest(s){
- const h=s.hero,g=h.goal;if(!g||g.quest||g.commitment||g.intention||h.transit||h.combat||h.carriedBy||h.energy<23||h.hp<h.maxHp*(.35+(1-h.personality.courage)*.28)||partyDemand(s)||enabled(s,'body')&&h.hunger>75||holdWoundRest(s)||holdPoisonRest(s))return false;
+ const h=s.hero,g=h.goal;if(!g||g.quest||g.commitment||g.intention||h.transit||h.combat||h.carriedBy||h.energy<23||h.hp<h.maxHp*(.35+(1-h.personality.courage)*.28)||partyDemand(s)||wantsFood(s,h)||holdWoundRest(s)||holdPoisonRest(s))return false;
  const selected=chooseQuest(s,h.quests.filter(q=>q.status==='active'),q=>questReady(s,q),{available:q=>availableQuestStep(s,q)});if(!selected||selected.urgency<60&&s.tick-(g.started??s.tick)<CHOICE_POLICY.minimumTicks)return false;
  if(['rest','campPitch','patientClinic'].includes(g.kind))return false;const before=actionProgress(s,g);parkMethod(h,g);h.goal=null;planQuest(s,selected.q,context(s,'quests'));return before!==actionProgress(s,g);
 }
@@ -568,7 +569,7 @@ function plan(s) {
   if(offer('textRecoveryPlan',()=>textRecoveryPlan(s,context(s,'paper-fire'))))return planningSpent;
   if(a.interior){if(a.interior.kind==='workshop'&&(offer('itemRepairPlan',()=>itemRepairPlan(s,context(s,'item-wear')))||offer('toolPlan',()=>toolPlan(s,context(s,'workshop-tools')))||offer('refitPlan',()=>refitPlan(s,context(s,'knife-refit')))||offer('forgePlan',()=>forgePlan(s,context(s,'forging')))))return planningSpent;if(offer('lodgingPlan',()=>lodgingPlan(s,context(s,'lodging'))))return planningSpent;if(a.interior.kind==='room'&&!q&&(offer('librarySecurityPlan',()=>librarySecurityPlan(s,context(s,'library-security')))||offer('libraryPlan',()=>libraryPlan(s,context(s,'libraries')))||offer('textPlan',()=>textPlan(s,context(s,'texts')))||offer('homePlan',()=>homePlan(s,context(s,'homes')))))return planningSpent;if(offer('tavernPlan',()=>tavernPlan(s,context(s,'interiors'))))return planningSpent;}
   if(a.temporaryCamp){leaveCamp(s,context(s,'fieldcamp'));return planningSpent;}
-  if((partyDemand(s)==='food'||enabled(s,'body')&&h.hunger>75)&&offer('foodPlan',()=>foodPlan(s,context(s,'supply'))))return planningSpent;
+  if((partyDemand(s)==='food'||wantsFood(s,h))&&offer('foodPlan',()=>foodPlan(s,context(s,'supply'))))return planningSpent;
   if(textValuesOn(s)&&textNeed(s,s.people[h.lineage])&&offer('literacyPlan',()=>literacyPlan(s,context(s,'text-values'),{urgentOnly:true})))return planningSpent;
   if (enabled(s, 'body') && offer('traitsPlan',()=>traitsPlan(s, context(s, 'body')))) return planningSpent;
   if (h.hp < h.maxHp * (.35 + (1 - h.personality.courage) * .28) || h.energy < 23||partyDemand(s)==='rest') {
@@ -672,7 +673,7 @@ function plan(s) {
   if(offer('directions',()=>routeOpportunityPlan(s,{goal})))return planningSpent;
   if(offer('exploration',()=>{explorePlan(s);return true;}))return planningSpent;
   if(waiting){h.goal=waiting;return planningSpent;}
-  if(h.energy<95||h.hp<h.maxHp)goal(s,'localRecovery',h.area,h.x,'Заняться доступной жизнью на месте','Знакомого исполнимого пути сейчас нет. Восстанавливает силы и расходует только настоящий запас.');
+  if(!restSatisfied(s,h))goal(s,'localRecovery',h.area,h.x,'Заняться доступной жизнью на месте','Знакомого исполнимого пути сейчас нет. Восстанавливает силы и расходует только настоящий запас.');
   else {h.goal=null;h.lastAction='idle';h.intent='Остаться в причинной изоляции';h.reason=h.actionSelection?.deferred.at(-1)?.reason||'Знакомые выходы изучены; доступного дела пока нет. Мир и собственные нужды продолжаются.';}
   return planningSpent;
 }
@@ -688,7 +689,7 @@ function explorePlan(s,blocked=false){
       if(!deferredMethod(h,g,signature))deferMethod(h,g,r,signature,s.tick);h.goal=null;return;
     }
     // Expanding a visited frontier keeps the world connected without resetting it.
-    if(h.energy<95||h.hp<h.maxHp)goal(s,'localRecovery',h.area,h.x,'Заняться доступной жизнью на месте','Знакомые выходы изучены. Новую дорогу нельзя создать одним повторением ожидания.');return;
+    if(!restSatisfied(s,h))goal(s,'localRecovery',h.area,h.x,'Заняться доступной жизнью на месте','Знакомые выходы изучены. Новую дорогу нельзя создать одним повторением ожидания.');return;
   }
   options.sort((aa, bb) => {
     const score = area => knownRoute(s, h.area, area.id).length + routePreference(s,area) + weatherPreference(s,area) - (area.type === 'forest' ? h.personality.curiosity : 0);
@@ -1004,8 +1005,8 @@ export function advanceWorld(s) {
   observeRouteMap(view,s.people[h.lineage]);
   h.actorStep=s.tick;
   if(s.people[h.lineage]?.status==='captive'){h.lastAction='rest';continue;}
-  const castsBefore=h.magic.casts;
-  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{syncHorse(view,h);syncWagons(view);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
+  const castsBefore=h.magic.casts,energyBefore=h.energy;
+  try{actObserved(view);woundActivity(s,s.people[h.lineage],h.lastAction==='walk'?'leg':['attack','work'].includes(h.lastAction)?'arm':'body',['rest','sleep'].includes(h.lastAction));finishPositionTurn(view,respondInContact,h.lastAction==='flee'||h.magic.casts>castsBefore&&h.magic.responseSkipped);}finally{paidBodyLoad(view,h,energyBefore-h.energy,h.lastAction);syncHorse(view,h);syncWagons(view);advancePackPets(view,{...context(view,'pack-pets'),knownRoute:(world,from,to)=>knownPetRoute(world,from,to,id=>areaAvoided(world,id)),hurtCompanion:(world,c,n,ctx)=>hurtCompanion(world,c,n,ctx,'pack-starvation')});syncPatient(view);syncEnemyPeople(s);pairCombatTick(view);syncActiveActor(view);invalidateNPCControl(s);}
  }
  for(const h of actors)applyActorExternal(s,h);
  settleRemainsCarriers(s,context(s,'remains-carry'));settleBurialWork(s);syncNPCActors(s);archiveNPCObservers(s);finishLootTick(s);noticeAuthorityDeaths(s);clinicalWorldTick(s);familyWorldTick(s);return s;
@@ -1115,7 +1116,7 @@ function actObserved(s) {
   if(!urgent)actorMaterialDeliveryPlan(s,context(s,'material-delivery'));
   if(!h.goal||h.goal.kind==='provision')collectionPlan(s,context(s,'collections'),{urgentOnly:true});
   if(!urgent&&h.hunger<=75&&!h.goal?.intention)hearCaptivePlan(s,context(s,'dungeon-rescue'));
-  if (!h.goal || groupNeed==='food'&&!['provision','eat','forage','brothEat','campPitch'].includes(h.goal.kind) || urgent && !['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || enabled(s, 'body') && h.hunger > 75 && !h.goal.collectionEmergency&&!['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || h.goal.quest && activeQuest(h) && questReady(s, activeQuest(h)) && !['rest', 'turnin', 'provision','eat','forage','brothEat'].includes(h.goal.kind)) if(plan(s))return s;
+  if (!h.goal || groupNeed==='food'&&!['provision','eat','forage','brothEat','campPitch'].includes(h.goal.kind) || urgent && !['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || wantsFood(s,h) && !h.goal.collectionEmergency&&!['rest','campPitch', 'provision','eat','forage','brothEat'].includes(h.goal.kind) || h.goal.quest && activeQuest(h) && questReady(s, activeQuest(h)) && !['rest', 'turnin', 'provision','eat','forage','brothEat'].includes(h.goal.kind)) if(plan(s))return s;
   }else planBiologicalNeed(s,{...context(s,'supply'),knownRoute,assess:(world,g)=>goalReadiness(world,g,{knownRoute})});
   if(!need.critical&&reconsiderKnownQuest(s))return s;
   if(!need.critical)reconsiderMethods(s,(world,g)=>goalReadiness(world,g,{knownRoute},{memory:false}),methodRevision);
@@ -1193,13 +1194,14 @@ function actObserved(s) {
   if (g.kind === 'rest') {
     restoreCampRestView(s);
     if(lodgingRest(s,context(s,'lodging'),holdPoisonRest(s)||holdWoundRest(s)))return s;
+    if((g.sleep||nutritionView(s,h).sleep||s.people[h.lineage].nutrition?.sleep.active)&&!holdPoisonRest(s)&&!holdWoundRest(s)){const slept=sleepPhase(s,h);partyRest(s);if(slept?.done){h.goal=null;leaveCamp(s,context(s,'fieldcamp'));}return s;}
     if(!holdPoisonRest(s)&&!holdWoundRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||retreatDrill(s,context(s,'skill-branches'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||musicCamp(s,context(s,'camp-music'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
     const amount = restAmount(s,a);
     restoreHealth(s,amount); h.energy = Math.min(100, h.energy + smokeRestEnergy(s,12)); h.lastAction = 'rest';
     traitsRest(s, context(s, 'body'));
     magicRest(s);
     partyRest(s);
-    if (!holdPoisonRest(s)&&!holdWoundRest(s)&&partyRestReady(s)&&h.hp === h.maxHp && h.energy >= 95&&(!enabled(s,'magic')||h.magic.mana>=(g.preparation?.mana||0))) { log(s, 'Силы восстановлены. Можно снова вернуться к своим планам.', 'rest'); h.goal = null;leaveCamp(s,context(s,'fieldcamp')); }
+    if (!holdPoisonRest(s)&&!holdWoundRest(s)&&partyRestReady(s)&&restSatisfied(s,h)&&(!enabled(s,'magic')||h.magic.mana>=(g.preparation?.mana||0))) { log(s, 'Силы восстановлены. Можно снова вернуться к своим планам.', 'rest'); h.goal = null;leaveCamp(s,context(s,'fieldcamp')); }
     else h.speech = isTown(a) ? actualService(s,a,'clinic').available?'Лекарь помогает путникам. Здесь можно перевести дух.':'Здесь можно отдохнуть самому; лекарь сейчас не принимает.' : 'Огонь согревает. Обещания подождут до утра.';
   } else if (g.kind === 'campPitch') execute('pitchCamp',()=>pitchCamp(s,context(s,'fieldcamp')));
   else if(g.kind==='campContinue')execute('campContinue',()=>campContinue(s,context(s,'fieldcamp')));

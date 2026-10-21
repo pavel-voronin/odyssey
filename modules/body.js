@@ -1,3 +1,4 @@
+import {consumedFood,wantsFood} from './nutrition-state.js';
 import {restoreHealth} from './fresh-reply.js';
 import {biologicalDose,ordinaryRecovery} from './biology.js';
 import {boneBody} from './anatomy-state.js';
@@ -42,7 +43,7 @@ export function bodyTick(s, ctx) {
 
 export function traitsPlan(s, ctx) {
   const h = s.hero;
-  if (h.hunger > 75 && h.goal?.kind !== 'provision') {
+  if (wantsFood(s,h) && h.goal?.kind !== 'provision') {
     if(foodPlan(s,ctx))return true;
     const town = ctx.closest(s, a => knownArea(s,a) && isTown(a));
     if (town) { ctx.goal(s, 'provision', town.id, 42, 'Найти еду в поселении', `Голод ${Math.round(h.hunger)} / 100. Пустой желудок важнее дальнего пути.`); return true; }
@@ -60,7 +61,7 @@ export function provisions(s, ctx) {
   const h = s.hero, price = foodPrice(s),stock=s.areas[h.area]?.civic;if(!stock||stock.food<4){h.goal=null;h.reason='Нет настоящей еды в кладовой.';return;}stock.food-=4;
   if (h.gold >= price) { h.gold -= price; const civic=s.areas[h.area]?.civic;if(enabled(s,'service-access')&&civic)civic.treasury=(Number.isFinite(civic.treasury)?civic.treasury:0)+price;ctx.log(s, 'Горячая еда, хлеб в дорогу. Голод больше не определяет маршрут.', 'food'); }
   else { h.energy = Math.max(0, h.energy - 5); moral(s, 1); ctx.log(s, 'За помощь на кухне герой получает еду. Без денег тоже можно выжить.', 'food'); }
-  h.hunger = 5; h.lastAction = 'eat'; h.goal = null;
+  consumedFood(s,h,{portions:4,source:'kitchen-service'}); h.lastAction = 'eat'; h.goal = null;
   for (const c of h.companions) c.loyalty = Math.min(100, c.loyalty + 4);
 }
 

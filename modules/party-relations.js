@@ -1,3 +1,4 @@
+import {consumedFood} from './nutrition-state.js';
 import {recordFamilyCooperation} from './family-state.js';
 import {rememberCampPairCare} from './camp-topic-memory.js';
 import {enabled} from '../rules.js';
@@ -41,7 +42,7 @@ export function pairCampCare(s,ctx){
   const donor=s.people[donorC.person],amount=medical?fieldMedicineCost(s,donor.id):1,before=recipient.health;if(!claim(s,recipient,donor))continue;
   const refuse=(donor.agenda?.sociability??.5)<.3&&(donor.agenda?.duty??.5)<.5&&pairFeeling(donor,recipient.id)<3;
   if(!refuse&&!consumeCarriedSupplies(donor,null,kind,amount))return false;
-  if(!refuse){if(medical){recipient.health=Math.min(recipient.maxHealth||100,recipient.health+25);c.hp=Math.max(1,Math.ceil(c.maxHp*recipient.health/(recipient.maxHealth||100)));}else{recipient.needs.hunger=Math.max(0,recipient.needs.hunger-48);recipient.needs.meals++;}}
+  if(!refuse){if(medical){recipient.health=Math.min(recipient.maxHealth||100,recipient.health+25);c.hp=Math.max(1,Math.ceil(c.maxHp*recipient.health/(recipient.maxHealth||100)));}else{consumedFood(s,recipient,{source:'shared-owned-meal'});recipient.needs.meals++;}}
   const event={id:`${h.lineage}/camp/${campIdentity(h)}/care`,tick:s.tick,area:h.area,kind,outcome:refuse?'refused':'shared',donor:donor.id,recipient:recipient.id,spent:refuse?0:amount,...(refuse&&donor.health<(donor.maxHealth||100)*.75?{need:'own-health',ownHealth:donor.health,ownMaximum:donor.maxHealth||100}:{})};
   if(skillBranchesEnabled(s)&&medical&&!refuse){Object.assign(event,{actor:donor.id,patient:recipient.id,before,after:recipient.health,resource:'medicine'});session(h).care=event;recordPracticalAid(s,event);}
   remember(recipient,donor,event,refuse?-3:3);remember(donor,recipient,event,refuse?0:1);session(h).care=event;rememberCampPairCare(s,event);

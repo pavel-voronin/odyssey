@@ -1,3 +1,4 @@
+import {consumedFood,nutritionView} from './nutrition-state.js';
 import {developmentValue} from './development-skills.js';
 import {emitPaperFire} from './paper-fire-events.js';
 import {woundStride} from './wound-state.js';
@@ -82,12 +83,12 @@ export function eatBroth(s,h,wanted=1){
  s.people[h.lineage].foodCooking.lastAction=s.tick;
  const portions=Math.min(b.remaining,Math.max(1,Math.min(4,wanted)));b.remaining-=portions;b.eaten+=portions;b.lastEat=s.tick;a.hearthKitchen.eatenPortions+=portions;
  const warm=s.tick<b.warmUntil;if(warm)culinary(s.people[h.lineage]).warmth={since:s.tick,until:s.tick+MEAL_WARMTH,source:b.id};
- h.hunger=Math.max(0,h.hunger-65);h.counters.meals++;h.lastAction='eat';if(!b.remaining){b.status='eaten';b.ended=s.tick;}return{batch:b.id,portions,warm};
+ consumedFood(s,h,{portions:Math.min(2,portions),source:b.id+'/portion/'+b.eaten});h.counters.meals++;h.lastAction='eat';if(!b.remaining){b.status='eaten';b.ended=s.tick;}return{batch:b.id,portions,warm};
 }
 export function brothBalance(k){const b=k?.current;return k?k.preparedPortions-k.eatenPortions-k.lostPortions-(b?.status==='ready'?b.remaining:0):0;}
 export function brothInputBalance(k){return k?k.inputPortions-k.ruinedInputPortions-k.preparedPortions-(k.current?.status==='preparing'?k.current.inputPortions:0):0;}
 export function mealWarmth(s,h=s.hero){const e=s.people[h.lineage]?.foodCooking?.warmth;return cookingEnabled(s)&&h.alive&&e?.until>s.tick?e:null;}
-export function foodWalkingStride(s,h=s.hero,tick=s.tick){const frost=h.ruleFlags?.body!==false&&h.conditions.some(c=>c.id==='frost');if(!frost)return 6*woundStride(s,s.people[h.lineage])*(1+.2*developmentValue(s,h.lineage,'athletics'));const e=mealWarmth(s,h);return (e&&tick<e.until?5:4)*woundStride(s,s.people[h.lineage])*(1+.2*developmentValue(s,h.lineage,'athletics'));}
+export function foodWalkingStride(s,h=s.hero,tick=s.tick){const frost=h.ruleFlags?.body!==false&&h.conditions.some(c=>c.id==='frost');if(!frost)return 6*woundStride(s,s.people[h.lineage])*nutritionView(s,h).stride*(1+.2*developmentValue(s,h.lineage,'athletics'));const e=mealWarmth(s,h);return (e&&tick<e.until?5:4)*woundStride(s,s.people[h.lineage])*nutritionView(s,h).stride*(1+.2*developmentValue(s,h.lineage,'athletics'));}
 // Forecast only the remaining warm interval, never an entire distant journey.
 export function foodWalkingTicks(s,distance,speed=1,start=s.tick){
  if(!cookingEnabled(s)||!mealWarmth(s))return Math.ceil(distance/(foodWalkingStride(s)*speed));

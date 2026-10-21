@@ -1,3 +1,4 @@
+import {sleepPhase,nutritionView} from './nutrition-state.js';
 import {activeReturnBond} from './return-bond-state.js';
 import {ordinaryRecovery} from './biology.js';
 import {remindPromises} from './recollection-contact.js';
@@ -132,7 +133,7 @@ export function partyRest(s){
     c.hp=Math.min(c.maxHp,c.hp+(person?ordinaryRecovery(s,person,5):5));if(!person){if(enabled(s,'pet-training')&&c.petTraining)c.petTraining.energy=Math.min(100,c.petTraining.energy+8);continue;}
     person.health=Math.ceil((person.maxHealth||100)*c.hp/c.maxHp);
     if((enabled(s,'camp-life')||enabled(s,'npc-party-needs'))&&enabled(s,'npc-needs')&&person.needs){
-      const n=person.needs;n.energy=Math.min(100,n.energy+12);
+      const n=person.needs;if(nutritionView(s,person).sleep||person.nutrition?.sleep.active){sleepPhase(s,person);continue;}n.energy=Math.min(nutritionView(s,person).energyLimit,n.energy+12);
       if(n.sleeping&&n.energy>=90){n.sleeping=false;n.sleeps++;}
     }
   }

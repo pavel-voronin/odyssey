@@ -46,8 +46,8 @@ export function brothLesson(s,ctx){
  if(q.study.length>=3){q.recipes[BROTH_RECIPE]={learnedAt:s.tick,source:'lessons',lessons:q.study.slice(-3)};release(s,p);h.goal=null;ctx.log(s,'Рецепт запомнился: добыча, немного трав и спокойное время у огня. Можно сварить походную похлёбку.','skill');}return true;
 }
 export function brothEatAction(s,ctx,{camp=false}={}){
- const h=s.hero,r=eatBroth(s,h,partyMealSize(s));if(!r){if(!camp)h.goal=null;return false;}
- feedParty(s,r.portions-1);if(r.warm)for(const c of humanParty(s).slice(0,r.portions-1)){const p=s.people[c.person];if(p.area===h.area)culinary(p).warmth={since:s.tick,until:s.tick+MEAL_WARMTH,source:r.batch};}
+ const h=s.hero,r=eatBroth(s,h,Math.min(4,partyMealSize(s)+1));if(!r){if(!camp)h.goal=null;return false;}
+ feedParty(s,Math.max(0,r.portions-2));if(r.warm)for(const c of humanParty(s).slice(0,Math.max(0,r.portions-2))){const p=s.people[c.person];if(p.area===h.area)culinary(p).warmth={since:s.tick,until:s.tick+MEAL_WARMTH,source:r.batch};}
  if(!camp)h.goal=null;ctx.log(s,r.warm?'Тёплая похлёбка согревает. Герой ест у огня.':'Похлёбка остыла, но всё ещё годится в пищу. Остаток остаётся у очага.','food');return true;
 }
 export function brothCookAction(s,ctx,{camp=false}={}){

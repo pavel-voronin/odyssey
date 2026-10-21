@@ -1,3 +1,4 @@
+import {consumedFood} from './nutrition-state.js';
 import {groupHorse} from './horse-state.js';
 import {rootWorld} from '../world-ref.js';
 import {physicalDistance,areaStep} from '../geometry.js';
@@ -42,7 +43,7 @@ export function peopleCarryTurn(s,ctx){const h=s.hero,p=s.people[h.carriedBy],q=
   if(!peopleCarryOn(s)||!p.alive||!bodyCarryCapable(s,p,s.people[h.lineage])||p.needs.energy<20||p.needs.hunger>=75||p.needs.sleeping||!h.companions.some(c=>c.person===p.id))return endPeopleCarry(s,ctx,!p.alive?'носитель погиб':'здоровье, усталость или согласие изменились');
   const danger=s.areas[p.area]?.objects.some(e=>e.kind==='enemy'&&e.alive&&!e.resolved&&!e.hidden&&physicalDistance(s.areas[p.area],e.x,p.x)<=12);if(!q.journey&&(danger||basis(p)!==q.promise||h.combat||personal(p)&&personal(p).due-s.tick<=2))return endPeopleCarry(s,ctx,danger?'путь опасен':'личный план изменился');
   if(!fresh(s,p)||!npcAction(s,p,'party','carry-walk')){h.lastAction='travel';return true;}
-  if(carriedFood(p,p.actorLink?.inventory)>0&&p.needs.hunger>=55){consumeCarriedSupplies(p,null,'food',1);p.needs.hunger=Math.max(0,p.needs.hunger-48);h.lastAction='travel';carryEvent(s,p,'meal');return true;}
+  if(carriedFood(p,p.actorLink?.inventory)>0&&p.needs.hunger>=55){consumeCarriedSupplies(p,null,'food',1);consumedFood(s,p,{source:'carrier-meal'});h.lastAction='travel';carryEvent(s,p,'meal');return true;}
   if(q.journey){const before=q.journey.metric.travelled,arrived=advanceMetricTravel(s,p,q.journey);h.distance+=Math.abs(q.journey.metric.travelled-before);if(q.journey.metric.travelled!==before){q.lastMove=s.tick;woundActivity(s,p,'leg');}if(arrived){p.area=q.journey.to;p.x=q.journey.arrivalX;q.journey=null;h.area=p.area;h.x=p.x;h.transit=null;ctx.enter(s,p.area);return endPeopleCarry(s,ctx,'arrived');}mirrorTransit(h,p);h.lastAction='travel';return true;}
   const a=s.areas[p.area],target=q.end.area===p.area?q.end.x:q.end.exitX;if(physicalDistance(a,p.x,target)>1){const rate=metricRate({speed:6,terrain:a.type==='forest'?'trail':'road'},weatherAt(s,a),peopleCarryLoad(s,p,s.people[h.lineage])),move=areaStep(a,p.x,target,rate.speed);p.x+=move;p.facing=Math.sign(move)||p.facing||1;h.facing=p.facing;p.needs.energy=Math.max(0,p.needs.energy-rate.energy-1);h.distance+=physicalDistance(a,p.x-move,p.x);h.x=p.x;h.area=p.area;q.lastMove=s.tick;woundActivity(s,p,'leg');h.lastAction='travel';return true;}
   if(q.end.area===p.area)return endPeopleCarry(s,ctx,'arrived');q.journey=startMetricTravel(s,p,q.end.area,q.end.x);if(!q.journey)return endPeopleCarry(s,ctx,'переход закрыт');mirrorTransit(h,p);h.lastAction='travel';return true;

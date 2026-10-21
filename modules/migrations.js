@@ -1,3 +1,4 @@
+import {consumedFood} from './nutrition-state.js';
 import {wildGrazer} from './ecology-state.js';
 import {chooseFamilyRefuge,refugeArrivalAllowed} from './family-refuge.js';
 import {structurallySound} from './building-condition.js';
@@ -70,11 +71,11 @@ export function migrationArrived(s,p){
 }
 export function migrationMeal(s,p,{skipPersonal=false}={}){
   if(!enabled(s,'migrations'))return false;
-  if(!skipPersonal&&p.roadSupplies?.food>0){p.roadSupplies.food--;p.needs.hunger=Math.max(0,p.needs.hunger-48);p.needs.meals++;return true;}
+  if(!skipPersonal&&p.roadSupplies?.food>0){p.roadSupplies.food--;consumedFood(s,p,{source:'migration-meal'});p.needs.meals++;return true;}
   const g=s.migrations?.[p.migration||p.refugeGroup];
   const carrier=s.people[g?.carrier];
   if(!['active','camped','site-ready'].includes(g?.status)||g.cargoLost||!carrier?.alive||carrier.area!==p.area||Math.abs(carrier.x-p.x)*areaScale(s.areas[p.area])>40||g.cargo.food<1)return false;
-  g.cargo.food--;p.needs.hunger=Math.max(0,p.needs.hunger-48);p.needs.meals++;return true;
+  g.cargo.food--;consumedFood(s,p,{source:'migration-meal'});p.needs.meals++;return true;
 }
 export function migrationAid(s,p,{skipPersonal=false}={}){
   if(!enabled(s,'migrations'))return false;

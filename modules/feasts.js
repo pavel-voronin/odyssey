@@ -1,3 +1,4 @@
+import {consumedFood} from './nutrition-state.js';
 import {feastsOn,FEAST,feastDate,feastNear,feastReason,feastActor,feastBody} from './feast-state.js';
 import {YEAR_TICKS} from '../calendar-units.js';
 import {isTown,profile} from './common.js';
@@ -65,7 +66,7 @@ export function attendFeast(s,p,ctx){
  if(r.choice==='help'&&r.joined===null){e.work=Math.min(3,e.work+1);if(carriedFood(p,h?.inventory)>2&&e.food<FEAST.food&&consumeCarriedSupplies(p,null,'food',1)){e.food++;e.contributed++;}r.joined=s.tick;if(debit(s,e,2)){setActorMoney(s,p,marketWallet(s,p.id)+2);r.paid=2;}tell(s,e,`${p.name} помогает с настоящим столом.`,ctx);}
  else if(r.choice==='trade'&&r.joined===null){if(e.food<FEAST.food&&carriedFood(p,h?.inventory)>2&&marketWallet(s,s.people[e.organizer].id)>=2&&e.spent+2<=FEAST.budget&&consumeCarriedSupplies(p,null,'food',1)){debit(s,e,2);setActorMoney(s,p,marketWallet(s,p.id)+2);e.food++;e.contributed++;r.paid=2;}r.joined=s.tick;}
  else if(e.status!=='active')return false;
- if(e.status==='active'&&!r.gift){if(e.food){e.food--;e.eaten++;r.gift=true;if(h)h.hunger=Math.max(0,h.hunger-15);else p.needs.hunger=Math.max(0,p.needs.hunger-15);bond(s,p,s.people[e.organizer]);}r.joined ??=s.tick;}
+ if(e.status==='active'&&!r.gift){if(e.food){e.food--;e.eaten++;r.gift=true;consumedFood(s,h||p,{source:'feast/'+e.id});bond(s,p,s.people[e.organizer]);}r.joined ??=s.tick;}
  if(e.status==='active'&&r.choice==='perform'&&!r.speech){r.speech=true;r.joined ??=s.tick;const host=s.people[e.organizer];if(feastNear(s,host))bond(s,host,p);for(const [id,t]of Object.entries(e.invited))if(id!==p.id&&t.joined!==null&&feastNear(s,s.people[id])&&!s.people[id].needs?.sleeping)bond(s,s.people[id],p);tell(s,e,`${p.name} выступает перед собравшимися: отсутствующие речи не слышат.`,ctx);}
  if(h)h.energy=Math.max(0,h.energy-2);else p.needs.energy=Math.max(0,p.needs.energy-2);return true;
 }

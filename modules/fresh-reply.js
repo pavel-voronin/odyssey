@@ -1,3 +1,4 @@
+import {nutritionHealthLimit} from './nutrition-state.js';
 import {enabled} from '../rules.js';
 import {itemWorking} from './item-condition.js';
 import {canHoldWeapon} from './limb-state.js';
@@ -5,7 +6,7 @@ const on=s=>enabled(s,'weapon-styles')&&enabled(s,'equipment');
 export function markReplyBlade(s,i){if(on(s)&&i.base==='blade'&&i.rarity===4&&s.areas[s.hero.area].depth>=6){i.replyBlade={version:1,created:s.tick,area:s.hero.area};i.name+=' · Отзвук раны';}}
 export function replyBlade(s){const i=s.hero.equipment.weapon;return on(s)&&itemWorking(i)&&i.replyBlade?.version===1&&canHoldWeapon(s.people[s.hero.lineage])?i:null;}
 // Every real HP gain spends the same finite deficit, including ordinary care.
-export function restoreHealth(s,amount){const h=s.hero,before=h.hp;if(!h.alive||before<=0)return 0;h.hp=Math.min(h.maxHp,h.hp+Math.max(0,amount));const r=s.people[h.lineage]?.freshReply;if(r){const used=Math.min(r.remaining,Math.max(0,h.hp-before));r.remaining-=used;r.healed+=used;}return h.hp-before;}
+export function restoreHealth(s,amount){const h=s.hero,before=h.hp;if(!h.alive||before<=0)return 0;h.hp=Math.min(Math.max(before,nutritionHealthLimit(s,h)),h.hp+Math.max(0,amount));const r=s.people[h.lineage]?.freshReply;if(r){const used=Math.min(r.remaining,Math.max(0,h.hp-before));r.remaining-=used;r.healed+=used;}return h.hp-before;}
 export function recordFreshReply(s,e,before,after){const h=s.hero,p=s.people[h.lineage],i=replyBlade(s);if(!i||!h.alive||after<=0||before<=after)return;const id=p.id+'/reply/'+s.tick+'/'+e.id;if(p.freshReply?.id===id)return;p.freshReply={version:1,id,enemy:e.id,area:h.area,at:s.tick,until:s.tick+2,item:i.id,before,after,damage:before-after,remaining:before-after,healed:0,recovered:0,forfeited:0,used:false};}
 export function replyRecovery(s,e,damage,{paid=false}={}){const h=s.hero,r=s.people[h.lineage]?.freshReply,i=replyBlade(s);if(!r||!i||!h.alive||h.hp<=0||!s.people[h.lineage].alive||r.used||r.item!==i.id||r.enemy!==e.id||r.area!==h.area||h.combat!==e.id||h.transit||s.tick<=r.at||s.tick>r.until||h.energy<(paid?2:5)||damage<=0)return 0;return Math.max(0,Math.min(8,Math.floor(r.damage/2),Math.floor(damage/2),r.remaining,r.before-h.hp,h.maxHp-h.hp));}
 export function recoverReply(s,e,damage,before,ctx){const h=s.hero,r=s.people[h.lineage]?.freshReply,amount=replyRecovery(s,e,damage,{paid:true});if(!amount||h.lastAction!=='attack'||before-e.hp!==damage||!s.areas[h.area].objects.includes(e))return 0;r.remaining-=amount;r.recovered+=amount;r.forfeited+=r.remaining;r.remaining=0;r.used=true;r.usedAt=s.tick;h.hp+=amount;h.energy-=2;ctx?.log?.(s,'Отзвук раны возвращает '+amount+' HP из свежего ответного удара. Клинок требует ещё2силы; повреждения тела сохраняются.','artifact');return amount;}

@@ -1,3 +1,4 @@
+import {consumedFood} from './nutrition-state.js';
 import {quakeBlocked,quakeTravelLimit} from './quake-state.js';
 import {secureFerryCargo,loadFerryCargo,consumeFerryFood,confirmCargoDeparture,ferryCargoStorm,requestCargoLesson,captainCargoTurn,passengerCargoTurn} from './ferry-cargo.js';
 import {assessFerryBoard} from './ferry-offer.js';import {ferryRefusal,sameFerryRefusal,rememberFerryRefusal,rejectFerryGoal} from './ferry-refusals.js';
@@ -34,7 +35,7 @@ function disembarkNPC(s,p,t){const f=s.ferry;p.area=f.port;p.x=50;delete p.ferry
 function drown(s,p,t){p.health=0;p.alive=false;p.status='dead';p.died=s.tick;p.deathCause='Гибель парома';if(t)t.deadAt=s.tick;recordPersonRemains(s,p);}
 export function ferryBodyTurn(s,ctx){const h=s.hero,t=h.transit;if(!t?.ferry)return false;const f=s.ferry,p=s.people[h.lineage],ticket=f?.passengers[h.lineage];h.lastAction='travel';if(!f||!ticket){h.lastAction='wait';return true;}
  if(passengerEvent(s,p,h,ticket,ctx)&&!h.alive)return true;if(f.phase==='sunk'){ctx.die(s,{name:'Гибель парома'},{kind:'storm',damage:h.hp,hpBefore:h.hp});ticket.deadAt=s.tick;return true;}
- if(s.rules.supply!==false&&h.hunger>75&&consumeCarriedSupplies(p,null,'food',4)){h.hunger=Math.max(0,h.hunger-65);h.counters.meals++;h.lastAction='eat';return true;}
+ if(s.rules.supply!==false&&h.hunger>75&&consumeCarriedSupplies(p,null,'food',4)){consumedFood(s,h,{portions:4,source:'ferry-meal'});h.counters.meals++;h.lastAction='eat';return true;}
  if(passengerCargoTurn(s,h.lineage,ctx))return true;
  const presence=ferryPresence(s,h.lineage);if(presence?.transit){t.remaining=presence.transit.remaining;t.total=presence.transit.total;}h.energy=Math.max(0,h.energy-.2);
  if(f.phase==='docked'&&f.port===ticket.to&&f.voyage===ticket.voyage&&ferryDock(s,f.port)){const port=f.port;delete f.passengers[h.lineage];delete p.ferryTicket;h.transit=null;h.x=50;ctx.enter(s,port);h.travel.voyages++;h.intent=t.savedIntent;h.reason=t.savedReason;ferryHistory(s,'landed',h.lineage,{port});note(s,'Паром причалил. Пассажир сходит в настоящий порт.',ctx);}return true;

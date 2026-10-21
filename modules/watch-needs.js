@@ -1,3 +1,4 @@
+import {consumedFood} from './nutrition-state.js';
 import {fieldMedicineCost} from './skill-branches.js';
 import {goodsTaker} from './goods.js';
 import {enabled} from '../rules.js';
@@ -29,7 +30,7 @@ export function watchNeeds(s,p,ctx,inCombat=false,requestedRetreat=false){
   let used=false,activity=null;
   if(s.tick%8===0)used=personNeeds(s,p,ctx,{migration:false,sleep:!inCombat,social:!inCombat,onlyUpkeep:retreat,
     aid(){if(!(p.health<max*.75||p.ailment)||!enabled(s,'supply')||!consumeCarriedSupplies(p,null,'medicine',fieldMedicineCost(s,p.id)))return false;p.health=Math.min(max,p.health+25);if(p.health>=max*.85)p.ailment=null;activity='medicine';return true;},
-    meal(){if(!enabled(s,'supply')||!consumeCarriedSupplies(p,null,'food',1))return false;n.hunger=Math.max(0,n.hunger-48);n.meals++;activity='eat';return true;},
+    meal(){if(!enabled(s,'supply')||!consumeCarriedSupplies(p,null,'food',1))return false;consumedFood(s,p,{source:'watch-meal'});n.meals++;activity='eat';return true;},
     onDeath(){watchNote(s,p,`${p.name} не пережил голод на поручении.`,ctx,'loss');}
   });
   if(!beforeSleep&&n.sleeping)watchNote(s,p,`${p.name} останавливается на ночлег. Поручение остаётся незавершённым.`,ctx);

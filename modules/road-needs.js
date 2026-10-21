@@ -1,3 +1,4 @@
+import {consumedFood} from './nutrition-state.js';
 import {fieldMedicineCost} from './skill-branches.js';
 import {enabled} from '../rules.js';
 import {takeGoods} from './goods.js';
@@ -32,7 +33,7 @@ export function roadNeeds(s,p,ctx,cargo=null){
   if(s.tick%8===0){
     used=personNeeds(s,p,ctx,{migration:false,localFood:!p.roadTransit,
       aid(){const max=p.maxHealth||100;if(!(p.health<max*.75||p.ailment)||!take(s,p,cargo,'medicine',fieldMedicineCost(s,p.id)))return false;p.health=Math.min(max,p.health+25);if(p.health>=max*.85)p.ailment=null;activity='medicine';return true;},
-      meal(){if(!take(s,p,cargo,'food',1))return false;p.needs.hunger=Math.max(0,p.needs.hunger-48);p.needs.meals++;activity='eat';return true;},
+      meal(){if(!take(s,p,cargo,'food',1))return false;consumedFood(s,p,{source:'road-meal'});p.needs.meals++;activity='eat';return true;},
       onDeath(){note(s,p,`${p.name} не пережил голод на дороге.`,ctx,true);}
     });
   }
