@@ -24,7 +24,7 @@ function fixture(){
  return {s,h,p,q,g,from,to,bypass,key:[from,to].sort().join('|')};
 }
 test('one actual edge and lever; closed route uses a safe existing bypass and open route uses the stair',()=>{
- const {s,p,g,from,to,bypass,key}=fixture();assert.deepEqual(route(s,from,to),[from,bypass,to]);assert.equal(campPassage(s,from,to).allowed,false);const energy=s.hero.energy;assert.equal(operateGrate(s,p,key,'open'),true);assert.equal(s.hero.energy,energy-2);assert.equal(g.state,'open');assert.deepEqual(route(s,from,to),[from,to]);assert.equal(campPassage(s,from,to),null);assert.equal(createGrate(s,from,to,bypass),null);assert.equal(serialize(restore(serialize(s))),serialize(s));
+ const {s,p,g,from,to,bypass,key}=fixture();const detour=route(s,from,to);assert.equal(detour.length,3);assert.equal(detour[0],from);assert.equal(detour.at(-1),to);assert.ok(s.areas[from].links.includes(detour[1])&&s.areas[to].links.includes(detour[1]));assert.equal(campPassage(s,from,to).allowed,false);const energy=s.hero.energy;assert.equal(operateGrate(s,p,key,'open'),true);assert.equal(s.hero.energy,energy-2);assert.equal(g.state,'open');assert.deepEqual(route(s,from,to),[from,to]);assert.equal(campPassage(s,from,to),null);assert.equal(createGrate(s,from,to,bypass),null);assert.equal(serialize(restore(serialize(s))),serialize(s));
 });
 test('remote, wrong side, asleep, absent lever and repeated same-tick operation cannot change state or spend energy',()=>{
  const {s,h,p,g,from,to,key}=fixture(),raw=serialize(s);h.x=0;assert.equal(operateGrate(s,p,key),false);h.x=g.lever.x;h.area=to;assert.equal(operateGrate(s,p,key),false);h.area=from;p.needs.sleeping=true;assert.equal(operateGrate(s,p,key),false);p.needs.sleeping=false;

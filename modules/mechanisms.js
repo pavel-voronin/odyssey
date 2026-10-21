@@ -1,3 +1,4 @@
+import {echoLever,recordEchoUse} from './echo-layer-state.js';
 import {newWoodMaterial} from './local-material-state.js';
 import {materialOperation,materialBlockedPlan,materialRouteNote} from './local-material-actions.js';
 import {planGrateDiagnosis} from './mechanic-drive.js';
@@ -24,8 +25,8 @@ export function createGrate(s,from,to,bypass,{hold=false,sequence=false,wood=fal
 }
 export function observeGrate(s,p,from,to){
  const g=grateAt(s,from,to),b=p&&body(s,p),a=b&&s.areas[b.area];
- if(!enabled(s,'mechanisms')||!g||!p.alive||p.needs.sleeping||!b||![g.from,g.to].includes(b.area))return null;
- const other=b.area===g.from?g.to:g.from,lever=b.area===g.lever.area&&a.objects.find(o=>o.id===g.lever.id&&o.kind==='mechanismLever'&&o.key===mechanismKey(from,to));
+ if(!enabled(s,'mechanisms')||!g||!p.alive||p.needs.sleeping||!b||![g.from,g.to,g.echo?.alias.area].includes(b.area))return null;
+ const other=b.area===g.from?g.to:g.from,lever=echoLever(s,g,b.area);
  if(physicalDistance(a,b.x,lever?.x??gateX(b.area,other))>30)return null;
  const m=memory(p),key=mechanismKey(from,to),old=m.known.find(n=>n.key===key),n={key,state:g.state,at:s.tick,witness:p.id,leverArea:lever?b.area:old?.leverArea??null,understood:old?.understood??false,requiresHold:Boolean(g.holding)};
  if(g.material)n.woodSparkMana=materialRouteNote(s,p).sparkMana;
@@ -33,9 +34,10 @@ export function observeGrate(s,p,from,to){
  const i=m.known.findIndex(n=>n.key===key);if(i<0)m.known.push(n);else m.known[i]=n;if(m.known.length>24)m.known.shift();return n;
 }
 export function operateGrate(s,p,key,action='open',ctx={}){
- const g=s.edges?.[key]?.mechanism,b=p&&body(s,p),h=p&&actor(s,p),a=b&&s.areas[b.area],lever=a?.objects.find(o=>o.id===g?.lever.id&&o.kind==='mechanismLever'&&o.key===key),energy=h?.energy??p?.needs?.energy;
+ const g=s.edges?.[key]?.mechanism,b=p&&body(s,p),h=p&&actor(s,p),a=b&&s.areas[b.area],lever=a&&echoLever(s,g,b.area),energy=h?.energy??p?.needs?.energy;
  if(g?.material)return materialOperation(s,p,key,action,ctx);
- if(!enabled(s,'mechanisms')||!g||!p?.alive||p.needs.sleeping||!b||b.area!==g.lever.area||!lever||physicalDistance(a,b.x,lever.x)>9||partyBodySpent(s,p)||energy<3||!['inspect','open','close'].includes(action)||action!=='inspect'&&g.state===(action==='open'?'open':'closed'))return false;
+ if(!enabled(s,'mechanisms')||!g||!p?.alive||p.needs.sleeping||!b||!lever||physicalDistance(a,b.x,lever.x)>9||partyBodySpent(s,p)||energy<3||!['inspect','open','close'].includes(action)||action!=='inspect'&&g.state===(action==='open'?'open':'closed'))return false;
+ if(g.echo&&p.mechanisms?.lastActionTick>=s.tick)return false;
  if(g.holding&&action!=='inspect')return false;
  if(g.sequence&&!sequencesOn(s))return false;
  if(!h&&!npcAction(s,p,'personal'))return false;
@@ -45,6 +47,7 @@ export function operateGrate(s,p,key,action='open',ctx={}){
  memory(p).lastActionTick=s.tick;
  if(action==='inspect')n.understood=true;
  else {g.state=action==='open'?'open':'closed';g.changed=s.tick;g.operations.push({tick:s.tick,person:p.id,state:g.state});if(g.operations.length>8)g.operations.shift();s.graphRevision=(s.graphRevision||0)+1;n.state=g.state;n.understood=true;}
+ recordEchoUse(s,p,g,b.area,action);
  if(h){h.lastAction='mechanism';h.goal=null;}
  ctx.log?.(s,`${p.name} ${action==='inspect'?'исследует тягу рычага: она ведёт к решётке':action==='open'?'с усилием поднимает решётку рычагом':'опускает решётку рычагом'}.`,'choice');return true;
 }

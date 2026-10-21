@@ -1,7 +1,8 @@
+import {drawEchoViews} from './echo-layer-view.js';
 import {enabled} from './rules.js';
 import {gateX} from './modules/mechanism-policy.js';
 export function drawMechanisms(c,s,a,screenX,ground){
- if(!enabled(s,'mechanisms'))return;
+ if(!enabled(s,'mechanisms'))return;drawEchoViews(c,s,a,screenX,ground);
  for(const to of a.links){const g=s.edges?.[[a.id,to].sort().join('|')]?.mechanism;if(!g)continue;
   const x=screenX(gateX(a.id,to)),closed=g.state==='closed';c.save();if(g.material){if(!enabled(s,'local-materials')){c.restore();continue;}const m=g.material,wx=screenX(g.lever.area===a.id?g.lever.x:gateX(a.id,to));c.fillStyle=m.wet?'#596b65':'#987653';if(m.fuel.remaining){for(let n=-12;n<=12;n+=8)c.fillRect(wx+n,ground-74,6,74);c.fillStyle='#5e4b39';c.fillRect(wx-14,ground-53,34,5);}else{c.fillStyle='#463d34';for(let n=-10;n<=10;n+=10)c.fillRect(wx+n,ground-7,7,7);}if(m.fire?.status==='burning'){c.fillStyle='#d8924a';for(const dx of [-7,4]){c.beginPath();c.moveTo(wx+dx-5,ground-3);c.lineTo(wx+dx+2,ground-76);c.lineTo(wx+dx+7,ground-3);c.fill();}}c.restore();continue;}c.strokeStyle='#b2bebc';c.lineWidth=3;c.beginPath();c.moveTo(x-16,ground);c.lineTo(x-16,ground-70);c.lineTo(x+16,ground-70);c.lineTo(x+16,ground);c.stroke();
   c.strokeStyle='#788b90';c.lineWidth=2;for(let i=-12;i<=12;i+=6){c.beginPath();c.moveTo(x+i,ground-67);c.lineTo(x+i,closed?ground:ground-51);c.stroke();}

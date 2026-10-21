@@ -1,3 +1,4 @@
+import {validateEchoLayers} from './modules/echo-layers.js';
 import {validateKeepers} from './modules/ecology-keeper.js';
 import {validateFreshReplies} from './modules/fresh-reply.js';
 import {validateSurgery} from './modules/surgery-schema.js';
@@ -234,7 +235,7 @@ export function validateSave(s){
  validateVerdictReviews(s,fail);
  validateHomes(s,fail);
  validateHomeBuilding(s,fail);
- validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateEcology(s,fail);validateKeepers(s,fail);validateGameMeat(s,fail);validateReturns(s,fail);validateReturnCare(s,fail);validateReturnPast(s,fail);validateReturnBonds(s,fail);validateAirships(s,fail);validateSurgery(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
+ validateFirstObservation(s,fail);validateFamilies(s,fail);validateMaterialResearch(s,fail);validateArtifactMemories(s,fail);validateAges(s,fail);validateCouncils(s,fail);validateBiology(s,fail);validateTexts(s,fail);validateStealth(s,fail);validateDecoys(s,fail);validateAuthorities(s,fail);validateCampaigns(s,fail);validateEcology(s,fail);validateKeepers(s,fail);validateEchoLayers(s,fail);validateGameMeat(s,fail);validateReturns(s,fail);validateReturnCare(s,fail);validateReturnPast(s,fail);validateReturnBonds(s,fail);validateAirships(s,fail);validateSurgery(s,fail);validateClinicalPractice(s,fail);validateClinicalStudy(s,fail);validateDiplomacy(s,fail);validatePublicRepairs(s,fail);validateWills(s,fail);validateTitles(s,fail);validateFarming(s,fail);validateHobbySupply(s,fail);validateCargoCases(s,fail);validateServiceMasks(s,fail);validateSpellTexts(s,fail);validateScholar(s,fail);validateCopyOrders(s,fail);validateLibraries(s,fail);validateCastles(s,fail);validateCurrency(s,fail);validateRemainsCarry(s,fail);validateRemainsCycle(s,fail);
  validateLiteracy(s,fail);
  validateSequences(s,fail);
  validateTracking(s,fail);
@@ -414,7 +415,7 @@ export function validateSave(s){
   if(own(p,'mechanisms')){
    const m=p.mechanisms,key=id+'.mechanisms';fields(m,['version','known','lastActionTick'],key);array(m.known,key+'.known');integer(m.lastActionTick,key+'.lastActionTick',-1);if(m.version!==1||m.lastActionTick>s.tick||m.known.length>24||new Set(m.known.map(n=>n.key)).size!==m.known.length)fail(key);
    for(const n of m.known)if(own(n,'holdAfter')){integer(n.holdAfter,key+'.holdAfter');if(n.holdAfter>s.tick+48)fail(key+'.holdAfter');}
-   for(const n of m.known){fields(n,['key','state','at','witness','leverArea','understood'],key+'.note');integer(n.at,key+'.note.at');if(!s.edges[n.key]?.mechanism||!['open','closed'].includes(n.state)||n.at>s.tick||n.witness!==id||n.leverArea!==null&&n.leverArea!==s.edges[n.key].mechanism.lever.area||typeof n.understood!=='boolean'||own(n,'requiresHold')&&typeof n.requiresHold!=='boolean')fail(key+'.note');}
+   for(const n of m.known){fields(n,['key','state','at','witness','leverArea','understood'],key+'.note');integer(n.at,key+'.note.at');if(!s.edges[n.key]?.mechanism||!['open','closed'].includes(n.state)||n.at>s.tick||n.witness!==id||n.leverArea!==null&&n.leverArea!==s.edges[n.key].mechanism.lever.area&&n.leverArea!==s.edges[n.key].mechanism.echo?.alias.area||typeof n.understood!=='boolean'||own(n,'requiresHold')&&typeof n.requiresHold!=='boolean')fail(key+'.note');}
   }
   if(own(p,'bestiary')){
    const b=p.bestiary,key=id+'.bestiary';fields(b,['version','species','studyAfter'],key);integer(b.studyAfter,key+'.studyAfter');array(b.species,key+'.species');if(b.version!==1||b.species.length>16||b.studyAfter>s.tick+48||new Set(b.species.map(e=>e.id)).size!==b.species.length)fail(key);

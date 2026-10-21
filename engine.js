@@ -1,3 +1,4 @@
+import {establishEchoLayer,echoLayerPlan} from './modules/echo-layers.js';
 import {establishKeeper,keeperTick,keeperHeroTurn} from './modules/ecology-keeper.js';
 import {restoreHealth} from './modules/fresh-reply.js';
 import {recordFreshReply,recoverReply} from './modules/fresh-reply.js';
@@ -890,7 +891,7 @@ function worldTick(s) {
   settleAirships(s);settleSurgeryCases(s);
   returnedBodyTick(s,context(s,'return-ritual'));settleReturnCare(s);settleReturnBonds(s,context(s,'return-ritual'));
   meatWorldTick(s);
-  establishEcology(s,context(s,'local-ecology'));establishKeeper(s,context(s,'local-ecology'));
+  establishEcology(s,context(s,'local-ecology'));establishKeeper(s,context(s,'local-ecology'));establishEchoLayer(s,context(s,'mechanisms'));
   harvestFailureTick(s,context(s,'harvest-failure'));
   earthquakesTick(s,context(s,'earthquakes'));
   woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p),view=h?actorView(s,h):s.hero?.lineage===p.id?s:null;if(view)log(view,kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:kind==='infected'?`${w.label}: загрязнённая рана нагноилась.`:kind==='infection-changed'?`${w.label}: состояние инфекции изменилось, тяжесть ${w.infection.severity}.`:kind==='infection-resolved'?`${w.label}: местное нагноение прошло; восстановление самой раны продолжается.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount,damage){
@@ -1090,7 +1091,7 @@ function actObserved(s) {
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(s.people[h.lineage].returnEpisode?.form!=='skeleton'&&woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
-  if(!need.critical){if(keeperHeroTurn(s,context(s,'local-ecology')))return s;if(handProstheticTurn(s,context(s,'prosthetics')))return s;if(prostheticTurn(s,context(s,'prosthetics')))return s;
+  if(!need.critical){if(echoLayerPlan(s,context(s,'mechanisms')))return s;if(keeperHeroTurn(s,context(s,'local-ecology')))return s;if(handProstheticTurn(s,context(s,'prosthetics')))return s;if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(rivalryTurn(s,context(s,'craft-rivalry')))return s;
   noticeCaravan(s,context(s,'caravans'));
