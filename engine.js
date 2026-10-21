@@ -1,3 +1,4 @@
+import {establishKeeper,keeperTick,keeperHeroTurn} from './modules/ecology-keeper.js';
 import {restoreHealth} from './modules/fresh-reply.js';
 import {recordFreshReply,recoverReply} from './modules/fresh-reply.js';
 import {surgeryHeroTurn,surgeryNPCTurn,settleSurgeryCases} from './modules/surgery.js';
@@ -889,7 +890,7 @@ function worldTick(s) {
   settleAirships(s);settleSurgeryCases(s);
   returnedBodyTick(s,context(s,'return-ritual'));settleReturnCare(s);settleReturnBonds(s,context(s,'return-ritual'));
   meatWorldTick(s);
-  establishEcology(s,context(s,'local-ecology'));
+  establishEcology(s,context(s,'local-ecology'));establishKeeper(s,context(s,'local-ecology'));
   harvestFailureTick(s,context(s,'harvest-failure'));
   earthquakesTick(s,context(s,'earthquakes'));
   woundsTick(s,{changed(p,w,kind){const h=woundActor(s,p),view=h?actorView(s,h):s.hero?.lineage===p.id?s:null;if(view)log(view,kind==='reopened'?`${w.label}: нагрузка вновь открыла рану.`:kind==='infected'?`${w.label}: загрязнённая рана нагноилась.`:kind==='infection-changed'?`${w.label}: состояние инфекции изменилось, тяжесть ${w.infection.severity}.`:kind==='infection-resolved'?`${w.label}: местное нагноение прошло; восстановление самой раны продолжается.`:`${w.label}: повязку пора сменить.`,'condition');},bleed(p,h,amount,damage){
@@ -941,7 +942,7 @@ function worldTick(s) {
   }
   // Distant regions retain their identities. Only a small scheduled change is simulated.
   const activeFights=new Set(Object.values(s.actorStates).filter(h=>selfDrivenActor(s,h)&&h.combat).map(h=>h.combat));
-  for (const a of Object.values(s.areas)){ecologyPlants(s,a);for (const o of [...a.objects]) {
+  for (const a of Object.values(s.areas)){ecologyPlants(s,a);keeperTick(s,a);for (const o of [...a.objects]) {
     if(o.ecology&&ecologyTurn(s,a,o,{...context(s,'local-ecology'),fighting:activeFights,bodies:localRemains.get(a.id)||[]}))continue;
     if(o.kind==='enemy'&&o.alive&&!o.resolved&&predatorCarrionTurn(s,a,o,{fighting:activeFights,bodies:localRemains.get(a.id)||[],log})){continue;}
     if (o.kind === 'enemy' && o.alive && !o.resolved && !s.people[o.person]?.hostileLife && o.patrol && !activeFights.has(o.id) && s.tick % 4 === 0) {
@@ -1089,7 +1090,7 @@ function actObserved(s) {
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(s.people[h.lineage].returnEpisode?.form!=='skeleton'&&woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
-  if(!need.critical){if(handProstheticTurn(s,context(s,'prosthetics')))return s;if(prostheticTurn(s,context(s,'prosthetics')))return s;
+  if(!need.critical){if(keeperHeroTurn(s,context(s,'local-ecology')))return s;if(handProstheticTurn(s,context(s,'prosthetics')))return s;if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(rivalryTurn(s,context(s,'craft-rivalry')))return s;
   noticeCaravan(s,context(s,'caravans'));

@@ -1,3 +1,4 @@
+import {keeperBlocksWolf} from './ecology-keeper.js';
 import {ecologyOn,wildGrazer,newEcologyAnimal} from './ecology-state.js';
 import {physicalDistance,areaStep} from '../geometry.js';
 import {recordRemains,bodyRemains} from './remains.js';
@@ -13,8 +14,8 @@ export function ecologyTurn(s,a,e,ctx={}){const q=e.ecology;if(!q)return false;i
  if(q.diet==='predator'){
   const acted=predatorCarrionTurn(s,a,e,ctx),n=e.predator;if(!n)return true;if(n.hunger>=100){e.hp=Math.max(0,e.hp-1);if(!e.hp){death(s,a,e,{kind:'starvation'});return true;}}if(acted){q.action=n.history.at(-1)?.kind==='rest'?'rest':'carrion';return true;}
   const humans=Object.values(s.people).some(p=>p.alive&&p.area===a.id&&['resident','wandering'].includes(p.status)&&physicalDistance(a,e.x,p.x)<=12)||Object.values(s.actorStates||{}).some(h=>h.alive&&!h.transit&&h.area===a.id&&physicalDistance(a,e.x,h.x)<=12);if(humans){q.action='avoid';q.target=null;return true;}
-  const prey=a.objects.filter(p=>p.alive&&wildGrazer(p)&&physicalDistance(a,e.x,p.x)<=18).sort((p,b)=>physicalDistance(a,e.x,p.x)-physicalDistance(a,e.x,b.x)||p.id.localeCompare(b.id))[0];
-  if(n.hunger>=60&&prey){q.target=prey.id;if(physicalDistance(a,e.x,prey.x)>2){stepTo(a,e,prey.x);n.energy=Math.max(0,n.energy-1);q.action='stalk';return true;}const before=prey.hp,hit=enemyDamage(s,prey,e.attack,'physical',ctx,false);prey.hp=Math.max(0,prey.hp-hit);n.energy=Math.max(0,n.energy-2);q.action='hunt';actorFact(s,'attack',e.id,prey.id);actorFact(s,'hurt',prey.id,e.id,before-prey.hp);if(!prey.hp)death(s,a,prey,{kind:'predation',enemy:e.id});return true;}
+  const prey=a.objects.filter(p=>p.alive&&wildGrazer(p)&&physicalDistance(a,e.x,p.x)<=(a.ecology.keeper&&a.objects.find(k=>k.id===a.ecology.keeper)?.keeperRole.wolf===e.id?24:18)).sort((p,b)=>physicalDistance(a,e.x,p.x)-physicalDistance(a,e.x,b.x)||p.id.localeCompare(b.id))[0];
+  if(n.hunger>=60&&prey){if(keeperBlocksWolf(s,a,e,prey.x))return true;q.target=prey.id;if(physicalDistance(a,e.x,prey.x)>2){stepTo(a,e,prey.x);n.energy=Math.max(0,n.energy-1);q.action='stalk';return true;}const before=prey.hp,hit=enemyDamage(s,prey,e.attack,'physical',ctx,false);prey.hp=Math.max(0,prey.hp-hit);n.energy=Math.max(0,n.energy-2);q.action='hunt';actorFact(s,'attack',e.id,prey.id);actorFact(s,'hurt',prey.id,e.id,before-prey.hp);if(!prey.hp)death(s,a,prey,{kind:'predation',enemy:e.id});return true;}
   q.target=null;q.action='wait';return true;
  }
  const n=q.needs;n.accrued++;n.overflow+=Math.max(0,n.hunger+1-100);n.hunger=Math.min(100,n.hunger+1);
