@@ -1,4 +1,5 @@
 import {wildGrazer} from './ecology-state.js';
+import {lightToolHeld} from './prosthetic-state.js';
 import {canHoldWeapon} from './limb-state.js';
 import {enabled} from '../rules.js';
 import {authorityBody} from './authority-state.js';
@@ -13,7 +14,7 @@ export const meatBag=(s,p)=>s.actorStates?.[p.id]?.bag||(s.hero?.lineage===p.id?
 export const knowsGameMeat=(s,p)=>meatOn(s)&&Boolean(p?.meatCraft?.knowledge||p?.foodKitBirth?.source==='profession/ranger');
 export const meatMemory=p=>p.meatCraft ||= {version:1,knowledge:null,lastAction:-1,prey:[],bodies:[],hearths:[],depots:[],refusals:[],pending:null};
 export function birthMeatKnowledge(s,p,h=null,{newborn=false}={}){if(!newborn||!meatOn(s)||!p?.alive||p.role==='ребёнок'||p.meatCraft||!h&&p.role==='герой')return false;if(h?h.profession!=='ranger':p.agenda?.job!=='farmer')return false;meatMemory(p).knowledge={kind:'initial',source:h?'profession/ranger':'occupation/farmer',at:s.tick};return true;}
-export function meatKnife(s,p){if(!canHoldWeapon(p))return null;const kit=p.localFood?.tools.knife;return collectionItems(s,p.id).find(i=>i.toolKind==='knife'&&itemWorking(i))||(kit?.owner===p.id&&kit.state==='working'&&itemWorking(kit)?kit:null);}
+export function meatKnife(s,p){const kit=p.localFood?.tools.knife;return collectionItems(s,p.id).find(i=>i.toolKind==='knife'&&itemWorking(i)&&lightToolHeld(p,i))||(lightToolHeld(p,kit)&&kit?.owner===p.id&&kit.state==='working'&&itemWorking(kit)?kit:null);}
 export function meatReady(s,p){const b=meatBody(s,p);return Boolean(meatOn(s)&&p?.alive&&b&&!b.transit&&!b.combat&&!b.carriedBy&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit&&!p.ferryDuty&&!p.ferryTicket&&!p.needs.sleeping&&!p.ailment&&(b.lineage?b.hp>=b.maxHp*.5&&b.energy>=12:b.health>=(b.maxHealth||100)*.5&&p.needs.energy>=12)&&(!b.lineage?npcController(s,p)==='personal':b===s.hero));}
 export function meatCanAct(s,p,{inTurn=false,need=false}={}){const b=meatBody(s,p),q=p?.meatCraft;return meatReady(s,p)&&q?.lastAction!==s.tick&&(b.lineage?b===s.hero:inTurn&&(s.rules['npc-control']===false||p.actionControl?.tick===s.tick&&p.actionControl.owner==='personal'&&p.actionControl.phases.every(x=>['act',...(need?['need']:[])].includes(x))&&(!need?canStartNPCActivity(s,p,{inTurn:true}):true)));}
 export function meatSpend(s,p,cost=1){const q=meatMemory(p),b=meatBody(s,p);q.lastAction=s.tick;if(!q.knowledge&&p.foodKitBirth?.source==='profession/ranger')q.knowledge={kind:'initial-kit',source:'profession/ranger',birthAt:p.foodKitBirth.tick,at:s.tick};if(b.lineage){b.energy=Math.max(0,b.energy-cost);b.lastAction='work';}else p.needs.energy=Math.max(0,p.needs.energy-cost);}

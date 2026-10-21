@@ -112,6 +112,7 @@ import {rivalryTurn,rivalryTick} from './modules/craft-rivalry.js';
 import {bindEnemyPerson} from './modules/enemy-person-create.js';
 import {syncEnemyPeople} from './modules/enemy-person-state.js';
 import {considerSurrender,killEnemyPerson} from './modules/enemy-mercy.js';
+import {handProstheticTurn} from './modules/hand-prosthetic.js';
 import {prostheticTurn} from './modules/prosthetics.js';
 import {adaptLimbPlan} from './modules/limb-plan.js';
 import {weaponBody} from './modules/limb-state.js';
@@ -1085,7 +1086,7 @@ function actObserved(s) {
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(s.people[h.lineage].returnEpisode?.form!=='skeleton'&&woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
-  if(!need.critical){if(prostheticTurn(s,context(s,'prosthetics')))return s;
+  if(!need.critical){if(handProstheticTurn(s,context(s,'prosthetics')))return s;if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
   if(rivalryTurn(s,context(s,'craft-rivalry')))return s;
   noticeCaravan(s,context(s,'caravans'));

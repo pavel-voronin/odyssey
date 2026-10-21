@@ -1,3 +1,4 @@
+import {limbWorkAllows} from './limb-state.js';
 import {KNIFE_RECIPE,WHISTLE_RECIPE} from './manufacture-recipes.js';
 export {KNIFE_RECIPE,WHISTLE_RECIPE} from './manufacture-recipes.js';
 import {homeWorkbenchSite,homeAdmission} from './home-place.js';
@@ -43,7 +44,7 @@ function accessible(s,p,site){if(site.home)return homeAdmission(s,site.room,p.id
 // A real held fang or dismantled lift part can replace the blade blank. The handle still comes from
 // the finite warehouse; neither route creates another raw stock.
 export function startKnife(s,p,site,ctx){
- if(!forgingEnabled(s)||!healthy(s,p)||!canAct(s,p)||current(p)||!site||!near(s,p,site.area.id,42)||readySite(s,p,site.object.id,site.area.id)?.object!==site.object)return null;
+ if(!forgingEnabled(s)||!limbWorkAllows(p,'repair')||!healthy(s,p)||!canAct(s,p)||current(p)||!site||!near(s,p,site.area.id,42)||readySite(s,p,site.object.id,site.area.id)?.object!==site.object)return null;
  if(!state(p)?.recipes[KNIFE_RECIPE.id]&&!prepared(s,p))return null;
  const sources=productionSources(s,site.area),raw=sources?.materials,held=body(s,p)?.bag||p.looseItems||[],fang=biomaterialOn(s)&&held.find(isFang),reclaimed=held.find(i=>i.mechanismPart?.version===1),original=fang||reclaimed,units=original?1:2,price=units*3;
  if(!raw||raw.stock<units||purse(s,p)<price)return null;
@@ -73,7 +74,7 @@ function makeKnife(s,p,o){
  initializeItemMemory(item);itemBearer(s,item,p.id);initializeNewItemCondition(s,item);return item;
 }
 export function workKnife(s,p,ctx){
- const o=current(p);if(!forgingEnabled(s)||!o||o.status!=='working'||!healthy(s,p)||!canAct(s,p)||o.lastWorkTick>=s.tick)return false;
+ const o=current(p);if(!forgingEnabled(s)||!limbWorkAllows(p,'repair')||!o||o.status!=='working'||!healthy(s,p)||!canAct(s,p)||o.lastWorkTick>=s.tick)return false;
  const site=readySite(s,p,o.workshop,o.area);if(!site||!accessible(s,p,site))return false;
  const pos=workshopPosition(s,site.area,site.object);if(!near(s,p,pos.area,pos.x))return false;
  o.lastWorkTick=s.tick;o.progress++;const h=activeBody(s,p);if(h){h.energy=Math.max(0,h.energy-2);h.lastAction='work';h.speech=`${o.recipe===WHISTLE_RECIPE.id?WHISTLE_RECIPE.name:KNIFE_RECIPE.name}: ${o.progress}/${o.required}`;}else p.needs.energy=Math.max(0,p.needs.energy-2);

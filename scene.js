@@ -659,6 +659,7 @@ export class Scene {
     else if(working)hand={x:13,y:-22-Math.sin(t*Math.PI*2)*4};
     if(pose.hurt)hand={x:6,y:-30};
     c.strokeStyle=skin;c.lineWidth=3;c.beginPath();if(look.missingLimbs?.rightArm&&!look.missingLimbs.leftArm)hand={x:-hand.x,y:hand.y};if(!look.missingLimbs?.leftArm){c.moveTo(-4,-26);c.lineTo(look.missingLimbs?.rightArm?hand.x:guard?5:-8-gait.arm,look.missingLimbs?.rightArm?hand.y:guard?-32:-18);}if(!look.missingLimbs?.rightArm){c.moveTo(5,-26);c.lineTo(hand.x,hand.y);}c.stroke();
+    if(look.prostheticHands){c.strokeStyle='#b19b72';c.lineWidth=4;for(const side of Object.keys(look.prostheticHands)){const sign=side==='leftArm'?-1:1;c.beginPath();c.moveTo(4*sign,-26);c.lineTo(10*sign,-18);c.stroke();c.strokeStyle='#b7b9aa';c.lineWidth=2;c.beginPath();c.arc(12*sign,-16,3,0,Math.PI*1.5);c.stroke();}}
     const prop=look.missingLimbs?.leftArm&&look.missingLimbs?.rightArm?'none':look.prop||(hero&&this.state.hero.weapon>0?'blade':'none');
     c.save();
     if(windup){c.translate(hand.x-10,hand.y+17);c.translate(10,-17);c.rotate(-.6);c.translate(-10,17);}

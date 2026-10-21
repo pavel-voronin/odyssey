@@ -59,7 +59,7 @@ import {advanceNPCRoadCamp} from './road-stops.js';
 import {displacedOwnerTurn} from './building-control.js';
 import {rivalryNPCTurn} from './craft-rivalry.js';
 import {releasedPersonPlan} from './enemy-mercy.js';
-import {prostheticNPCTurn} from './prosthetics.js';
+import {prostheticNPCTurn,observeProstheticMasters} from './prosthetics.js';
 import {adaptNPCWork} from './limb-state.js';
 import {woundNPCTurn} from './wound-care.js';
 import {woundStride,woundForce,woundActivity} from './wound-state.js';
@@ -371,7 +371,7 @@ export function peopleTick(s,ctx){
     const hungry=biologicalNeed(s,p).food;
     if(!adultPerson(s,p)){if(hungry){p.needObstacle='Ребёнку нужна настоящая еда и помощь; взрослый труд недоступен.';continue;}if(p.agenda.task?.kind!=='learn')p.agenda.task=null;}
     if(hungry&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit){const a=s.areas[p.area],source=localFoodChoice(s,p,null,a);if(!['farm','gather','return'].includes(p.agenda.task?.kind)){if(p.agenda.task)p.needPaused ||= p.agenda.task;if(source)begin(p,'gather',a.id,source.x,source.remaining,{foodSource:source.id,home:a.id});else if(goodsEnabled(s)&&productionSources(s,a)?.field.stock>0)begin(p,'farm',a.id,42,3);else {p.needObstacle='Нет доступной местной еды или известного способа её добыть.';continue;}}}
-    if(!hungry&&adultPerson(s,p)){if(returnCareProviderTurn(s,p,ctx)||ctx.returnPastNPCTurn?.(s,p,ctx))continue;if(returnNPCTurn(s,p,ctx))continue;if(ctx.airshipPilotTurn?.(s,p,ctx))continue;if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}meatNPCPlan(s,p,ctx);if(familyNPCTurn(s,p,ctx))continue;if(campaignNPCTurn(s,p,ctx))continue;if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
+    if(!hungry&&adultPerson(s,p)){observeProstheticMasters(s,p);if(returnCareProviderTurn(s,p,ctx)||ctx.returnPastNPCTurn?.(s,p,ctx))continue;if(returnNPCTurn(s,p,ctx))continue;if(ctx.airshipPilotTurn?.(s,p,ctx))continue;if(!p.agenda.task&&p.needPaused){p.agenda.task=p.needPaused;delete p.needPaused;}meatNPCPlan(s,p,ctx);if(familyNPCTurn(s,p,ctx))continue;if(campaignNPCTurn(s,p,ctx))continue;if(councilNPCTurn(s,p,ctx))continue;if(clinicalTeacherTurn(s,p,{inTurn:true}))continue;
     if(clinicalPatientTurn(s,p))continue;
     if(clinicalNPCTurn(s,p,ctx))continue;
     if(clinicalStudyNPCTurn(s,p))continue;

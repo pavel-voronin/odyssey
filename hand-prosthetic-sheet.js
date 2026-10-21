@@ -1,0 +1,2 @@
+import {installedHook} from './modules/prosthetic-state.js';
+export function handProstheticHTML(s,esc){const p=s.people[s.hero.lineage],f=installedHook(p);return f?'<p class="detail-label">ПРОТЕЗ РУКИ</p><p>'+esc(f.part==='leftArm'?'Левый':'Правый')+' деревянный крюк · подгонка '+Math.round(f.item.prosthesis.quality*100)+'%. Осталось рабочих применений: '+f.item.prosthesis.wear.remaining+' / 24.</p><p>Помогает удерживать лёгкий рабочий нож. Тонкая работа и оружие требуют настоящей руки; утрата сохраняется. Мастер: '+esc(s.people[f.master]?.name||'неизвестен')+'.</p>':'';}
