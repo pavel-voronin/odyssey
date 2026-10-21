@@ -1,3 +1,4 @@
+import {restoreHealth} from './fresh-reply.js';
 import {releaseEnemyPerson} from './enemy-mercy.js';
 import {enemyPerson} from './enemy-person-state.js';
 import {recordPetCustody} from './pet-custody-state.js';
@@ -57,8 +58,8 @@ export function encounter(s, o, ctx) {
       if (enabled(s, 'equipment')) receiveItem(s, ctx, 2); moral(s, -7); addCondition(s, 'insomnia', ctx); ctx.log(s, 'Герой раскапывает могилу ради находки. Заснуть после этого будет труднее.', 'choice');
     } else ctx.log(s, 'Безымянная могила остаётся нетронутой.', 'choice');
   } else if (kind === 'spring') {
-    if (skill === 'healing' || stat(h,'wit') > 3) { h.hp = Math.min(h.maxHp, h.hp + 8); h.hunger = Math.max(0, h.hunger - 15); ctx.log(s, 'Герой узнаёт целебный источник и набирает безопасной воды.', 'heal'); }
-    else if (h.hp < h.maxHp * .6 || hasHabit(h, 'reckless')) { h.hp = Math.min(h.maxHp, h.hp + 8); addCondition(s, 'fever', ctx); ctx.log(s, 'Вода возвращает силы, но под вечер начинается лихорадка.', 'choice'); }
+    if (skill === 'healing' || stat(h,'wit') > 3) { restoreHealth(s,8); h.hunger = Math.max(0, h.hunger - 15); ctx.log(s, 'Герой узнаёт целебный источник и набирает безопасной воды.', 'heal'); }
+    else if (h.hp < h.maxHp * .6 || hasHabit(h, 'reckless')) { restoreHealth(s,8); addCondition(s, 'fever', ctx); ctx.log(s, 'Вода возвращает силы, но под вечер начинается лихорадка.', 'choice'); }
     else ctx.log(s, 'Запах воды настораживает. Герой предпочитает потерпеть до поселения.', 'choice');
   } else if (kind === 'cartographer') {
     const unknown = Object.values(s.areas).filter(a => !h.memory.places.includes(a.id));

@@ -1,3 +1,4 @@
+import {restoreHealth} from './fresh-reply.js';
 import {socketDefense} from './socket-state.js';
 import {enabled,moduleRandom} from '../rules.js';
 import {profile,hasHabit} from './common.js';
@@ -32,7 +33,7 @@ export function enchantedDefense(s,damage,ctx){
 }
 export function enchantedRest(s,ctx){
   const h=s.hero,healing=enchantmentStrength(h,'healing'),amount=Math.min(healing,h.maxHp-h.hp);
-  if(amount>0){h.hp+=amount;remember(s,'healing','rest',`Память костра восстановила ${amount} здоровья.`,ctx);}
+  if(amount>0){restoreHealth(s,amount);remember(s,'healing','rest',`Память костра восстановила ${amount} здоровья.`,ctx);}
 }
 export function enchantedVictory(s,enemy,ctx){
   const h=s.hero,coins=enchantmentStrength(h,'greed');if(coins){h.gold+=coins;remember(s,'greed','gold',`Найден тайник ${enemy.name}: ещё ◈${coins}.`,ctx);}

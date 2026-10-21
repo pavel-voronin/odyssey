@@ -1,3 +1,4 @@
+import {validateFreshReplies} from './modules/fresh-reply.js';
 import {validateSurgery} from './modules/surgery-schema.js';
 import {validateAirships} from './modules/airship-schema.js';
 import {validateReturnBonds} from './modules/return-bond-schema.js';
@@ -238,7 +239,7 @@ export function validateSave(s){
  validateTracking(s,fail);
  validateBuildingRuins(s,fail);
  validateNews(s,fail);
- validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validateWoundInfection(s,fail);validateFractures(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateWagons(s,fail);validateCoverRetreat(s,fail);validateWorldChanges(s,fail);validateEarthquakes(s,fail);validateHarvestFailures(s,fail);validateHarvestShortfalls(s,fail);validateProductionFinance(s,fail);validatePatronage(s,fail);validateAssetRisk(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateMechanicDrive(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
+ validateWaystones(s,fail);validateDelveLayouts(s,fail);validateShortcuts(s,fail);validateGuardians(s,fail);validatePositions(s,fail);validateWounds(s,fail);validateWoundCare(s,fail);validateWoundInfection(s,fail);validateFractures(s,fail);validatePatients(s,fail);validateLimbLosses(s,fail);validateProsthetics(s,fail);validateFreshReplies(s,fail);validateEnemyPeople(s,fail);validateRivalry(s,fail);validateHostiles(s,fail);validatePlaceRules(s,fail);validateGeographyFrame(s,fail);validateMetricRoutes(s,fail);validateRoadStops(s,fail);validateHorses(s,fail);validateWagons(s,fail);validateCoverRetreat(s,fail);validateWorldChanges(s,fail);validateEarthquakes(s,fail);validateHarvestFailures(s,fail);validateHarvestShortfalls(s,fail);validateProductionFinance(s,fail);validatePatronage(s,fail);validateAssetRisk(s,fail);validateFerry(s,fail);validateFerryCargo(s,fail);validateMeasuredWard(s,fail);validateMechanicDrive(s,fail);validateBuildingControl(s,fail);validatePeopleCarry(s,fail);
  validateCommissions(s,fail);
  validateBranchPacts(s,fail);
  validateFeasts(s,fail);
@@ -476,6 +477,7 @@ export function validateSave(s){
   if(typeof v==='number'){finite(v,path);return;}
   if(typeof v!=='object')return;
   if(v!==s&&own(v,'version')&&!revisionRecords.has(v)&&v.version!==1)fail(path+'.version');
+  if(v.replyBlade){const r=v.replyBlade;if(r.version!==1||v.base!=='blade'||v.slot!=='weapon'||v.rarity!==4||!Number.isSafeInteger(r.created)||r.created<0||r.created>s.tick||!s.areas[r.area]||s.areas[r.area].depth<6)fail(path+'.replyBlade');}
   if(v.durability)validateItemCondition(s,v,path+'.durability');
   if(v.kind==='bioMaterial'){if(v.base!=='wolf-fang'||v.id!==v.bioMaterial?.body+'/fang'||v.slot!=='material')fail(path+'.bioMaterial');validateMaterialOrigin(s,v.bioMaterial,path+'.bioMaterial');}
   if(v.burialTool&&typeof v.burialTool==='object')validateBurialTool(s,v,fail,path);

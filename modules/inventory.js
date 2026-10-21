@@ -1,3 +1,4 @@
+import {markReplyBlade} from './fresh-reply.js';
 import {cargoPrivateHold} from './cargo-provenance.js';
 import {willHold} from './will-records.js';
 import {estateClaimsOn,observeEstateClaims,estateById,estateSource} from './estate-claim-state.js';
@@ -33,7 +34,7 @@ export function makeItem(s, ctx, rarity = null) {
   const masters=adults.filter(p=>p.agenda?.job==='artisan');
   const creator=choose(s,ctx.random,masters.length?masters:adults);
   const item={ id: `item-${s.generation}-${h.nextItem++}`, base:base.id, name: `${base.name}: ${origin} · ${epithet.name}`, slot: base.slot, stat: base.stat, power, rarity: tier, modifier: epithet.modifier, value: power * 5 + tier * 3, found: s.tick, foundArea:h.area, creator:creator?.id||null, history:[{tick:Math.max(0,s.tick-32),text:`Создано: ${creator?.name||'неизвестный мастер'}. Найдено в месте «${s.areas[h.area].name}».`}] };
-  markNewWeapon(s,item);initializeItemMemory(item);initializeNewItemCondition(s,item);return item;
+  markNewWeapon(s,item);markReplyBlade(s,item);initializeItemMemory(item);initializeNewItemCondition(s,item);return item;
 }
 
 export function receiveItem(s, ctx, rarity = null, existing = null, {crafted=false,purchased=false} = {}) {

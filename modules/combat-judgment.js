@@ -1,3 +1,4 @@
+import {replyRecovery} from './fresh-reply.js';
 import {enabled} from '../rules.js';
 import {braceAvailable,braceCost} from './brace.js';
 import {hasCondition} from './common.js';
@@ -7,9 +8,10 @@ import {weaponAlternatives} from './weapon-decision.js';
 import {knownComposition} from './composite-threats.js';
 
 function attackOption(s,e,damage,{action='attack',spell=null}={}){
+ const hp=s.hero.hp+(spell||action==='windup'?0:replyRecovery(s,e,damage.min));
  const win=damage.min>=e.hp,enemyHp={min:Math.max(0,e.hp-damage.max),max:Math.max(0,e.hp-damage.min)},currentEcho=e.battle?.echo||0;
  const echo=enabled(s,'mutations')&&e.mutation==='mirror'&&spell?{min:Math.min(12,currentEcho+Math.ceil(damage.min/4)),max:Math.min(12,currentEcho+Math.ceil(damage.max/4))}:{min:currentEcho,max:currentEcho};
- return {id:spell?.id||'attack',action,spell:spell?.id,hp:s.hero.hp,damage,mana:spell?.manaCost||0,charge:spell?.waystoneCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{enemyHp,echo,skip:win||spell?.kind==='time',exposed:!spell,mana:s.hero.magic.mana-(spell?.manaCost||0)})};
+ return {id:spell?.id||'attack',action,spell:spell?.id,hp,damage,mana:spell?.manaCost||0,charge:spell?.waystoneCost||0,potions:0,win,mayWin:damage.max>=e.hp,temporary:spell?.kind==='time',reply:incomingReply(s,e,{hp,enemyHp,echo,skip:win||spell?.kind==='time',exposed:!spell,mana:s.hero.magic.mana-(spell?.manaCost||0)})};
 }
 export function combatOptions(s,e){
  const h=s.hero,options=[attackOption(s,e,weaponDamageRange(s,e))];

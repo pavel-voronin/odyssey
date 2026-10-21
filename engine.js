@@ -1,3 +1,5 @@
+import {restoreHealth} from './modules/fresh-reply.js';
+import {recordFreshReply,recoverReply} from './modules/fresh-reply.js';
 import {surgeryHeroTurn,surgeryNPCTurn,settleSurgeryCases} from './modules/surgery.js';
 import {createAirship} from './modules/airship-source.js';
 import {settleAirships} from './modules/airship-flight.js';
@@ -708,7 +710,7 @@ function move(s, target) {
 function gainXp(s, amount) {
   const h = s.hero; h.xp += amount;
   if (h.xp >= h.level * 24) {
-    h.xp -= h.level * 24; h.level++; h.maxHp += 5; h.hp = Math.min(h.maxHp, h.hp + 8);
+    h.xp -= h.level * 24; h.level++; h.maxHp += 5; restoreHealth(s,8);
     h.personality.courage = Math.min(.94, h.personality.courage + .02);
     if (s.journal) log(s, `${h.name} становится опытнее: уровень ${h.level}. Теперь он лучше оценивает опасность.`, 'level');
     learnSpell(s,context(s,'magic'));
@@ -807,7 +809,7 @@ function fight(s, enemy) {
   if(choice?.action==='brace'&&performBrace(s,enemy,context(s,'combat'))){cancelWeapon(s,'Вместо размаха выбран заслон.');resolveCombatChoice(s,'brace',{energySpent:h.defenseMemory.lastBrace.energy,...(h.defenseMemory.lastBrace.pair?{manaSpent:h.defenseMemory.lastBrace.mana}:{} )});enemyResponse(s,enemy);return;}
   if (choice?.action==='potion'||legacy&&h.hp < h.maxHp * .45 && h.inventory.potions > 0) {
     cancelWeapon(s,'Лечение прерывает размах.');cancelWard(s,'Лечение прерывает подготовку чар.');
-    const before=h.hp;h.inventory.potions--; h.hp = Math.min(h.maxHp, h.hp + 19); h.lastAction = 'heal';resolveCombatChoice(s,'potion',{potionsSpent:1}); log(s, 'Герой сам использует зелье: без лечения следующий удар может стать последним.', 'heal',h.area,{meaning:eventMeaning(s,'heal',{item:{kind:'item',id:null,label:'Лечебное зелье',role:'зелье'},amount:h.hp-before})});enemyResponse(s,enemy);return;
+    const before=h.hp;h.inventory.potions--; restoreHealth(s,19); h.lastAction = 'heal';resolveCombatChoice(s,'potion',{potionsSpent:1}); log(s, 'Герой сам использует зелье: без лечения следующий удар может стать последним.', 'heal',h.area,{meaning:eventMeaning(s,'heal',{item:{kind:'item',id:null,label:'Лечебное зелье',role:'зелье'},amount:h.hp-before})});enemyResponse(s,enemy);return;
   }
   const manaBefore=h.magic.mana;
   if((legacy||choice?.action==='spell')&&castInCombat(s,enemy,context(s,'magic'),choice?.action==='spell'?choice.spell:null,choice?.form||null)){cancelWeapon(s,'Чары прерывают размах.');resolveCombatChoice(s,'spell',{manaSpent:manaBefore-h.magic.mana});if(enemy.alive&&!enemy.resolved){if(h.magic.responseSkipped)partyCombatPhase(s,enemy,true);else enemyResponse(s,enemy);}return;}
@@ -822,6 +824,7 @@ function fight(s, enemy) {
   const damage = combatAttack(s, enemy, raw, context(s, 'combat'),style);
   const energy=style?WEAPON_STYLES[style].energy:3;
   const enemyBefore=enemy.hp;enemy.hp -= damage; h.energy = Math.max(0, h.energy - energy); h.lastAction = 'attack';
+  recoverReply(s,enemy,damage,enemyBefore,context(s,'combat'));
   recordWeaponHit(s,enemy,damage,enemyBefore);
   if(weaponBody(s,h)===h)wearWeaponHit(s,enemy,damage,enemyBefore,context(s,'item-wear'));
   resolveCombatChoice(s,'attack',{damage,...(style?{weaponStyle:style,energySpent:energy,reason:technique.reason}:{})});
@@ -854,7 +857,7 @@ function enemyResponse(s,enemy){
   const {received,excluded}=partyCoverDamage(s,enemy,total,{...context(s,'combat'),physicalWound,hurtCompanion});
   actorFact(s,'attack',enemy.id,'hero');
   if(received>0)actorFact(s,'hurt','hero',enemy.id,received);
-  partyHurt(s,received,{...context(s,'party-danger'),physicalWound},excluded);const hpBefore=h.hp;h.hp-=received;h.lastDamage=received;
+  partyHurt(s,received,{...context(s,'party-danger'),physicalWound},excluded);const hpBefore=h.hp;h.hp-=received;h.lastDamage=received;recordFreshReply(s,enemy,hpBefore,h.hp);
   recordLastingInjury(s,s.people[h.lineage],enemy,{before:hpBefore,after:h.hp,maximum:h.maxHp,area:h.area,controller:'actor',physical:physicalWound},context(s,'lasting-injuries'));
   wearArmorHit(s,enemy,received,hpBefore,context(s,'item-wear'));
   rememberCombatReply(s,enemy,received,phase);
@@ -1092,7 +1095,7 @@ function actObserved(s) {
   noticeCaravan(s,context(s,'caravans'));
   // Healing is an autonomous choice; herbs promised to a healer are kept if possible.
   if (!s.people[h.lineage].returnEpisode && h.hp < h.maxHp * .48 && h.inventory.herbs > 0 && activeQuest(h)?.kind !== 'herbs') {
-    h.inventory.herbs--; h.hp = Math.min(h.maxHp, h.hp + 9); h.lastAction = 'heal'; log(s, 'Герой прикладывает лунную траву к ране. Знание леса помогает выжить.', 'heal'); return s;
+    h.inventory.herbs--; restoreHealth(s,9); h.lastAction = 'heal'; log(s, 'Герой прикладывает лунную траву к ране. Знание леса помогает выжить.', 'heal'); return s;
   }
   if(materialOfferTurn(s,s.people[h.lineage],context(s,'material-delivery')))return s;
   if(!holdPoisonRest(s)&&!holdWoundRest(s)&&pairCampCare(s,context(s,'party-relations')))return s;
@@ -1181,13 +1184,13 @@ function actObserved(s) {
   if(['trackStudy','trackLesson'].includes(g.kind)){execute('trackingAction',()=>trackingAction(s,context(s,'tracking')));return s;}
   if(['directionAsk','directionInspect'].includes(g.kind)){execute('routeOpportunityAction',()=>routeOpportunityAction(s,g,{observeLocalRoutes,log}));return s;}
   if(g.kind==='needInspect'){observeServices(s);h.needEpisode.tried[g.area]=needBasis(s,a);h.goal=null;log(s,'Проверены местные условия еды и заработка. Доступность определяется настоящим запасом и людьми.','food');return s;}
-  if(g.kind==='localRecovery'){h.hp=Math.min(h.maxHp,h.hp+restAmount(s,a));h.energy=Math.min(100,h.energy+4);traitsRest(s,context(s,'body'));magicRest(s);partyRest(s);h.lastAction='rest';h.goal=null;return s;}
+  if(g.kind==='localRecovery'){restoreHealth(s,restAmount(s,a));h.energy=Math.min(100,h.energy+4);traitsRest(s,context(s,'body'));magicRest(s);partyRest(s);h.lastAction='rest';h.goal=null;return s;}
   if (g.kind === 'rest') {
     restoreCampRestView(s);
     if(lodgingRest(s,context(s,'lodging'),holdPoisonRest(s)||holdWoundRest(s)))return s;
     if(!holdPoisonRest(s)&&!holdWoundRest(s)&&(campAffairTalk(s,context(s,'companion-affairs'))||campLesson(s,context(s,'camp-lesson'))||retreatDrill(s,context(s,'skill-branches'))||pairDrill(s,context(s,'party-combinations'))||campConversation(s,context(s,'camp-life'))||musicCamp(s,context(s,'camp-music'))||pairCampWatch(s,context(s,'party-relations'))||smokeCamp(s,context(s,'smoking'))||sketchCamp(s,context(s,'sketching'))||cookingCamp(s,context(s,'hearth-food'))))return s;
     const amount = restAmount(s,a);
-    h.hp = Math.min(h.maxHp, h.hp + amount); h.energy = Math.min(100, h.energy + smokeRestEnergy(s,12)); h.lastAction = 'rest';
+    restoreHealth(s,amount); h.energy = Math.min(100, h.energy + smokeRestEnergy(s,12)); h.lastAction = 'rest';
     traitsRest(s, context(s, 'body'));
     magicRest(s);
     partyRest(s);

@@ -1,3 +1,4 @@
+import {restoreHealth} from './fresh-reply.js';
 import {enabled} from '../rules.js';
 import {knownArea} from '../actor-atlas.js';
 import {areaScale} from '../geometry.js';
@@ -86,7 +87,7 @@ export function poisonCareTick(s,ctx){
  const item=h.inventory.potions>0?'potions':h.inventory.herbs>0&&!herbsPromised?'herbs':null;
  if(item&&h.hp<h.maxHp){
   suspend(s);state.active={started:state.active?.started??s.tick,method:'medicine',forecast};h.goal=null;
-  h.inventory[item]--;h.hp=Math.min(h.maxHp,h.hp+(item==='potions'?19:9));h.lastAction='heal';
+  h.inventory[item]--;restoreHealth(s,(item==='potions'?19:9));h.lastAction='heal';
   ctx.log(s,`${h.name} расходует ${item==='potions'?'своё лечебное зелье':'свою лечебную траву'}, чтобы успеть пережить отравление. Здоровье восстановлено; яд не снят.`,'heal');return true;
  }
  const key=`${h.area}/${forecast.until}/${forecast.lethalAt}/${Math.floor(h.hp)}`;

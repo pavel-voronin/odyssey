@@ -1,3 +1,4 @@
+import {restoreHealth} from './fresh-reply.js';
 import {biologicalDose,ordinaryRecovery} from './biology.js';
 import {boneBody} from './anatomy-state.js';
 import {knownArea} from '../actor-atlas.js';
@@ -70,11 +71,11 @@ export function traitsRest(s, ctx) {
     if (ailments.length&&!clinicTreatment(s,ctx)) { h.conditions = h.conditions.filter(c => ['blessing', 'inspiration'].includes(c.id)); ctx.log(s, 'Лекарь снимает жар, лечит отравление и стирает проклятую печать.', 'heal'); }
   }
   if (hasHabit(h, 'tea') && h.inventory.herbs && !h.goal?.tea) {
-    h.inventory.herbs--; h.energy = Math.min(100, h.energy + 8); h.hp = Math.min(h.maxHp, h.hp + 4); h.conditions = h.conditions.filter(c => c.id !== 'insomnia');
+    h.inventory.herbs--; h.energy = Math.min(100, h.energy + 8); restoreHealth(s,4); h.conditions = h.conditions.filter(c => c.id !== 'insomnia');
     if (h.goal) h.goal.tea = true; ctx.log(s, 'Травяной чай у огня. Старый ритуал помогает телу и мыслям.', 'rest');
   }
   if (hasCondition(h, 'insomnia')) h.energy = Math.max(0, h.energy - 7);
   const healing = (enabled(s, 'companions') ? h.companions.filter(c=>partyAvailable(s,c)).reduce((n, c) => n + c.healing, 0) : 0) + (profile(h).skill === 'healing' ? 2 : 0);
-  h.hp = Math.min(h.maxHp, h.hp + ordinaryRecovery(s,h,healing));
+  restoreHealth(s,ordinaryRecovery(s,h,healing));
   enchantedRest(s,ctx);
 }

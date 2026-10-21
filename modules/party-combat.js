@@ -1,3 +1,4 @@
+import {restoreHealth} from './fresh-reply.js';
 import {creditProtection} from './cover-retreat-state.js';
 import {woundActivity} from './wound-state.js';
 import {actorFact,companionKey} from '../actor-facts.js';
@@ -32,7 +33,7 @@ export function partyCombatTurn(s,e,ctx){
    // The earlier check and claim are synchronous: no other body can spend this
    // finite stock between validation and this one actual operation.
    consumeCarriedSupplies(p,null,'medicine',choice.medicine);action.medicine=choice.medicine;
-   if(target===h){const before=h.hp;h.hp=Math.min(h.maxHp,h.hp+choice.amount);action.healed=h.hp-before;}
+   if(target===h){const before=h.hp;restoreHealth(s,choice.amount);action.healed=h.hp-before;}
    else {const body=s.people[target.person],before=body.health;body.health=Math.min(body.maxHealth||100,body.health+choice.amount);target.hp=Math.max(1,Math.ceil(target.maxHp*body.health/(body.maxHealth||100)));action.healed=body.health-before;}
    actorFact(s,'heal',companionKey(c),choice.target===h.lineage?'hero':companionKey(target),action.healed);
    ctx.log(s,`${c.name} перевязывает ${target===h?h.name:target.name}: +${action.healed} здоровья, −${action.medicine} лекарства из своего запаса. Вместо удара.`, 'heal');

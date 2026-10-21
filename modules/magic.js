@@ -1,3 +1,4 @@
+import {restoreHealth} from './fresh-reply.js';
 import {teachSpell} from './spell-learning.js';
 export {teachSpell} from './spell-learning.js';
 import {usableWardScroll} from './spell-text-state.js';
@@ -57,7 +58,7 @@ export function castInCombat(s,enemy,ctx,requestedSpellId=null,requestedForm=nul
   if(!spell.measured)cancelWard(s,'Выбрана другая форма или другое действие.');
   const castsBefore=m.casts,manaBefore=m.mana+(spell.prepaid||0),remaining=spell.totalManaCost-(spell.prepaid||0);if(remaining>0&&!spendSpellFunding(s,h,remaining,spell.id,{prepaid:spell.prepaid||0,scroll:spell.scroll||null})){cancelWard(s,'Оставшейся маны или заряда больше нет.');return false;}const manaAfterFunding=m.mana;m.cooldowns[spell.id]=s.tick+spell.cooldownTicks;m.casts++;recordPlaceCast(s,spell,manaBefore,ctx);m.responseSkipped=spell.kind==='time';h.lastAction='spell';h.action='МАГИЯ';enchantedSpell(s,spell,ctx);
   const power=spell.effectPower;wearFocusCast(s,castsBefore,spell.id,ctx);
-  if(spell.kind==='heal'){h.hp=Math.min(h.maxHp,h.hp+power);ctx.log(s,`«${spell.name}»: раны стягиваются, +${power} HP.`,'magic');}
+  if(spell.kind==='heal'){restoreHealth(s,power);ctx.log(s,`«${spell.name}»: раны стягиваются, +${power} HP.`,'magic');}
   else if(spell.kind==='cleanse'){h.conditions=h.conditions.filter(c=>!['poison','curse','fever'].includes(c.id));ctx.log(s,'Названное настоящим именем проклятие больше не держится.','magic');}
   else if(spell.kind==='ward'){addCondition(s,'blessing',ctx,18);stampWardEffect(s,enemy,{paid:spell.totalManaCost,form:spell.measured?'measured':'normal'});ctx.log(s,'Слово укрытия ложится между героем и чужими когтями.','magic');}
   else if(spell.kind==='pacify'){

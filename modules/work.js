@@ -1,3 +1,4 @@
+import {restoreHealth} from './fresh-reply.js';
 import {ordinaryRecovery} from './biology.js';
 import {limbWorkAllows} from './limb-state.js';
 import {woundForce,woundActivity} from './wound-state.js';
@@ -94,7 +95,7 @@ export function workTick(s,ctx){
   }
 }
 export function leisureTick(s,ctx){
-  const h=s.hero,g=h.goal;g.remaining--;h.energy=Math.min(100,h.energy+8);h.hp=Math.min(h.maxHp,h.hp+ordinaryRecovery(s,h,2));h.lastAction='rest';h.mind.stress=Math.max(0,h.mind.stress-3);
+  const h=s.hero,g=h.goal;g.remaining--;h.energy=Math.min(100,h.energy+8);restoreHealth(s,ordinaryRecovery(s,h,2));h.lastAction='rest';h.mind.stress=Math.max(0,h.mind.stress-3);
   if(g.remaining<=0){
     if(g.signals!==undefined){h.goal=null;return;} // Quiet reconsideration is not an invented neighbour event every twelve ticks.
     const ordinary=['Герой отдыхает и обдумывает следующее дело.','После короткой передышки герой снова смотрит на знакомые дороги.'];
