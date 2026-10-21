@@ -1,3 +1,5 @@
+import {forbiddenFoodTurn} from './modules/forbidden-food.js';
+import {fleshLawTurn} from './modules/forbidden-law.js';
 import {addCondition} from './modules/body.js';
 import {domesticTurn} from './modules/domestic-life.js';
 import {initializeDomestic,beginDomesticConstruction,endDomesticConstruction} from './modules/domestic-state.js';
@@ -1099,6 +1101,7 @@ function actObserved(s) {
   if(patientPlan(s,{...context(s,'injured-party'),enemyResponse:respondInContact}))return s;
   if(s.people[h.lineage].returnEpisode?.form!=='skeleton'&&woundCareTurn(s,{...context(s,'wound-care'),cancelWeapon}))return s;
   if(h.combat){const enemy=s.areas[h.area].objects.find(o=>o.id===h.combat);if(!positionPlan(s,enemy,{...context(s,'dungeon-positions'),cancelWeapon})&&!guardianPlan(s,enemy,{...context(s,'guardian-nodes'),cancelWeapon})){fight(s,enemy);return s;}}
+  if(fleshLawTurn(s,s.people[h.lineage],context(s,'forbidden-food'),{inTurn:true})||forbiddenFoodTurn(s,s.people[h.lineage],context(s,'forbidden-food'),{inTurn:true}))return s;
   if(domesticTurn(s,s.people[h.lineage],context(s,'supply'),{inTurn:true}))return s;
   if(!need.critical){if(echoLayerPlan(s,context(s,'mechanisms')))return s;if(keeperHeroTurn(s,context(s,'local-ecology')))return s;if(handProstheticTurn(s,context(s,'prosthetics')))return s;if(prostheticTurn(s,context(s,'prosthetics')))return s;
   if(poisonCareTick(s,context(s,'poison-care')))return s;
@@ -1245,6 +1248,7 @@ function actObserved(s) {
   else if(g.kind==='principleReflect')execute('reflectPrinciple',()=>reflectPrinciple(s,context(s,'principles')));
   else if(g.kind==='rescueHear')execute('hearCaptive',()=>hearCaptive(s,context(s,'dungeon-rescue')));
   else if(['rescueApproach','rescueFree','rescueEscort'].includes(g.kind))execute('rescueAction',()=>rescueAction(s,context(s,'dungeon-rescue')));
+  else if(g.kind==='forbiddenVisit'){if(!fleshLawTurn(s,s.people[h.lineage],context(s,'forbidden-food'),{inTurn:true}))h.goal=null;}
   else if(['verdictPetition','verdictReview'].includes(g.kind))execute('verdictReviewAction',()=>verdictReviewAction(s,context(s,'verdict-review')));
   else if(['verdictRecord','verdictWitness'].includes(g.kind))execute('verdictInquiryAction',()=>verdictInquiryAction(s,context(s,'verdict-knowledge')));
   else if(g.kind==='serviceAccept')execute('acceptService',()=>acceptService(s,context(s,'work-orders')));
