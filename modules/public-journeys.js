@@ -1,3 +1,4 @@
+import {actorPartyLeader} from '../actor-projection.js';
 import {recordCrossingTrace} from './edge-traces.js';
 import {boardFerry} from './ferry-actions.js';
 import {advanceNPCRoadCamp} from './road-stops.js';
@@ -20,7 +21,7 @@ export function availablePublicTraveller(s,p,a){
   const rested=!enabled(s,'npc-needs')||!p?.needs?.sleeping&&(p?.needs?.energy??100)>=40&&(p?.needs?.hunger??0)<60;
   return Boolean(p?.alive&&canStartNPCActivity(s,p)&&p.area===a.id&&p.status==='resident'&&p.role!=='ребёнок'&&p.agenda&&!p.agenda.task&&rested&&p.health>=(p.maxHealth||100)*.6&&
     p.personalJourney?.status!=='active'&&!(p.migration&&s.migrations?.[p.migration]?.status==='active')&&
-    !s.hero.companions.some(c=>c.person===p.id)&&!s.society.orders.some(o=>o.person===p.id)&&!s.society.journeys.some(j=>j.person===p.id)&&!s.logistics.convoys.some(c=>c.person===p.id));
+    !actorPartyLeader(s,p.id)&&!s.society.orders.some(o=>o.person===p.id)&&!s.society.journeys.some(j=>j.person===p.id)&&!s.logistics.convoys.some(c=>c.person===p.id));
 }
 export function publicDestinations(s,p){
   if(!enabled(s,'npc-travel')||!enabled(s,'npc-knowledge'))return [];
