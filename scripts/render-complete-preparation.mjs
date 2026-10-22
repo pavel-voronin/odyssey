@@ -1,0 +1,24 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import path from 'node:path';import {spawn} from 'node:child_process';import {createServer} from 'node:http';
+const root=path.resolve('.'),temp=path.join(root,'tmp');await mkdir(temp,{recursive:true});
+const code=`try{
+ const {saveStorage}=await import('/save-storage.js'),{SAVE_KEY}=await import('/save-schema.js'),{generationJob}=await import('/generation-session.js');
+ const checkpoint=await(await fetch('/artifacts/prehistory-4/browser-tail.json')).text(),prepared=JSON.parse(checkpoint),p=prepared.population.preparation;
+ if(prepared.tick<766000||prepared.tick>=768000||p.elapsed!==prepared.tick||p.status!=='preparing'||p.stopped||prepared.hero!==null)throw Error('Not a genuine bounded tail of the forty-year population');
+ const job=generationJob(prepared.seed,{duration:768000,rules:prepared.rules,stocks:prepared.population.options.stocks});job.checkpoint=checkpoint;job.base=null;
+ Date.now=()=>100000;localStorage.clear();saveStorage.setItem(SAVE_KEY+'-generation',JSON.stringify(job));
+ await import('/app.js');
+ const raw=saveStorage.getItem(SAVE_KEY),world=JSON.parse(raw);
+ if(world.tick!==768000||world.population.preparation.elapsed!==768000||world.population.preparation.stopped||world.population.phase!=='observed')throw Error('Wrong final world');
+ if(document.getElementById('game-shell').hidden||!document.getElementById('preparation-panel').hidden)throw Error('Game screen not visible');
+ const expected=await(await fetch('/artifacts/prehistory-4/game.json')).text();if(raw!==expected)throw Error('Browser first observation differs from actual CPU result');
+ parent.postMessage({from:prepared.tick,browserTicks:world.tick-prepared.tick,tick:world.tick,years:40,complete:true,earlyObservation:false,uiTicks:0,exactCPU:true,person:world.hero.lineage,storedCharacters:localStorage.getItem(SAVE_KEY).length,rawCharacters:raw.length},'*');
+}catch(e){parent.postMessage({error:e.stack},'*');}`;
+let html=await readFile('index.html','utf8');html=html.replace('<head>','<head><base href="/">').replace(/<script type="module" src="(?:\.\/)?app\.js"><\/script>/,'<script type="module">'+code+'</script>');if(!html.includes(code))throw Error('Missing bootstrap');
+await writeFile(path.join(temp,'complete-preparation-app.html'),html);
+await writeFile(path.join(temp,'complete-preparation.html'),'<style>body{margin:0;background:#18201e}iframe{width:320px;height:650px;border:0}pre{display:none}</style><iframe src="complete-preparation-app.html"></iframe><pre id="result"></pre><script>addEventListener("message",e=>{document.getElementById("result").textContent=JSON.stringify(e.data);})</script>');
+const server=createServer(async(req,res)=>{try{const p=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!p.startsWith(root+path.sep))throw Error('Outside');res.setHeader('Content-Type',p.endsWith('.js')?'text/javascript; charset=utf-8':p.endsWith('.css')?'text/css; charset=utf-8':p.endsWith('.json')?'application/json; charset=utf-8':'text/html; charset=utf-8');res.end(await readFile(p));}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const png=path.join(temp,'complete-preparation.png');
+const run=await new Promise(resolve=>{const child=spawn(process.env.ODYSSEY_BROWSER||'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',['--headless=new','--disable-gpu','--no-first-run','--force-device-scale-factor=1','--user-data-dir='+path.join(temp,'complete-preparation-browser'),'--window-size=340,720','--virtual-time-budget=20000','--screenshot='+png,'--dump-dom','http://127.0.0.1:'+server.address().port+'/tmp/complete-preparation.html'],{windowsHide:true});let stdout='',stderr='';const timer=setTimeout(()=>child.kill(),45000);child.stdout.on('data',d=>stdout+=d);child.stderr.on('data',d=>stderr+=d);child.on('close',status=>{clearTimeout(timer);resolve({stdout,stderr,status});});});
+await new Promise(r=>server.close(r));const m=run.stdout.match(/<pre id="result"[^>]*>([^<]+)<\/pre>/);if(run.status!==0||!m)throw Error('Browser failure '+JSON.stringify({status:run.status,dom:run.stdout.slice(-1000),stderr:run.stderr.slice(-600)}));
+const result=JSON.parse(m[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));if(result.error||!result.complete)throw Error(JSON.stringify(result));console.log(JSON.stringify({...result,image:png}));

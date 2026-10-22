@@ -28,7 +28,7 @@ const order=p=>p.forging?.orders[p.forging.active];
 const learning=p=>p.personalJourney?.status==='active'?p.personalJourney:null;
 const familyCase=(p,id)=>Object.values(p.familyNeeds?.cases||{}).find(c=>c.id===id);
 const familyTask=t=>['familySupply','familyAid'].includes(t?.kind);
-function note(s,p,text,ctx){p.agenda.knowledge.push({tick:s.tick,text});if(p.agenda.knowledge.length>8)p.agenda.knowledge.shift();if(s.hero.lineage===p.id||!s.hero.transit&&s.hero.area===p.area&&physicalDistance(s.areas[p.area],s.hero.x,p.x)<=40)ctx.log(s,text,'plan');}
+function note(s,p,text,ctx){p.agenda.knowledge.push({tick:s.tick,text});if(p.agenda.knowledge.length>8)p.agenda.knowledge.shift();if(s.hero&&(s.hero.lineage===p.id||!s.hero.transit&&s.hero.area===p.area&&physicalDistance(s.areas[p.area],s.hero.x,p.x)<=40))ctx.log(s,text,'plan');}
 function remember(s,p,kind,from,to,reason){const n=ensure(p);n.history.push({tick:s.tick,kind,from:from||null,to:to||null,reason});if(n.history.length>NPC_DEED_POLICY.history)n.history.shift();}
 function closeFamily(s,p,c,status,reason){c.status=status;c.ended=s.tick;c.reason=reason;}
 function familyEpisode(s,p,relative,body){

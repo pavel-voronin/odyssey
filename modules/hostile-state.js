@@ -14,4 +14,4 @@ export function claimHostileAction(s,p,action){
  q.lastActionTick=s.tick;q.action=action;return true;
 }
 export function claimHostileReply(s,e){const p=enemyPerson(s,e);if(!p?.hostileLife)return true;if(p.needs.sleeping){if(claimHostileAction(s,p,'wake')){p.needs.sleeping=false;p.hostileLife.goal=null;}return false;}return claimHostileAction(s,p,'fight');}
-export function stopHostileLife(s,p,stage){const q=p.hostileLife;if(!q)return;q.stage=stage;q.goal=null;q.action=stage==='dead'?'dead':'watch';}
+export {stopHostileLife} from './hostile-stop.js';

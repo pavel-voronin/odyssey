@@ -1,3 +1,4 @@
+import {saveStorage} from './save-storage.js';
 import {forbiddenHTML} from './forbidden-sheet.js';
 import {domesticHTML} from './domestic-sheet.js';
 import {nutritionHTML} from './nutrition-sheet.js';
@@ -153,12 +154,12 @@ import {heroStance} from './motion.js';
 import {sceneCamera,cameraPoint} from './scene-camera.js';
 const $ = id => document.getElementById(id);
 function eventDate(e,full=false){const a=state.areas[e.area]||{type:'road',continent:'c0',era:0};return full?dateLabel(state,e.tick,a):dateStamp(state,e.tick,a);}
-let roadView='map';try{if(localStorage.getItem(SAVE_KEY+'-road-view')==='scene')roadView='scene';}catch{}
+let roadView='map';try{if(saveStorage.getItem(SAVE_KEY+'-road-view')==='scene')roadView='scene';}catch{}
 const startup=await startBrowserWorld().catch(e=>{ $('game-shell').hidden=true;$('preparation-panel').hidden=false;$('preparation-label').textContent='Не удалось открыть мир. Исходное сохранение оставлено без изменений. '+e.message;for(const id of ['preparation-pause','preparation-resume','preparation-plain','preparation-progress','preparation-observe','preparation-arrival'])$(id).hidden=true;throw e;});
 let state=startup.state, tab='hero',saveProblem='',audioContext,soundEnabled=false,firstVisit=startup.fresh,generating=false;
 const scene = new Scene($('scene'),{onCameraFrame:renderEffects,roadView});
 let savedClock;
-try { if(!firstVisit)savedClock=currentClock(JSON.parse(localStorage.getItem(SAVE_KEY+'-clock')),state); } catch {}
+try { if(!firstVisit)savedClock=currentClock(JSON.parse(saveStorage.getItem(SAVE_KEY+'-clock')),state); } catch {}
 const clock = createClock(savedClock?.anchor,savedClock?.idleUntil,savedClock?.stopped,savedClock?.yearRun);
 if(!savedClock)restartClock(clock,Date.now());
 const pendingInputs=[];
@@ -201,10 +202,10 @@ function fitCaptions(){
 function fitGold(){const n=state.hero.gold,small=$('game-shell').clientWidth<300;let value=String(n);if(small&&n>=1000){const divisor=n>=999500?1000000:1000;const amount=n/divisor;value=(amount>=10?Math.floor(amount):Math.round(amount*10)/10)+(divisor===1000?'к':'м');}$('gold').textContent=value;$('gold').title=String(n);}
 window.addEventListener('resize',()=>{releaseHold();fitCaptions();renderEffects();});
 let holding,holdStart,gesture=null,cancelSuccession=()=>{},tutorialState=createTutorial(firstVisit?1:0);
-try{if(!firstVisit){const saved=currentTutorial(JSON.parse(localStorage.getItem(SAVE_KEY+'-onboarding')));if(saved)tutorialState=saved.done?createTutorial(0):saved;}}catch{}
+try{if(!firstVisit){const saved=currentTutorial(JSON.parse(saveStorage.getItem(SAVE_KEY+'-onboarding')));if(saved)tutorialState=saved.done?createTutorial(0):saved;}}catch{}
 const tutorial=document.createElement('div');tutorial.id='tutorial';tutorial.setAttribute('aria-live','polite');document.querySelector('.time-control').append(tutorial);
 function showTutorial(){const text=lifeFinished(state)?'':tutorialText(tutorialState,Date.now());if(tutorial.textContent!==text)tutorial.textContent=text;tutorial.hidden=!text;document.querySelector('.time-control').classList.toggle('onboarding',Boolean(text));}
-function saveTutorial(){try{localStorage.setItem(SAVE_KEY+'-onboarding',JSON.stringify(tutorialState));}catch{}}
+function saveTutorial(){try{saveStorage.setItem(SAVE_KEY+'-onboarding',JSON.stringify(tutorialState));}catch{}}
 showTutorial();
 if(firstVisit)saveTutorial();
 function teach(){
@@ -442,7 +443,7 @@ function render(automatic=false,batching=false) {
 function persist() {
   if(generating)return;
   if(fastRun)updateYearClock(clock,fastRun,Date.now());
-  try { localStorage.setItem(SAVE_KEY, serialize(state)); localStorage.setItem(SAVE_KEY+'-clock',JSON.stringify(clockRecord(state,clock))); saveProblem = ''; }
+  try { saveStorage.setItem(SAVE_KEY, serialize(state)); saveStorage.setItem(SAVE_KEY+'-clock',JSON.stringify(clockRecord(state,clock))); saveProblem = ''; }
   catch { saveProblem = 'Не удалось сохранить в браузере. Скачай полное сохранение через меню перед закрытием.'; }
 }
 function chime() {
@@ -493,7 +494,7 @@ function mapMenu(){
 $('menu').addEventListener('click', () => {mapMenu();$('settings-dialog').showModal();});
 $('close-menu').addEventListener('click', () => $('settings-dialog').close());
 function roadViewLabel(){$('road-view').textContent=roadView==='map'?'В дороге: карта':'В дороге: сцена';$('road-view').setAttribute('aria-pressed',String(roadView==='map'));}roadViewLabel();
-$('road-view').addEventListener('click',()=>{releaseHold();roadView=roadView==='map'?'scene':'map';scene.setRoadView(roadView);roadViewLabel();renderEffects();try{localStorage.setItem(SAVE_KEY+'-road-view',roadView);}catch{}});
+$('road-view').addEventListener('click',()=>{releaseHold();roadView=roadView==='map'?'scene':'map';scene.setRoadView(roadView);roadViewLabel();renderEffects();try{saveStorage.setItem(SAVE_KEY+'-road-view',roadView);}catch{}});
 $('map-zoom-in').addEventListener('click',()=>scene.zoomMap(1.25));$('map-zoom-out').addEventListener('click',()=>scene.zoomMap(.8));$('map-follow').addEventListener('click',()=>scene.followMap());
 $('map-scope').addEventListener('change',()=>{releaseHold();scene.setMapView({scope:$('map-scope').value,inspect:true});mapMenu();});
 $('map-layer').addEventListener('change',()=>{releaseHold();scene.setMapView({layer:$('map-layer').value,inspect:true});mapMenu();});
@@ -509,13 +510,13 @@ $('load-file').addEventListener('change',async e=>{
   try{
     if(file.size>20*1024*1024)throw new Error('Сохранение слишком большое');
     const next=restore(await file.text());
-    localStorage.setItem(SAVE_KEY+'-before-import',serialize(state));releaseFast();fastNotice='';lifeReview=false;state=next;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=false;
+    saveStorage.setItem(SAVE_KEY+'-before-import',serialize(state));releaseFast();fastNotice='';lifeReview=false;state=next;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=false;
     $('save-status').textContent=state.hero.actorMode==='npc'?`Загружен житель мира: ${state.hero.name}. Мир ${state.seed}. Предыдущее сохранение можно вернуть.`:`Загружена жизнь ${state.generation}, тик жизни ${lifeTick(state)}. Мир ${state.seed}. Предыдущее сохранение можно вернуть.`;
   }catch(error){$('save-status').textContent='Загрузить не удалось: '+error.message;$('save-status').classList.add('error');}
   e.target.value='';
 });
 $('undo-import').addEventListener('click',()=>{
-  try{const previous=localStorage.getItem(SAVE_KEY+'-before-import');if(!previous)return;const restored=restore(previous);releaseFast();fastNotice='';lifeReview=false;state=restored;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=true;$('save-status').textContent='Предыдущее сохранение восстановлено.';}
+  try{const previous=saveStorage.getItem(SAVE_KEY+'-before-import');if(!previous)return;const restored=restore(previous);releaseFast();fastNotice='';lifeReview=false;state=restored;clearSpeech(speechMemory);resetClock();persist();render();$('undo-import').hidden=true;$('save-status').textContent='Предыдущее сохранение восстановлено.';}
   catch(error){$('save-status').textContent='Восстановить не удалось: '+error.message;}
 });
 $('mechanics').addEventListener('click', () => {
@@ -597,7 +598,7 @@ $('cancel-reset').addEventListener('click', () => $('reset-dialog').close());
 $('reset-prehistory').addEventListener('change',()=>{$('reset-history-length').disabled=!$('reset-prehistory').checked;});
 $('confirm-reset').addEventListener('click',async()=>{
  if(generating)return;releaseFast();persist();generating=true;$('reset-dialog').close();
- try{const job=requestGeneration(localStorage,Date.now(),{warm:$('reset-prehistory').checked,duration:$('reset-history-length').value==='long'?LONG_HISTORY_TICKS:WARM_TICKS});const result=await generateInBrowser(job);state=result.state;fastNotice='';lifeReview=false;clearSpeech(speechMemory);resetClock();render();}
+ try{const job=requestGeneration(saveStorage,Date.now(),{warm:$('reset-prehistory').checked,duration:$('reset-history-length').value==='long'?LONG_HISTORY_TICKS:WARM_TICKS});const result=await generateInBrowser(job);state=result.state;fastNotice='';lifeReview=false;clearSpeech(speechMemory);resetClock();render();}
  catch(e){saveProblem=e.message;resetClock();render();}finally{generating=false;}
 });
 $('export').addEventListener('click', () => {

@@ -24,7 +24,7 @@ export function buildingRuinsTick(s,ctx={}){
    if(!previous){const old=a.objects.find(o=>o.building===p.id&&o.state==='burned'&&['workshop','tavern'].includes(o.kind));if(old){r.roof=1;r.walls=2;r.history.push({tick:s.tick,kind:'observed-damage',roof:1,walls:2,source:old.id});}}
    if(r.emptyDays===NEGLECT_DAYS&&r.roof===3){r.roof=2;r.history.push({tick:s.tick,kind:'neglect',roof:2,walls:r.walls});if(r.history.length>16)r.history.shift();}
    if(r.emptyDays===NEGLECT_DAYS*2&&damageStructure(s,a,p,'neglect')){
-    if(s.hero.area===a.id&&!s.hero.transit)ctx.log?.(s,'Давно оставленное здание потеряло кровлю. Прежние стены, проходы и оставленная поклажа остаются на месте.','world');
+    if(s.hero?.area===a.id&&!s.hero.transit)ctx.log?.(s,'Давно оставленное здание потеряло кровлю. Прежние стены, проходы и оставленная поклажа остаются на месте.','world');
    }
   }
  }
