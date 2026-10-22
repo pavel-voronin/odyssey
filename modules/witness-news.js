@@ -33,7 +33,7 @@ export function carrierNewsContact(s,p,ctx={}){
  for(const {q}of locals){const placeChanged=exchangeMigrationNotes(s,p,q);let learned=false,told=false;
   for(const r of Object.values(q.news?.known||{}).sort((a,b)=>b.revision-a.revision||b.occurred-a.occurred))if(relayNews(s,q,p,r.id)){learned=true;break;}
   for(const r of Object.values(p.news?.known||{}).sort((a,b)=>b.revision-a.revision||b.occurred-a.occurred))if(relayNews(s,p,q,r.id)){told=true;break;}
-  if(learned||told||placeChanged){newsMemory(p).lastExchangeTick=s.tick;const h=s.hero;if(q.id===h.lineage||p.id===h.lineage)ctx.log?.(s,placeChanged&&!learned&&!told?`${p.name} и ${q.name} обмениваются датированными сведениями о знакомом поселении.`:told&&q.id===h.lineage?`${p.name} передаёт датированный рассказ о поступке. Сведения получены со слов перевозчика.`:`${q.name} делится известным рассказом с перевозчиком ${p.name}.`,'talk');return true;}
+  if(learned||told||placeChanged){newsMemory(p).lastExchangeTick=s.tick;const h=s.hero;if(h&&(q.id===h.lineage||p.id===h.lineage))ctx.log?.(s,placeChanged&&!learned&&!told?`${p.name} и ${q.name} обмениваются датированными сведениями о знакомом поселении.`:told&&q.id===h.lineage?`${p.name} передаёт датированный рассказ о поступке. Сведения получены со слов перевозчика.`:`${q.name} делится известным рассказом с перевозчиком ${p.name}.`,'talk');return true;}
  }
  return false;
 }
