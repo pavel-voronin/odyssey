@@ -10,7 +10,7 @@ import {collectionItems} from './collection-state.js';
 import {itemWorking,wearOwnedItem} from './item-condition.js';
 import {actorItemLocation,npcLooseItems,ITEM_CAPACITY} from './item-originals.js';
 import {npcController,canStartNPCActivity,npcAction} from './npc-control.js';
-const actor=(s,p)=>s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];
+const actor=(s,p)=>s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id];
 const body=(s,p)=>{const h=actor(s,p);return h?.actorMode!=='npc'?h:null;};
 const at=(s,p)=>body(s,p)||p;
 const bag=(s,p)=>actor(s,p)?.bag||p.looseItems||[];

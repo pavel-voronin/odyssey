@@ -61,12 +61,12 @@ function qFinish(p,tick){p.knifeRefit.active=null;p.knifeRefit.after=tick+960;}
 function jobForMaster(s,m){const c=m.refitCommission,p=c&&s.people[c.client],o=p?.knifeRefit?.orders[c.order];return p?.alive&&o&&o.master===m.id&&['material','working'].includes(o.status)?{p,o}:null;}
 export function npcRefitPlan(s,m){
  if(!refittingEnabled(s)||!capable(s,m))return null;const pair=jobForMaster(s,m);if(!pair){if(m.refitCommission)m.refitCommission=null;return null;}
- const {p,o}=pair,h=s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id],site=workshopSite(s,o.area,o.workshop);
+ const {p,o}=pair,h=s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id],site=workshopSite(s,o.area,o.workshop);
  if(!h?.alive||!['refitMaterial','refitWork'].includes(h.goal?.kind)||!ready(s,site,m)||![site.area.id,site.room?.id].includes(h.area))return null;
  return {kind:'refitBench',target:site.area.id,x:site.object.x,remaining:1,property:site.object.id,client:p.id,order:o.id};
 }
 export function npcRefitWait(s,m){
- const t=m.agenda.task,pair=jobForMaster(s,m),h=pair&&(s.hero.lineage===pair.p.id?s.hero:s.actorStates?.[pair.p.id]);
+ const t=m.agenda.task,pair=jobForMaster(s,m),h=pair&&(s.hero?.lineage===pair.p.id?s.hero:s.actorStates?.[pair.p.id]);
  const site=pair&&workshopSite(s,pair.o.area,pair.o.workshop);
  if(!refittingEnabled(s)||!pair||!h?.alive||!['refitMaterial','refitWork'].includes(h.goal?.kind)||h.transit||!site||![site.area.id,site.room?.id].includes(h.area)||t.order!==pair.o.id){m.agenda.task=null;m.agenda.due=s.tick+16;return false;}
  // This NPC tick is a real appointment/wait. The hero's later callback cannot

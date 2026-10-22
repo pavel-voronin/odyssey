@@ -12,7 +12,7 @@ import {controlBlocked} from './building-control-state.js';
 import {canStartNPCActivity} from './npc-control.js';
 import {npcController} from './npc-control.js';
 export const productionFinanceOn=s=>enabled(s,'production-finance')&&marketEnabled(s)&&enabled(s,'people')&&enabled(s,'property')&&enabled(s,'market-knowledge');
-const body=(s,id)=>{const p=s.people[id],h=s.actorStates?.[id]||(s.hero.lineage===id?s.hero:null);return p?.alive&&!p.needs?.sleeping?(selfDrivenActor(s,h)?h.transit||h.combat?null:{area:h.area,x:h.x}:{area:p.area,x:p.x}):null;};
+const body=(s,id)=>{const p=s.people[id],h=s.actorStates?.[id]||(s.hero?.lineage===id?s.hero:null);return p?.alive&&!p.needs?.sleeping?(selfDrivenActor(s,h)?h.transit||h.combat?null:{area:h.area,x:h.x}:{area:p.area,x:p.x}):null;};
 const together=(s,a,b)=>{const x=body(s,a),y=body(s,b);return x&&y&&x.area===y.area&&physicalDistance(s.areas[x.area],x.x,y.x)<=9;};
 const active=c=>['working','selling','payable'].includes(c.status);
 const siteFor=(s,c)=>workshopSite(s,c.area,c.workshop);

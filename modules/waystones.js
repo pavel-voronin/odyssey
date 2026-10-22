@@ -10,7 +10,7 @@ import {itemLocation} from './item-originals.js';
 import {itemBearer} from './enchantments.js';
 import {containersOn,fitsPack} from './container-state.js';
 import {enabled} from '../rules.js';
-const actor=(s,id)=>s.actorStates?.[id]||(s.hero.lineage===id?s.hero:null);
+const actor=(s,id)=>s.actorStates?.[id]||(s.hero?.lineage===id?s.hero:null);
 const ownItems=(s,p)=>actor(s,p.id)?.bag||p.looseItems||[];
 const known=(h,p)=>h.memory.people.includes(p.id)||Boolean(h.relations[p.id]);
 export function findWaystone(input,object,ctx){

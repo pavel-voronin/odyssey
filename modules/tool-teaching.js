@@ -21,7 +21,7 @@ export function availableToolMaster(s,p){
 // The people controller only needs the shared reservation/receipt contract.
 // It must not import the pupil's finances, suppliers or adventure planner.
 export function toolTeacherTurn(s,p){
- const r=p.toolTeaching,h=r&&(s.actorStates?.[r.pupil]||(s.hero.lineage===r.pupil?s.hero:null));if(!r)return false;
+ const r=p.toolTeaching,h=r&&(s.actorStates?.[r.pupil]||(s.hero?.lineage===r.pupil?s.hero:null));if(!r)return false;
  if(r.kind==='npc-mentor'){
   if(!enabled(s,'property')||!enabled(s,'workshop-tools')||r.until<s.tick||!availableToolMaster(s,p)||!validNPCPupil(s,p,r)){delete p.toolTeaching;return false;}
   r.turn=s.tick;return true;

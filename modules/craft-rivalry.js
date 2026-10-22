@@ -20,7 +20,7 @@ import {startKnife,workKnife} from './forging.js';
 import {guardWeapon} from './commissioned-orders.js';
 
 export const rivalryOn=s=>['craft-rivalry','forging','equipment','property','goods-cycle','relationships','craft-respect'].every(id=>enabled(s,id));
-const actor=(s,p)=>s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];
+const actor=(s,p)=>s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id];
 const body=(s,p)=>selfDrivenActor(s,actor(s,p))?actor(s,p):p;
 const purse=(s,p)=>actor(s,p)?.gold??p.agenda.wealth;
 const near=(s,a,b,d=9)=>a?.area===b?.area&&Number.isFinite(a.x)&&Number.isFinite(b.x)&&physicalDistance(s.areas[a.area],a.x,b.x)<=d;

@@ -9,7 +9,7 @@ import {tradeGoods,quoteMarket,marketWallet} from './market.js';
 import {fitsPack} from './container-state.js';
 import {itemLocation,actorItemLocation} from './item-originals.js';
 import {npcController,canStartNPCActivity,npcAction} from './npc-control.js';
-const held=(s,p)=>{const h=s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];return h?.bag||(p.looseItems ||= []);};
+const held=(s,p)=>{const h=s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id];return h?.bag||(p.looseItems ||= []);};
 const ready=(s,p)=>{const b=p&&stealthBody(s,p.id);return decoysOn(s)&&p?.alive&&b&&(b.lineage||['resident','wandering'].includes(p.status))&&(b.lineage?b.hp>0:p.health>0)&&!b.transit&&!b.combat&&!b.carriedBy&&!p.roadTransit&&!p.fordCrossing&&!p.liftTransit&&!p.needs.sleeping&&!p.ailment&&(b.lineage?b.energy:p.needs.energy)>=25&&(b.lineage?b.hunger:p.needs.hunger)<60?b:null;};
 const stamp=(s,p,cost=1)=>{const b=stealthBody(s,p.id);if(b.lineage){b.energy-=cost;b.lastAction='work';}else p.needs.energy-=cost;p.decoyLastAt=s.tick;};
 const canAct=(s,p,inTurn=false)=>ready(s,p)&&(p.decoyLastAt??-1)<s.tick&&(stealthBody(s,p.id)===s.hero||!stealthBody(s,p.id).lineage&&npcController(s,p)==='personal'&&inTurn&&p.actionControl?.tick===s.tick&&p.actionControl.owner==='personal'&&canStartNPCActivity(s,p,{inTurn}));

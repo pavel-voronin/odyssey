@@ -13,7 +13,7 @@ export function knownLiftBlocked(s,p,from,to){
 // Admission spends one charge exactly once. Already admitted rides use their own saved phase.
 export function admitLift(s,from,to,person,arrivalX){
  const n=liftAt(s,from,to);if(!enabled(s,'mechanisms')||!n||!liftReady(n))return null;
- const h=s.hero.lineage===person?s.hero:s.actorStates?.[person],p=s.people[person],body=h&&h.actorMode!=='npc'?h:p;if(!p?.alive||body?.area!==from||h&&h.actorMode!=='npc'&&(!h.alive||h.life.ended))return null;
+ const h=s.hero?.lineage===person?s.hero:s.actorStates?.[person],p=s.people[person],body=h&&h.actorMode!=='npc'?h:p;if(!p?.alive||body?.area!==from||h&&h.actorMode!=='npc'&&(!h.alive||h.life.ended))return null;
  n.charge.remaining--;n.charge.spent++;n.wear++;n.rides++;if(n.wear>=3){n.status='broken';wearLiftDrive(s,n);}s.graphRevision=(s.graphRevision||0)+1;
  const ride={version:1,id:n.id+'/ride/'+n.rides,node:n.id,from,to,person,started:s.tick,lastTick:s.tick,total:2,remaining:2,arrivalX,spent:1};
  n.history.push({tick:s.tick,person,action:'ride',id:ride.id});if(n.history.length>12)n.history.shift();return ride;

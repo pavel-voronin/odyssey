@@ -22,7 +22,7 @@ export function observeBestiaryTraces(s,p,ctx){
  const a=s.areas[b.area];for(const o of a.objects){if(o.kind!=='creatureTrace'||o.trace.expires<=s.tick||physicalDistance(a,b.x,o.x)>12)continue;
   const e=entry(p,o.trace.species),old=e.traces.find(t=>t.id===o.id);if(old&&old.created>=o.trace.created)continue;
   const record={id:o.id,created:o.trace.created,seen:s.tick,area:a.id,habitat:o.trace.habitat,group:o.trace.group,witness:p.id};if(old)Object.assign(old,record);else{e.traces.push(record);if(e.traces.length>4)e.traces.shift();}
-  if(p.id===s.hero.lineage)ctx?.log?.(s,`На земле видны ${record.group?'перекрывающиеся следы нескольких существ':'следы существа'}: ${ENEMY_SPECIES.find(k=>k.id===e.id).name}. Это запись о следах, а не о скрытых свойствах их хозяина.`,'knowledge');
+  if(p.id===s.hero?.lineage)ctx?.log?.(s,`На земле видны ${record.group?'перекрывающиеся следы нескольких существ':'следы существа'}: ${ENEMY_SPECIES.find(k=>k.id===e.id).name}. Это запись о следах, а не о скрытых свойствах их хозяина.`,'knowledge');
  }
 }
 export function encounterBestiary(s,p,e){

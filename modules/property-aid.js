@@ -7,8 +7,8 @@ const active=s=>enabled(s,'property')&&enabled(s,'property-aid');
 function kin(s,p){const self=s.people[s.hero.lineage];return self.parents.includes(p.id)||p.parents.includes(self.id)||self.parents.some(id=>p.parents.includes(id));}
 function familiar(s,p){const h=s.hero,r=h.relations[p.id];return kin(s,p)||Boolean(h.memory.people.includes(p.id)&&r?.helped>=2&&r.trust>=16);}
 function seller(s,a,o){const p=s.people[o.owner];return p?.alive&&p.status==='resident'&&p.area===a.id&&o.offer?.owner===p.id&&o.state==='intact'&&Number.isInteger(o.offer.price)&&o.offer.price>0?p:null;}
-function valid(s,a,o,c){return Number.isInteger(c.consent?.recipient)&&o.owner===c.seller&&seller(s,a,o)&&o.offer.price===c.price&&needsWorkshop(s,s.people[c.recipient],a.id,c.price)&&s.people[c.payer]?.alive&&!(s.hero.lineage===c.payer&&s.hero.life.ended)&&!s.lives.some(l=>l.lineage===c.payer);}
-function finish(s,o,status,text,ctx){o.aid.status=status;o.aid.ended=s.tick;o.aid.reason=text;const payer=s.actorStates?.[o.aid.payer]||(s.hero.lineage===o.aid.payer?s.hero:null);if(payer?.goal?.aid===o.aid.id)payer.goal=null;if(s.hero.lineage===o.aid.payer&&s.hero.area===o.aid.area)ctx.log(s,text,'property');return true;}
+function valid(s,a,o,c){return Number.isInteger(c.consent?.recipient)&&o.owner===c.seller&&seller(s,a,o)&&o.offer.price===c.price&&needsWorkshop(s,s.people[c.recipient],a.id,c.price)&&s.people[c.payer]?.alive&&!(s.hero?.lineage===c.payer&&s.hero.life.ended)&&!s.lives.some(l=>l.lineage===c.payer);}
+function finish(s,o,status,text,ctx){o.aid.status=status;o.aid.ended=s.tick;o.aid.reason=text;const payer=s.actorStates?.[o.aid.payer]||(s.hero?.lineage===o.aid.payer?s.hero:null);if(payer?.goal?.aid===o.aid.id)payer.goal=null;if(s.hero?.lineage===o.aid.payer&&s.hero.area===o.aid.area)ctx.log(s,text,'property');return true;}
 export function propertyAidTick(s,ctx){
  for(const a of Object.values(s.areas))for(const o of a.objects){const c=o.aid;if(o.kind!=='workshop'||!['requested','agreed'].includes(c?.status))continue;
   const elapsed=Math.max(0,s.tick-(c.checked??s.tick));c.checked=s.tick;if(!active(s))continue;c.remaining-=elapsed;

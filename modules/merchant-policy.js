@@ -7,7 +7,7 @@ import {physicalDistance} from '../geometry.js';
 import {carriedFood} from './stores.js';
 export const merchantEnabled=s=>enabled(s,'merchant-trips')&&marketKnowledgeEnabled(s)&&marketEnabled(s)&&enabled(s,'npc-logistics');
 export function merchantOffer(s,id,ctx){
- if(!merchantEnabled(s))return null;const p=s.people[id],h=s.actorStates?.[id]||(s.hero.lineage===id?s.hero:null),hero=selfDrivenActor(s,h),a=s.areas[hero?h.area:p?.area];
+ if(!merchantEnabled(s))return null;const p=s.people[id],h=s.actorStates?.[id]||(s.hero?.lineage===id?s.hero:null),hero=selfDrivenActor(s,h),a=s.areas[hero?h.area:p?.area];
  if(!p?.alive||!a?.civic||hero&&h.transit||p.needs?.sleeping||(hero?h.energy:p.needs?.energy??100)<45||(hero?h.hunger:p.needs?.hunger??0)>=60||(p.marketCargo?.tools||0)>0||(p.tradeBook?.after||0)>s.tick||physicalDistance(a,hero?h.x:p.x,58)>18)return null;
  const curiosity=hero?h.personality.courage:p.agenda.curiosity,cautious=hero?h.money.style==='cautious':curiosity<.45,wallet=marketWallet(s,id),reserve=enabled(s,'finances')?(hero?(ctx.merchantReserve??(cautious?10:6)):cautious?10:6):0;
  const food=carriedFood(p,hero?h.inventory:null),provisions=food>=1?{quantity:0,total:0}:quoteMarket(s,a,'food','buy',1,{gold:Math.max(0,wallet-reserve)});if(food<1&&!provisions.quantity)return null;

@@ -23,7 +23,7 @@ import {knownMelody,musicInstrument,musicOn} from './camp-music-state.js';
 
 
 export const forgingEnabled=s=>enabled(s,'forging')&&enabled(s,'equipment')&&enabled(s,'property')&&goodsEnabled(s);
-const body=(s,p)=>s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];
+const body=(s,p)=>s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id];
 const activeBody=(s,p)=>{const h=body(s,p);return h?.actorMode!=='npc'?h:null;};
 const position=(s,p)=>activeBody(s,p)||p;
 const purse=(s,p)=>body(s,p)?.gold??p.agenda.wealth;
@@ -35,7 +35,7 @@ const near=(s,p,area,x)=>{const at=position(s,p);return at.area===area&&physical
 const prepared=(s,p)=>{const h=activeBody(s,p);return h?['craft','time'].includes(profile(h).skill):p.agenda?.job==='artisan';};
 const healthy=(s,p)=>{const h=activeBody(s,p);return p.alive&&!p.needs?.sleeping&&(h?h.hp>=h.maxHp*.75&&h.energy>=35&&h.hunger<55:p.health>=(p.maxHealth||100)*.75&&p.needs.energy>=35&&p.needs.hunger<55);};
 const knife=(s,p)=>collectionItems(s,p.id).find(i=>i.toolKind==='knife'&&itemWorking(i));
-function announce(s,p,ctx,text){if(s.hero.lineage===p.id||s.hero.area===p.area)ctx.log(s,text,'craft');}
+function announce(s,p,ctx,text){if(s.hero&&(s.hero.lineage===p.id||s.hero.area===p.area))ctx.log(s,text,'craft');}
 function rest(s,p,delay=240){ensure(p).after=s.tick+delay;const h=body(s,p);if(h)h.goal=null;else{p.agenda.task=null;p.agenda.due=s.tick+48;}}
 function know(s,p,origin,teacher=null){ensure(p).recipes[KNIFE_RECIPE.id] ||= {learnedAt:s.tick,origin,teacher};}
 function readySite(s,p,id,area){const site=workshopSite(s,area,id);return site&&(!site.home||homeAdmission(s,site.room,p.id))&&site.object.state==='intact'&&!site.object.closed&&(site.home||s.people[site.object.owner]?.alive)&&workToolReady(s,site.object)?site:null;}
@@ -105,7 +105,7 @@ export function learnKnife(s,p,t,ctx){
 export function buyKnife(s,p,seller,ctx){
  if(!seller)return false;
  const offer=state(seller)?.offer,item=offer&&collectionItems(s,seller.id).find(i=>i.id===offer.item),bag=body(s,seller)?.bag||seller.looseItems;
- if(!forgingEnabled(s)||s.hero.lineage!==p.id||!activeBody(s,p)||!healthy(s,p)||!seller.alive||seller.needs?.sleeping||seller.agenda?.task||npcController(s,seller)!=='personal'||!canStartNPCActivity(s,seller)||!near(s,p,seller.area,seller.x)||!item||!itemWorking(item)||!bag?.includes(item)||!fitsAcquisition(s,item)||purse(s,p)<offer.price||seller.forgeTeachingTick>=s.tick||!npcAction(s,seller,'personal','forge-sale'))return false;
+ if(!forgingEnabled(s)||s.hero?.lineage!==p.id||!activeBody(s,p)||!healthy(s,p)||!seller.alive||seller.needs?.sleeping||seller.agenda?.task||npcController(s,seller)!=='personal'||!canStartNPCActivity(s,seller)||!near(s,p,seller.area,seller.x)||!item||!itemWorking(item)||!bag?.includes(item)||!fitsAcquisition(s,item)||purse(s,p)<offer.price||seller.forgeTeachingTick>=s.tick||!npcAction(s,seller,'personal','forge-sale'))return false;
  bag.splice(bag.indexOf(item),1);setActorMoney(s,p,purse(s,p)-offer.price);setActorMoney(s,seller,purse(s,seller)+offer.price);seller.forgeTeachingTick=s.tick;delete seller.forging.offer;
  item.history.push({tick:s.tick,text:`Продано: ${seller.name} → ${p.name}, ◈${offer.price}.`});
  ctx.receiveItem(s,ctx,null,item,{purchased:true});rest(s,p,960);return true;

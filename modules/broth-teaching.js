@@ -6,7 +6,7 @@ export function brothTeacherKnows(p){return Boolean(p?.foodCooking?.recipes[BROT
 export function availableBrothTeacher(s,p){return Boolean(cookingEnabled(s)&&p?.alive&&p.role!=='ребёнок'&&brothTeacherKnows(p)&&p.health>=(p.maxHealth||100)*.7&&!p.needs?.sleeping&&(p.needs?.energy??100)>=25&&(p.needs?.hunger??0)<65&&!p.agenda?.task&&(!p.toolTeaching||p.toolTeaching.until<s.tick)&&npcController(s,p)==='personal');}
 export function brothTeacherTurn(s,p){
  const r=p?.brothTeaching;if(!r)return false;
- const h=s.actorStates?.[r.pupil]||(s.hero.lineage===r.pupil?s.hero:null),position=localContact(s,p.id,r.area);
+ const h=s.actorStates?.[r.pupil]||(s.hero?.lineage===r.pupil?s.hero:null),position=localContact(s,p.id,r.area);
  if(!availableBrothTeacher(s,p)||r.until<s.tick||!h||!safeCooking(s,h)||h.goal?.kind!=='brothLearn'||h.goal.teacher!==p.id||h.area!==r.area||!position||physicalDistance(s.areas[r.area],h.x,position.x)>9){delete p.brothTeaching;return false;}
  r.turn=s.tick;return true;
 }

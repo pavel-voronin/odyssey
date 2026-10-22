@@ -11,7 +11,7 @@ import {npcAction,npcController,canStartNPCActivity} from './npc-control.js';
 import {wagonById,wagons,wagonsOn,wagonReady,wagonRoad,wagonLoad,drivenWagon,wagonMoved} from './wagon-state.js';
 const near=(s,h,a,w)=>h.transit||w.journey?Boolean(h.transit?.metric&&w.journey?.metric&&h.transit.from===w.journey.from&&h.transit.to===w.journey.to&&h.transit.metric.distance===w.journey.metric.distance&&Math.abs(h.transit.metric.travelled-w.journey.metric.travelled)<=3):h.area===a.id&&physicalDistance(a,h.x,w.x)<=3;
 const event=(s,w,kind,extra={})=>{w.history.push({at:s.tick,kind,...extra});if(w.history.length>12)w.history.shift();};
-const actor=(s,id)=>s.hero.lineage===id?s.hero:s.actorStates?.[id];
+const actor=(s,id)=>s.hero?.lineage===id?s.hero:s.actorStates?.[id];
 function spent(s,h,w,text,ctx){w.lastAction=s.tick;h.energy=Math.max(0,h.energy-2);h.lastAction='companion';ctx?.log?.(s,text,'travel');return true;}
 export function parkWagon(s,w,kind='parked'){const p=s.people[w.driver],h=actor(s,w.driver),t=h?.transit||p?.roadTransit;if(t)w.journey=structuredClone(t);w.driver=null;w.convoy=null;event(s,w,kind);}
 export function wagonAction(input,id,kind,ctx={},itemId=null){const s=rootWorld(input),h=input.hero,p=s.people[h.lineage],found=wagonById(s,id);if(!wagonsOn(s)||!h.alive||h.combat||h.energy<4||!found)return false;const {w,a}=found;if(!near(s,h,a,w)||w.lastAction===s.tick)return false;

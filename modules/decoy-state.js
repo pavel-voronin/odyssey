@@ -1,7 +1,7 @@
 import {stealthOn,stealthBody,activeGuard,seesGuard,guardSense,guardAway} from './stealth-state.js';
 import {physicalDistance} from '../geometry.js';
 export const decoysOn=s=>stealthOn(s)&&s.rules['noise-decoys']!==false&&s.rules.equipment!==false;
-export const decoyItems=(s,id)=>{const h=s.hero.lineage===id?s.hero:s.actorStates?.[id];return h?.bag||s.people[id]?.looseItems||[];};
+export const decoyItems=(s,id)=>{const h=s.hero?.lineage===id?s.hero:s.actorStates?.[id];return h?.bag||s.people[id]?.looseItems||[];};
 export const heldDecoy=(s,id,{ready=false}={})=>decoyItems(s,id).find(i=>i.decoy?.version===1&&(!ready||i.decoy.state==='ready'))||null;
 export function decoyWalkQuote(s,id,target){
  if(!decoysOn(s))return null;const p=s.people[id],b=stealthBody(s,id),g=b&&activeGuard(s,b.area);if(!p?.alive||!b||!g||!seesGuard(s,id,g)||(b.lineage?b.personality.courage:1-p.agenda.duty)>=.5)return null;

@@ -29,7 +29,7 @@ const capable=(s,m,item,energy=35)=>m?.alive&&!m.needs.sleeping&&m.health>=(m.ma
 const busy=(s,m)=>m.agenda.task||m.refitCommission||m.itemRepairCommission||m.refitWorkTick>=s.tick||m.forgeTeachingTick>=s.tick||m.itemRepairWorkTick>=s.tick||!canStartNPCActivity(s,m);
 const spend=(s,n,ctx)=>ctx.maySpend?ctx.maySpend(s,'repair',n,ctx):s.hero.gold>=n;
 function defer(s,n=240){ensure(s.people[s.hero.lineage]).after=s.tick+n;s.hero.goal=null;}
-function end(s,p,o,status){o.status=status;o.ended=s.tick;p.itemRepair.active=null;p.itemRepair.after=s.tick+240;const h=s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id];if(h?.goal?.kind.startsWith('itemRepair')&&h.goal.master===o.master)h.goal=null;}
+function end(s,p,o,status){o.status=status;o.ended=s.tick;p.itemRepair.active=null;p.itemRepair.after=s.tick+240;const h=s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id];if(h?.goal?.kind.startsWith('itemRepair')&&h.goal.master===o.master)h.goal=null;}
 function attachment(s,item){const h=s.hero;return hasHabit(h,'collector')||hasHabit(h,'hoarder')&&item.creator===h.lineage||item.enchantment?.owners?.some(id=>s.people[h.lineage].parents.includes(id));}
 export function itemRepairPreference(s,item){
  const h=s.hero,attached=Boolean(attachment(s,item)),selfKnife=item.toolKind==='knife'&&Boolean(s.people[h.lineage].forging?.recipes['working-knife']);
@@ -67,12 +67,12 @@ function qFinish(p,tick){p.itemRepair.active=null;p.itemRepair.after=tick+240;}
 function jobForMaster(s,m){const c=m.itemRepairCommission,p=c&&s.people[c.client],o=p?.itemRepair?.orders[c.order];if(p?.alive&&o&&['material','working'].includes(o.status)&&s.tick>o.deadline){end(s,p,o,'expired');return null;}return p?.alive&&o&&o.master===m.id&&['material','working'].includes(o.status)?{p,o}:null;}
 export function npcItemRepairPlan(s,m){
  if(!on(s))return null;const pair=jobForMaster(s,m);if(!pair){if(m.itemRepairCommission)m.itemRepairCommission=null;return null;}
- const {p,o}=pair,h=s.hero.lineage===p.id?s.hero:s.actorStates?.[p.id],item=h&&own(s,p.id,o.item),site=workshopSite(s,o.area,o.workshop);
+ const {p,o}=pair,h=s.hero?.lineage===p.id?s.hero:s.actorStates?.[p.id],item=h&&own(s,p.id,o.item),site=workshopSite(s,o.area,o.workshop);
  if(!h?.alive||!item||!capable(s,m,item)||!['itemRepairMaterial','itemRepairWork'].includes(h.goal?.kind)||!ready(s,site,m)||![site.area.id,site.room?.id].includes(h.area))return null;
  return {kind:'itemRepairBench',target:site.area.id,x:site.object.x,remaining:1,property:site.object.id,client:p.id,order:o.id};
 }
 export function npcItemRepairWait(s,m){
- const t=m.agenda.task,pair=jobForMaster(s,m),h=pair&&(s.hero.lineage===pair.p.id?s.hero:s.actorStates?.[pair.p.id]),site=pair&&workshopSite(s,pair.o.area,pair.o.workshop);
+ const t=m.agenda.task,pair=jobForMaster(s,m),h=pair&&(s.hero?.lineage===pair.p.id?s.hero:s.actorStates?.[pair.p.id]),site=pair&&workshopSite(s,pair.o.area,pair.o.workshop);
  if(!on(s)||!pair||!h?.alive||!['itemRepairMaterial','itemRepairWork'].includes(h.goal?.kind)||h.transit||!site||![site.area.id,site.room?.id].includes(h.area)||t.order!==pair.o.id){m.agenda.task=null;m.agenda.due=s.tick+16;return false;}return true;
 }
 function fallbackPlan(s,ctx){

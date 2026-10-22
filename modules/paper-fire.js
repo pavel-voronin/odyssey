@@ -25,6 +25,6 @@ export function damagePaperFromSource(input,a,src,ctx={}){
  }
  if(!damaged.length)return null;
  s.paperFires ||= {version:1,events:{}};const event=s.paperFires.events[fire.id]={id:fire.id,at:s.tick,kind:fire.kind,area:a.id,source:fire.source,damaged};
- for(const p of Object.values(s.people)){const at=p.alive&&personLocation(s,p.id);if(!at||at.transit||!near(at.area,at.x))continue;const h=s.actorStates?.[p.id]||(s.hero.lineage===p.id?s.hero:null);if(h)ctx.log?.(actorView(s,h),'Огонь повреждает настоящие бумажные записи в этом месте. Уцелевшие экземпляры снаружи остаются прежними; прочитанное из памяти не исчезает.','story');}
+ for(const p of Object.values(s.people)){const at=p.alive&&personLocation(s,p.id);if(!at||at.transit||!near(at.area,at.x))continue;const h=s.actorStates?.[p.id]||(s.hero?.lineage===p.id?s.hero:null);if(h)ctx.log?.(actorView(s,h),'Огонь повреждает настоящие бумажные записи в этом месте. Уцелевшие экземпляры снаружи остаются прежними; прочитанное из памяти не исчезает.','story');}
  return event;
 }

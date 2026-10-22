@@ -22,4 +22,4 @@ export function memoryDamage(s,p,w,ctx){
  const candidates=[...(p.moneyCaches?.places||[]).map(k=>({domain:'cache',id:k.id})),...h.quests.filter(q=>q.status==='active'&&promiseRemembered(h,q)).map(q=>({domain:'promise',id:q.id}))].sort((a,b)=>(a.domain+'/'+a.id).localeCompare(b.domain+'/'+b.id));if(!candidates.length)return false;
  const chosen=candidates[(n>>>5)%candidates.length],source={...c,wound:w.id,role:w.role,severity:w.severity};return record(s,chosen.domain,chosen.id,'head-impact',source,ctx);
 }
-export function restoreCacheKnowledge(s,p,id,from){const h=p.id===s.hero.lineage?s.hero:s.actorStates?.[p.id],gap=h&&knowledgeGap(h,'cache',id);if(!gap)return false;gap.restored=s.tick;gap.via=from;return true;}
+export function restoreCacheKnowledge(s,p,id,from){const h=p.id===s.hero?.lineage?s.hero:s.actorStates?.[p.id],gap=h&&knowledgeGap(h,'cache',id);if(!gap)return false;gap.restored=s.tick;gap.via=from;return true;}

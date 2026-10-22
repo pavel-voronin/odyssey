@@ -48,4 +48,4 @@ export const willCanAct=canAct;export const spendWillAct=stamp;
 
 export function inviteWillWitness(s,p,r,{inTurn=false}={}){const witness=r&&s.people[r.witness];if(!r||r.owner!==p.id||r.status!=='written'||!willCanAct(s,p,inTurn)||!ready(s,witness)||!willNear(s,p,witness)||!at(s,p,r)||!at(s,witness,r)||!diplomaticSpeech(s,p,witness))return false;witness.willWitnessInbox={will:r.id,kind:'attest',asked:s.tick};spendWillAct(s,p);return true;}
 
-export function willBag(s,p){return s.hero.lineage===p.id?s.hero.bag:s.actorStates?.[p.id]?.bag||(p.looseItems ||= []);}
+export function willBag(s,p){return s.hero?.lineage===p.id?s.hero.bag:s.actorStates?.[p.id]?.bag||(p.looseItems ||= []);}

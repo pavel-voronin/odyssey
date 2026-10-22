@@ -20,7 +20,7 @@ function observe(s,p,contacts){
 function warn(s,p,o,contacts,ctx,receipt=null){
  const owner=assetOwner(o),w=contacts.find(c=>c.p.id===owner&&physicalDistance(s.areas[p.area],c.at.x,receipt?o.x:p.x)<=(receipt?12:18));if(!w)return;
  const notes=w.p.assetWarnings ||= [];if(notes.some(n=>receipt?n.receipt===receipt.id:n.mode==='witness'&&n.actor===p.id&&n.object===o.id&&s.tick-n.at<64))return;notes.push({at:s.tick,actor:p.id,area:p.area,object:o.id,mode:receipt?'loss':'witness',...(receipt?{receipt:receipt.id,amount:receipt.amount}:{})});if(notes.length>8)notes.shift();
- const h=s.actorStates?.[owner]||(s.hero.lineage===owner?s.hero:null);if(h)ctx.log(actorView(s,h),receipt?p.name+' забирает еду из оставленного груза: '+receipt.amount+'. Потеря настоящая; оставшиеся припасы и люди сохраняются.':p.name+' осматривает оставленные припасы. Можно перенести груз или позаботиться о настоящей охране.','npc');
+ const h=s.actorStates?.[owner]||(s.hero?.lineage===owner?s.hero:null);if(h)ctx.log(actorView(s,h),receipt?p.name+' забирает еду из оставленного груза: '+receipt.amount+'. Потеря настоящая; оставшиеся припасы и люди сохраняются.':p.name+' осматривает оставленные припасы. Можно перенести груз или позаботиться о настоящей охране.','npc');
 }
 export function assetRaidTurn(s,p,e,ctx,contacts){
  if(!assetRiskOn(s))return false;observe(s,p,contacts);const m=p.assetRaid;if(!m)return false;const n=p.needs,own=carriedFood(p,p.actorLink?.inventory);

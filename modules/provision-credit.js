@@ -9,8 +9,8 @@ import {selfDrivenActor} from '../actor-projection.js';
 import {carriedFood} from './stores.js';
 export const creditEnabled=s=>enabled(s,'provision-credit')&&goodsEnabled(s)&&enabled(s,'supply');
 const active=q=>q&&['requested','offered','accepted','working'].includes(q.status);
-function body(s,p){const h=s.actorStates?.[p.id]||(s.hero.lineage===p.id?s.hero:null);return selfDrivenActor(s,h)?{h,area:h.area,x:h.x,hunger:h.hunger,energy:h.energy,hp:h.hp,max:h.maxHp}:p&&{h:null,area:p.area,x:p.x,hunger:p.needs.hunger,energy:p.needs.energy,hp:p.health,max:p.maxHealth||100};}
-function note(s,p,text,ctx){if(p.id===s.hero.lineage||p.area===s.hero.area)ctx?.log?.(s,text,'trade');}
+function body(s,p){const h=s.actorStates?.[p.id]||(s.hero?.lineage===p.id?s.hero:null);return selfDrivenActor(s,h)?{h,area:h.area,x:h.x,hunger:h.hunger,energy:h.energy,hp:h.hp,max:h.maxHp}:p&&{h:null,area:p.area,x:p.x,hunger:p.needs.hunger,energy:p.needs.energy,hp:p.health,max:p.maxHealth||100};}
+function note(s,p,text,ctx){if(s.hero&&(p.id===s.hero.lineage||p.area===s.hero.area))ctx?.log?.(s,text,'trade');}
 function relations(s,p,q,delta){if(!enabled(s,'relationships'))return;const supplier=s.people[q.supplier];if(!supplier?.alive)return;supplier.agenda.bonds[p.id]=(supplier.agenda.bonds[p.id]||0)+Math.sign(delta);const h=body(s,p)?.h;if(h&&enabled(s,'relationships')){const r=h.relations[supplier.id] ||= {trust:0,met:q.asked,lastSeen:s.tick,helped:0};r.trust=Math.max(-100,Math.min(100,r.trust+delta));r.lastSeen=s.tick;if(delta>0)r.helped++;}return true;}
 function end(s,p,status,reason,ctx){const q=p.provisionCredit;if(!active(q))return;q.status=status;q.reason=reason;q.ended=s.tick;q.after=s.tick+192;if(['failed','fulfilled'].includes(status)){if(relations(s,p,q,status==='fulfilled'?6:-6))q.relationshipApplied=s.tick;}note(s,p,reason,ctx);}
 export function creditStatus(s,p,ctx){const q=p.provisionCredit;if(!creditEnabled(s)||!active(q))return;

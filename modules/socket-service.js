@@ -9,7 +9,7 @@ import {workshopSite,workshopPosition} from './workshop-place.js';
 import {workToolReady} from './workshop-tool-state.js';
 import {productionSources} from './goods.js';
 import {marketWallet} from './market.js';
-const actor=(s,p)=>{const h=s.actorStates?.[p.id]||(s.hero.lineage===p.id?s.hero:null);return selfDrivenActor(s,h)?h:null;};
+const actor=(s,p)=>{const h=s.actorStates?.[p.id]||(s.hero?.lineage===p.id?s.hero:null);return selfDrivenActor(s,h)?h:null;};
 const body=(s,p)=>actor(s,p)||p;
 const energy=(s,p)=>actor(s,p)||p.needs;
 const bag=(s,p)=>packContents(s,p.id).items;

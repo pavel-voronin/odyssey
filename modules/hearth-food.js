@@ -45,7 +45,7 @@ export function batchWorkMatches(s,h,b){
 export function kitchenTick(s,a,ctx=null){
  if(!cookingEnabled(s)||a.home&&!enabled(s,'homes'))return;const b=kitchenBatch(s,a.id);if(!b)return;
  if(!actualHearth(s,a)||!s.people[b.owner]?.alive){finishKitchen(s,a,'abandoned');return;}
- const cook=s.actorStates?.[b.owner]||(s.hero.lineage===b.owner?s.hero:null);
+ const cook=s.actorStates?.[b.owner]||(s.hero?.lineage===b.owner?s.hero:null);
  if(b.status==='preparing'&&(s.people[b.owner].status==='captive'||!batchWorkMatches(s,cook,b))){if(finishKitchen(s,a,'ruined')&&s.hero.area===a.id&&!s.hero.transit)ctx?.log(s,'Готовку пришлось прервать. Травы и добыча испорчены.','food');return;}
  if(b.status==='ready'&&s.tick>=b.expires&&finishKitchen(s,a,'spoiled')&&s.hero.area===a.id&&!s.hero.transit)ctx?.log(s,'Оставленная у очага похлёбка испортилась.','food');
 }

@@ -12,7 +12,7 @@ import {pegPart,fittedPeg,handPart,installedHook} from './prosthetic-state.js';
 
 export const prostheticsOn=s=>enabled(s,'prosthetics')&&enabled(s,'forging')&&enabled(s,'goods-cycle')&&enabled(s,'property');
 const near=(s,a,b)=>a?.area===b?.area&&Number.isFinite(a.x)&&Number.isFinite(b.x)&&physicalDistance(s.areas[a.area],a.x,b.x)<=9;
-const money=(s,p)=>s.hero.lineage===p.id?s.hero.gold:s.actorStates?.[p.id]?.gold??p.agenda.wealth;
+const money=(s,p)=>s.hero?.lineage===p.id?s.hero.gold:s.actorStates?.[p.id]?.gold??p.agenda.wealth;
 const healthy=p=>p?.alive&&p.health>=(p.maxHealth||100)*.75&&!p.needs?.sleeping&&p.needs?.energy>=35&&p.needs.hunger<55&&!p.ailment;
 function siteFor(s,p){const site=p&&ownedWorkshopSite(s,p.area,p.id);if(!site||site.home||site.object.owner!==p.id||site.object.state!=='intact'||site.object.closed||!workToolReady(s,site.object))return null;return near(s,p,workshopPosition(s,site.area,site.object))?site:null;}
 const available=(s,p)=>healthy(p)&&limbWorkAllows(p,'repair')&&p.agenda?.job==='artisan'&&npcController(s,p)==='personal'&&canStartNPCActivity(s,p)&&!p.agenda.task&&!p.forging?.active;
